@@ -3,15 +3,11 @@ import { useState } from 'react'
 import { Botao } from '../../components/shared/Botao'
 import { TelaVazia } from '../../components/shared/EstadoTela'
 import { useSessao } from '../../context/SessaoContext'
-import {
-  ITENS_POR_SINTESE,
-  nomeDaRaridade,
-  TIER_MAXIMO,
-  type Raridade,
-} from '../../game/regrasLoot'
+import { ITENS_POR_SINTESE, nomeDaRaridade, TIER_MAXIMO } from '../../game/regrasLoot'
 import type { ChaveI18n } from '../../lib/i18n'
-import { equiparSkin, iniciarDungeon, sintetizar } from '../../lib/services/itemService'
-import type { GrupoInventario, TipoItem } from '../../lib/tipos'
+import { iniciarDungeon, sintetizar } from '../../lib/services/itemService'
+import type { GrupoInventario } from '../../lib/tipos'
+import { chaveDaRaridade, ROTULO_TIPO } from './rotulos'
 import './PainelMochila.css'
 
 // Mochila: inventário, dungeon e síntese numa tela só.
@@ -22,36 +18,10 @@ import './PainelMochila.css'
 //   · perder a dungeon não tira nada além da chave, e o texto diz isso, porque
 //     o tom nunca é punitivo (`memory/identity.md`).
 
-const ROTULO_TIPO: Record<TipoItem, ChaveI18n> = {
-  arma: 'item.arma',
-  acessorio: 'item.acessorio',
-  skin: 'item.skin',
-  chave: 'item.chave',
-}
-
 const ERRO_SINTESE: Record<string, ChaveI18n> = {
   ITENS_INSUFICIENTES: 'sintese.erro.ITENS_INSUFICIENTES',
   TIER_MAXIMO: 'sintese.erro.TIER_MAXIMO',
   SINTESE_FALHOU: 'sintese.erro.SINTESE_FALHOU',
-}
-
-// Mapa explícito, não template string: assim o TypeScript confere cada chave
-// contra `ChaveI18n`, e o teste de chave órfã enxerga o uso.
-const ROTULO_RARIDADE: Record<Raridade, ChaveI18n> = {
-  comum: 'raridade.comum',
-  incomum: 'raridade.incomum',
-  raro: 'raridade.raro',
-  epico: 'raridade.epico',
-  lendario: 'raridade.lendario',
-  caramelizado: 'raridade.caramelizado',
-  glaceado: 'raridade.glaceado',
-  dourado: 'raridade.dourado',
-  cristalizado: 'raridade.cristalizado',
-  cosmico: 'raridade.cosmico',
-}
-
-function chaveDaRaridade(tier: number): ChaveI18n {
-  return ROTULO_RARIDADE[nomeDaRaridade(tier)]
 }
 
 export function PainelMochila({ aoFechar }: { aoFechar: () => void }) {
@@ -63,24 +33,6 @@ export function PainelMochila({ aoFechar }: { aoFechar: () => void }) {
   const inventario = snapshot?.inventario
   const chaves = inventario?.chaves ?? 0
   const grupos = inventario?.porTipoERaridade ?? []
-  const skins = inventario?.skins ?? []
-
-  async function vestir(itemId: string) {
-    setOcupado(true)
-    setAviso(null)
-    try {
-      // Trocar de skin não altera nenhum número do jogo — o servidor só marca
-      // qual está em uso, e nenhuma função de recompensa consulta esse campo.
-      const resposta = await equiparSkin(itemId)
-      if (resposta.error) {
-        setAviso('sintese.erro.SINTESE_FALHOU')
-        return
-      }
-      if (resposta.data) atualizarSnapshot(resposta.data)
-    } finally {
-      setOcupado(false)
-    }
-  }
 
   async function entrarNaDungeon() {
     setOcupado(true)
@@ -134,29 +86,6 @@ export function PainelMochila({ aoFechar }: { aoFechar: () => void }) {
           <p className="mochila__aviso" role="status">
             {t(aviso)}
           </p>
-        ) : null}
-
-        {skins.length > 0 ? (
-          <>
-            <h3 className="mochila__subtitulo">{t('item.skin')}</h3>
-            <ul className="mochila__lista">
-              {skins.map((skin) => (
-                <li key={skin.id} className="mochila__linha">
-                  <span className={`mochila__tier mochila__tier--${nomeDaRaridade(skin.raridade)}`}>
-                    {t(chaveDaRaridade(skin.raridade))}
-                  </span>
-                  <span className="mochila__tipo">{t('item.skin')}</span>
-                  {skin.equipada ? (
-                    <span className="mochila__quantidade">{t('mochila.equipada')}</span>
-                  ) : (
-                    <Botao onClick={() => void vestir(skin.id)} disabled={ocupado}>
-                      {t('mochila.equipar')}
-                    </Botao>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </>
         ) : null}
 
         <h3 className="mochila__subtitulo">{t('sintese.titulo')}</h3>

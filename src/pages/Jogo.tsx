@@ -8,6 +8,7 @@ import { ModalCadastro } from '../features/cadastro/ModalCadastro'
 import { PainelConfiguracoes } from '../features/configuracoes/PainelConfiguracoes'
 import { PainelDesbloqueio } from '../features/desbloqueio/PainelDesbloqueio'
 import { TelaRetorno } from '../features/farm-offline/TelaRetorno'
+import { PainelEquipamento } from '../features/mochila/PainelEquipamento'
 import { PainelMochila } from '../features/mochila/PainelMochila'
 import { TelaRanking } from '../features/ranking/TelaRanking'
 import { useMotorDeJogo } from '../hooks/useMotorDeJogo'
@@ -28,6 +29,7 @@ type Painel =
   | 'atributos'
   | 'ranking'
   | 'mochila'
+  | 'equipamento'
 
 export function Jogo() {
   const { estado, erro, snapshot, t, idioma, conectar, recarregarEstado } = useSessao()
@@ -147,6 +149,7 @@ export function Jogo() {
           {t('mochila.titulo')}
           {chaves > 0 ? <span className="jogo__selo">{chaves}</span> : null}
         </Botao>
+        <Botao onClick={() => setPainel('equipamento')}>{t('mochila.slot.arma')}</Botao>
         <Botao onClick={() => setPainel('ranking')}>{t('ranking.titulo')}</Botao>
         <Botao variante="discreta" onClick={() => setPainel('configuracoes')}>
           {t('config.titulo')}
@@ -164,6 +167,10 @@ export function Jogo() {
       ) : null}
 
       {painel === 'mochila' ? <PainelMochila aoFechar={() => setPainel('nenhum')} /> : null}
+
+      {painel === 'equipamento' ? (
+        <PainelEquipamento aoFechar={() => setPainel('nenhum')} />
+      ) : null}
 
       {painel === 'ranking' ? (
         <TelaRanking

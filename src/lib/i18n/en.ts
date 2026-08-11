@@ -170,8 +170,31 @@ export const en: Record<ChaveI18n, string> = {
   'mochila.vazia.titulo': 'Nothing in the bag yet',
   'mochila.vazia.mensagem': 'Your hero is farming. The first drop lands soon.',
   'mochila.quantidade': '{quantidade}x',
-  'mochila.equipar': 'Wear this skin',
-  'mochila.equipada': 'Wearing',
+  'mochila.equipar': 'Equip',
+  'mochila.equipada': 'In use',
+  'mochila.poder': 'Attack power: {poder}',
+  'mochila.slot.arma': 'Weapon',
+  'mochila.slot.acessorio1': 'Accessory 1',
+  'mochila.slot.acessorio2': 'Accessory 2',
+  'mochila.slot.skin': 'Skin',
+  'mochila.slot.vazio': 'Empty',
+  'mochila.semStat': 'A skin changes no numbers — it is looks only.',
+
+  // --- Damage type, affinity and sets ---------------------------------------
+  // Set names get their own jokes rather than a word-for-word pass
+  // (core, criterion 14): "Nougat Bruiser" keeps the thug, "Biscuit Knight"
+  // keeps the crunch.
+  'dano.fisico': 'Physical',
+  'dano.magico': 'Magic',
+  'afinidade.combina': 'Matches your weapon (+20%)',
+  'afinidade.naoCombina': 'Does not match your weapon',
+  'conjunto.bruxa-caramelo': 'Caramel Witch Set',
+  'conjunto.cavaleiro-biscoito': 'Biscuit Knight Set',
+  'conjunto.feiticeira-menta': 'Peppermint Sorceress Set',
+  'conjunto.brutamontes-nougat': 'Nougat Bruiser Set',
+  'conjunto.pecas': '{pecas} of 3 pieces',
+  'conjunto.bonus2': '2-piece bonus active',
+  'conjunto.bonus3': 'Full set — complete bonus',
 
   // --- Dungeon --------------------------------------------------------------
   'dungeon.entrar': 'Enter the dungeon',

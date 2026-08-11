@@ -2,14 +2,18 @@
 
 *(estende `specs/dungeons-loot-skins.md` e `specs/equipamento-e-poder.md`)*
 
-**Status: 1 de 2 decisões tomadas.** Pedido registrado por Matheus em 2026-08-11: "sistema de
-fortificação de item por RNG, com pedras específicas que nem DDTank".
+**Status: DECIDIDA — buildável assim que `specs/equipamento-e-poder.md` existir.**
+Pedido registrado por Matheus em 2026-08-11: "sistema de fortificação de item por RNG, com
+pedras específicas que nem DDTank".
 
-**Decisão do dono (2026-08-11):** fortificação **custa ouro**, nunca diamante. Existe uma loja
-que **vende ouro por diamante**. Ver seção 2.1 — a decisão resolve o conflito de compliance,
-mas só sob três condições, e uma delas é de balanceamento, não de código.
+**Decisões do dono (2026-08-11):**
 
-**Ainda em aberto:** falhar rebaixa o item, ou só gasta o material? (seção 2.2)
+1. Fortificação **custa ouro**, nunca diamante; existe uma loja que **vende ouro por diamante**.
+   Ver seção 2.1 — resolve o conflito de compliance, sob três condições, e uma delas é de
+   balanceamento, não de código.
+2. **Falhar só gasta o material** — o item nunca é rebaixado nem destruído. Adotada a Opção A da
+   seção 3, e o princípio "progresso nunca é punido" (`memory/identity.md`) segue valendo sem
+   exceção.
 
 ## 1. Escopo pretendido
 
@@ -67,7 +71,7 @@ falhar — que não é tratado como caixa aleatória. E encaixa direto no crité
 `jogador.moeda` e nunca é gasto. A fortificação passa a ser o primeiro sink de ouro do produto,
 que é exatamente o que faltava para a moeda de farm significar alguma coisa.
 
-### 2.2 Se a falha rebaixar o item, isso contradiz um princípio registrado
+### 2.2 Punição da falha — RESOLVIDO: falha só gasta o material
 
 `memory/identity.md`, Princípios do Produto:
 
@@ -82,7 +86,11 @@ No DDTank, falhar pode derrubar o nível de fortificação — e é justamente e
 sentido à Pedra de Proteção. Trazer a mecânica inteira significa reverter o princípio; trazer só
 metade dela deixa a Pedra de Proteção sem função.
 
-## 3. As duas opções
+**Decisão do dono: falha só gasta o material.** O princípio segue intacto, e a Pedra de Proteção
+é substituída pela Pedra de Garantia — que, em vez de proteger de uma perda que não existe, torna
+a próxima tentativa certa.
+
+## 3. As duas opções *(A foi a escolhida)*
 
 ### Opção A — falha só gasta o material *(recomendada, e assumida nos critérios abaixo)*
 

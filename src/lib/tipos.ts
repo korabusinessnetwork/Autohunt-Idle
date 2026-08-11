@@ -111,17 +111,26 @@ export interface GrupoInventario {
   quantidade: number
 }
 
-export interface SkinPossuida {
+export type SlotEquipamento = 'arma' | 'acessorio1' | 'acessorio2' | 'skin'
+export type TipoDano = 'fisico' | 'magico'
+
+export interface ItemPossuido {
   id: string
+  tipo: TipoItem
   raridade: number
-  equipada: boolean
+  /** Slot ocupado, ou `null` quando está guardado. */
+  slot: SlotEquipamento | null
+  tipoDano: TipoDano | null
+  afinidade: TipoDano | null
+  conjuntoId: string | null
 }
 
 export interface EstadoInventario {
   chaves: number
-  skinEquipada: string | null
-  /** Skins são os únicos itens equipáveis nesta fase, e equipar precisa de id. */
-  skins: SkinPossuida[]
+  /** Poder final do loadout, já com sinergia e conjunto — calculado no servidor. */
+  poderDeAtaque: number
+  loadout: Partial<Record<SlotEquipamento, ItemPossuido>>
+  equipaveis: ItemPossuido[]
   porTipoERaridade: GrupoInventario[]
 }
 

@@ -108,26 +108,34 @@ describe('efeito dos atributos no farm (specs/ranking-global.md, critério 8)', 
     const semAtaque = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, zerados)
     const comAtaque = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, {
       ...zerados,
-      forca: 8,
-      inteligencia: 8,
+      forca: 16,
+      inteligencia: 16,
     })
 
     expect(comAtaque.xp).toBeGreaterThan(semAtaque.xp)
     expect(comAtaque.moeda).toBeGreaterThan(semAtaque.moeda)
   })
 
-  it('Força e Inteligência somam no mesmo termo por enquanto', () => {
-    // A separação entre dano físico e mágico só existe com tipo de dano de
-    // arma (`specs/equipamento-e-poder.md`) — até lá, 16 em Força rende igual
-    // a 8 + 8 divididos.
+  it('sem arma equipada, Força pesa mais que Inteligência', () => {
+    // A separação chegou com `specs/equipamento-e-poder.md`: o atributo que
+    // casa com o tipo de dano conta inteiro, o outro conta pela metade. Sem
+    // arma, o tipo padrão é físico — então Força é o principal.
     const soForca = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, { ...zerados, forca: 16 })
-    const dividido = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, {
+    const soInteligencia = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, {
       ...zerados,
-      forca: 8,
-      inteligencia: 8,
+      inteligencia: 16,
     })
 
-    expect(soForca.xp).toBe(dividido.xp)
+    expect(soForca.xp).toBeGreaterThan(soInteligencia.xp)
+  })
+
+  it('o poder de ataque do loadout substitui a conta por atributo', () => {
+    // Quem tem equipamento não é medido pelos atributos crus: o número que
+    // entra no ciclo é o poder final, já com sinergia e conjunto aplicados.
+    const semEquipamento = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, zerados)
+    const comEquipamento = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, zerados, 64)
+
+    expect(comEquipamento.xp).toBeGreaterThan(semEquipamento.xp)
   })
 
   it('Sorte ainda não tem efeito, e isso é declarado', () => {

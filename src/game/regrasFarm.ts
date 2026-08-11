@@ -11,6 +11,7 @@
 // testado sozinho e serve de documentação executável da regra do SQL.
 
 import { atributosZerados, type Atributos } from './regrasAtributos'
+import { calcularPoderDeAtaque, loadoutVazio } from './regrasEquipamento'
 
 /** Duração de um ciclo de farm, em segundos. Espelha `c_ciclo_segundos`. */
 export const CICLO_SEGUNDOS = 15
@@ -75,15 +76,13 @@ export function vitalidadeMaxima(nivel: number, vitalidade = 0): number {
 /**
  * Abates por ciclo.
  *
- * Força e Inteligência somam no mesmo termo por enquanto: a separação entre
- * dano físico e mágico só existe quando houver tipo de dano de arma
- * (`specs/equipamento-e-poder.md`), e inventar a divisão antes disso seria
- * decidir por uma spec que ainda não foi construída.
+ * O poder de ataque vem do loadout (`regrasEquipamento.ts`), que já pondera
+ * atributo pelo tipo de dano da arma, aplica sinergia de afinidade e o bônus de
+ * conjunto. Aqui só entra o número final: o cálculo de recompensa não conhece
+ * item, e por isso também não conhece skin.
  */
-export function abatesPorCiclo(nivel: number, forca = 0, inteligencia = 0): number {
-  return (
-    ABATES_BASE + Math.floor(nivel / 10) + Math.floor((forca + inteligencia) / ATAQUE_POR_ABATE)
-  )
+export function abatesPorCiclo(nivel: number, poderDeAtaque = 0): number {
+  return ABATES_BASE + Math.floor(nivel / 10) + Math.floor(poderDeAtaque / ATAQUE_POR_ABATE)
 }
 
 export function xpPorAbate(nivel: number): number {
@@ -118,9 +117,13 @@ export function resolverCiclos(
   ciclos: number,
   multiplicadorXp: number,
   atributos: Atributos = atributosZerados(),
+  poderDeAtaque?: number,
 ): ResultadoCiclos {
   const vitMax = vitalidadeMaxima(nivel, atributos.vitalidade)
-  const abates = abatesPorCiclo(nivel, atributos.forca, atributos.inteligencia)
+  const abates = abatesPorCiclo(
+    nivel,
+    poderDeAtaque ?? calcularPoderDeAtaque(loadoutVazio(), atributos).total,
+  )
   const xpAbate = xpPorAbate(nivel)
   const moedaAbate = moedaPorAbate(nivel)
   const dano = danoPorCiclo(nivel)

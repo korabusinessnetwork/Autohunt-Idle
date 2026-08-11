@@ -1,0 +1,144 @@
+.equip {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--espaco-3);
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--cor-texto) 55%, transparent);
+  z-index: 25;
+}
+
+.equip__cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  width: min(30rem, 100%);
+  max-height: 90dvh;
+  padding: var(--espaco-4);
+  overflow-y: auto;
+  background: var(--cor-fundo);
+  border: var(--borda);
+  border-radius: var(--raio);
+}
+
+.equip__titulo {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.equip__conjunto,
+.equip__aviso {
+  margin: 0;
+  padding: var(--espaco-2);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  background: color-mix(in srgb, var(--cor-secundaria) 25%, transparent);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+}
+
+.equip__slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  gap: var(--espaco-2);
+}
+
+.equip__slot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+  padding: var(--espaco-2);
+  font: inherit;
+  text-align: start;
+  color: var(--cor-texto);
+  background: transparent;
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+  cursor: pointer;
+}
+
+.equip__slot--ativo {
+  background: var(--cor-secundaria);
+}
+
+.equip__slot-nome {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.75;
+}
+
+.equip__slot-item {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.equip__lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.equip__linha {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--espaco-2);
+  align-items: center;
+  padding: var(--espaco-2);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+}
+
+.equip__descricao {
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.equip__emUso {
+  font-size: 0.8rem;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+/* Bolinha de tier — mesma linguagem de cor da mochila. */
+.equip__tier {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--cor-texto);
+  border-radius: 50%;
+}
+
+.equip__tier--comum {
+  background: color-mix(in srgb, var(--cor-texto) 12%, transparent);
+}
+.equip__tier--incomum {
+  background: var(--cor-positivo);
+}
+.equip__tier--raro {
+  background: var(--cor-secundaria);
+}
+.equip__tier--epico {
+  background: var(--cor-primaria);
+}
+.equip__tier--lendario {
+  background: var(--cor-recompensa);
+}
+.equip__tier--caramelizado {
+  background: color-mix(in srgb, var(--cor-recompensa) 70%, var(--cor-bloqueado));
+}
+.equip__tier--glaceado {
+  background: color-mix(in srgb, var(--cor-secundaria) 55%, var(--cor-fundo));
+}
+.equip__tier--dourado {
+  background: color-mix(in srgb, var(--cor-recompensa) 85%, var(--cor-texto));
+}
+.equip__tier--cristalizado {
+  background: color-mix(in srgb, var(--cor-secundaria) 65%, var(--cor-primaria));
+}
+.equip__tier--cosmico {
+  background: color-mix(in srgb, var(--cor-primaria) 60%, var(--cor-secundaria));
+}
