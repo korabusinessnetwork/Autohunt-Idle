@@ -1,0 +1,46 @@
+.desbloqueio {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--espaco-3);
+  background: color-mix(in srgb, var(--cor-texto) 55%, transparent);
+  z-index: 25;
+}
+
+.desbloqueio__cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  width: min(24rem, 100%);
+  padding: var(--espaco-4);
+  text-align: center;
+  background: var(--cor-fundo);
+  border: var(--borda);
+  border-radius: var(--raio);
+}
+
+.desbloqueio__titulo {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.desbloqueio__saldo {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--cor-positivo);
+}
+
+.desbloqueio__restante,
+.desbloqueio__motivo {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+
+.desbloqueio__motivo--alerta {
+  color: var(--cor-bloqueado);
+  opacity: 1;
+}

@@ -1,0 +1,78 @@
+.retorno {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--espaco-3);
+  background: color-mix(in srgb, var(--cor-texto) 55%, transparent);
+  z-index: 20;
+}
+
+.retorno__cartao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--espaco-3);
+  width: min(26rem, 100%);
+  padding: var(--espaco-4);
+  text-align: center;
+  background: var(--cor-fundo);
+  border: var(--borda);
+  border-radius: var(--raio);
+}
+
+.retorno__titulo {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.retorno__tempo {
+  margin: 0;
+  opacity: 0.85;
+}
+
+.retorno__ganhos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+}
+
+/* O número é a informação principal — precisa ser lido de relance. */
+.retorno__ganho {
+  font-size: 2.25rem;
+  line-height: 1.1;
+}
+
+.retorno__ganho--xp {
+  color: var(--cor-positivo);
+}
+
+.retorno__ganho--moeda {
+  font-size: 1.5rem;
+  color: var(--cor-recompensa);
+}
+
+.retorno__rendido {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.retorno__vazio {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+}
+
+.retorno__vazio-titulo {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.retorno__vazio-mensagem,
+.retorno__motivo {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  opacity: 0.85;
+}

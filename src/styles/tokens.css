@@ -1,0 +1,30 @@
+/*
+ * Tokens visuais — fonte única da paleta (docs/02_DESIGN_SYSTEM/README.md).
+ *
+ * Nenhum hex solto existe fora deste arquivo, nem no CSS nem no canvas: o
+ * renderizador lê estes mesmos custom properties em runtime (src/game/paleta.ts),
+ * então mudar uma cor aqui muda o jogo inteiro.
+ *
+ * Autohunt Idle é single-tenant (ADR-002) — os tokens são fixos, sem
+ * parametrização por cliente.
+ */
+:root {
+  --cor-primaria: #ff5fa2;    /* rosa chiclete — personagem, destaque   */
+  --cor-secundaria: #3fe0d0;  /* ciano — cenário, elementos secundários */
+  --cor-recompensa: #ffc93c;  /* amarelo-sol — moeda, XP                */
+  --cor-positivo: #8ce05a;    /* verde-limão — ganho positivo           */
+  --cor-bloqueado: #ff6b6b;   /* coral — bloqueado, precisa assinar     */
+  --cor-fundo: #fff8ed;       /* creme claro — fundo/base               */
+  --cor-texto: #4a2e3d;       /* ameixa escura — texto e contornos      */
+
+  --espaco-1: 0.25rem;
+  --espaco-2: 0.5rem;
+  --espaco-3: 1rem;
+  --espaco-4: 1.5rem;
+  --espaco-5: 2.5rem;
+
+  --raio: 0.75rem;
+  --borda: 3px solid var(--cor-texto);
+  --duracao-rapida: 140ms;
+  --duracao-media: 320ms;
+}

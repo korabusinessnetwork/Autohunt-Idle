@@ -1,0 +1,54 @@
+.botao {
+  font: inherit;
+  font-weight: 700;
+  padding: var(--espaco-2) var(--espaco-4);
+  border: var(--borda);
+  border-radius: var(--raio);
+  color: var(--cor-texto);
+  cursor: pointer;
+  transition: transform var(--duracao-rapida) ease, filter var(--duracao-rapida) ease;
+}
+
+.botao:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.botao:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.botao:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+  opacity: 0.7;
+}
+
+.botao:focus-visible {
+  outline: 3px solid var(--cor-texto);
+  outline-offset: 3px;
+}
+
+.botao--primaria {
+  background: var(--cor-primaria);
+}
+
+.botao--recompensa {
+  background: var(--cor-recompensa);
+}
+
+.botao--discreta {
+  background: transparent;
+  border-color: transparent;
+  text-decoration: underline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .botao {
+    transition: none;
+  }
+
+  .botao:hover:not(:disabled),
+  .botao:active:not(:disabled) {
+    transform: none;
+  }
+}

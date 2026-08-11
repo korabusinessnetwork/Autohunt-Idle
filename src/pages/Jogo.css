@@ -1,0 +1,112 @@
+.jogo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  min-height: 100dvh;
+  padding: var(--espaco-3);
+}
+
+.jogo__hud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espaco-4);
+  padding: var(--espaco-3);
+  background: var(--cor-fundo);
+  border: var(--borda);
+  border-radius: var(--raio);
+}
+
+.jogo__bloco {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+  min-width: 8rem;
+}
+
+.jogo__bloco--fim {
+  margin-inline-start: auto;
+  align-items: flex-end;
+}
+
+.jogo__rotulo {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.75;
+}
+
+.jogo__valor {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.jogo__valor--moeda {
+  color: var(--cor-recompensa);
+  -webkit-text-stroke: 1px var(--cor-texto);
+}
+
+.jogo__detalhe {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.jogo__barra {
+  width: 100%;
+  height: 0.6rem;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--cor-texto) 15%, transparent);
+  border: 2px solid var(--cor-texto);
+  border-radius: 999px;
+}
+
+.jogo__barra-preenchida {
+  height: 100%;
+  background: var(--cor-secundaria);
+  transition: width var(--duracao-media) ease;
+}
+
+.jogo__barra--vida .jogo__barra-preenchida {
+  background: var(--cor-positivo);
+}
+
+.jogo__palco {
+  position: relative;
+  flex: 1;
+  min-height: 20rem;
+  overflow: hidden;
+  border: var(--borda);
+  border-radius: var(--raio);
+}
+
+.jogo__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.jogo__aovivo {
+  position: absolute;
+  inset-block-start: var(--espaco-2);
+  inset-inline-start: var(--espaco-2);
+  padding: var(--espaco-1) var(--espaco-2);
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--cor-fundo);
+  border: 2px solid var(--cor-texto);
+  border-radius: 999px;
+}
+
+.jogo__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+  align-items: center;
+  justify-content: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jogo__barra-preenchida {
+    transition: none;
+  }
+}

@@ -1,0 +1,69 @@
+.cadastro {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--espaco-3);
+  background: color-mix(in srgb, var(--cor-texto) 55%, transparent);
+  z-index: 30;
+}
+
+.cadastro__cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  width: min(24rem, 100%);
+  padding: var(--espaco-4);
+  background: var(--cor-fundo);
+  border: var(--borda);
+  border-radius: var(--raio);
+}
+
+.cadastro__titulo {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.cadastro__explicacao,
+.cadastro__aviso {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+
+.cadastro__aviso {
+  font-weight: 700;
+  opacity: 1;
+}
+
+.cadastro__campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.cadastro__campo input {
+  font: inherit;
+  font-weight: 400;
+  padding: var(--espaco-2);
+  color: var(--cor-texto);
+  background: #fff;
+  border: var(--borda);
+  border-radius: var(--raio);
+}
+
+.cadastro__erro {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--cor-bloqueado);
+}
+
+.cadastro__acoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+}

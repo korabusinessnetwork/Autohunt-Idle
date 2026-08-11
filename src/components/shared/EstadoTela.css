@@ -1,0 +1,55 @@
+.estado-tela {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espaco-3);
+  min-height: 60vh;
+  padding: var(--espaco-4);
+  text-align: center;
+}
+
+.estado-tela__titulo {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.estado-tela__mensagem {
+  margin: 0;
+  max-width: 34rem;
+  line-height: 1.5;
+}
+
+.estado-tela__detalhe {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  word-break: break-word;
+}
+
+.estado-tela__pulso {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: var(--cor-primaria);
+  border: var(--borda);
+  animation: estado-pulso 900ms ease-in-out infinite alternate;
+}
+
+.estado-tela--erro .estado-tela__titulo {
+  color: var(--cor-bloqueado);
+}
+
+@keyframes estado-pulso {
+  from {
+    transform: scale(0.75);
+  }
+  to {
+    transform: scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .estado-tela__pulso {
+    animation: none;
+  }
+}

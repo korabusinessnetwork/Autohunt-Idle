@@ -1,1 +1,12 @@
--- Fonte de verdade do banco. RLS obrigatório em toda tabela (multi-tenant).
+-- Este arquivo não é mais a fonte de verdade do banco.
+--
+-- O schema vive em `supabase/migrations/`, aplicado em ordem cronológica
+-- (`YYYYMMDD_descricao.sql`, ver `docs/01_ARQUITETURA/padroes.md`):
+--
+--   20260811_fundacao_jogador_farm.sql  tabelas, RLS, GRANTs e gate de idade
+--   20260811_rpc_farm_e_sessao.sql      RPCs SECURITY DEFINER de sessão e farm
+--
+-- Nota: o comentário original deste arquivo dizia "RLS obrigatório em toda
+-- tabela (multi-tenant)". A primeira metade vale; a segunda não — Autohunt
+-- Idle é single-tenant por decisão explícita e o isolamento é por
+-- `player_id`/`user_id`, nunca por `tenant_id` (ADR-002).

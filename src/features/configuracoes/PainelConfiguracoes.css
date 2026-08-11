@@ -1,0 +1,47 @@
+.config {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--espaco-3);
+  background: color-mix(in srgb, var(--cor-texto) 55%, transparent);
+  z-index: 25;
+}
+
+.config__cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  width: min(20rem, 100%);
+  padding: var(--espaco-4);
+  background: var(--cor-fundo);
+  border: var(--borda);
+  border-radius: var(--raio);
+}
+
+.config__titulo {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.config__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  margin: 0;
+  padding: var(--espaco-3);
+  border: var(--borda);
+  border-radius: var(--raio);
+}
+
+.config__grupo legend {
+  padding: 0 var(--espaco-1);
+  font-weight: 700;
+}
+
+.config__opcao {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  cursor: pointer;
+}
