@@ -93,6 +93,23 @@ export async function cadastrar(dados: DadosCadastro): Promise<Envelope<Sessao>>
   return ok({ userId: data.user?.id ?? usuarioAnonimo.id, temCadastro: true })
 }
 
+/**
+ * Grava o idioma escolhido no perfil.
+ *
+ * Fire-and-forget: preferência de idioma não pode bloquear nem derrubar o
+ * jogo se a rede falhar — o `localStorage` já segurou a escolha localmente.
+ */
+export async function registrarIdioma(idioma: 'pt' | 'en'): Promise<Envelope<null>> {
+  const supabase = obterSupabase()
+  const { data } = await supabase.auth.getSession()
+  const userId = data.session?.user?.id
+  if (!userId) return falha<null>('SEM_SESSAO', 'Nenhuma sessão em curso.')
+
+  const { error } = await supabase.from('jogador').update({ idioma }).eq('id', userId)
+  if (error) return deErroSupabase<null>(error, 'IDIOMA_NAO_SALVO')
+  return ok(null)
+}
+
 export async function sair(): Promise<Envelope<null>> {
   const { error } = await obterSupabase().auth.signOut()
   if (error) return deErroSupabase<null>(error, 'LOGOUT_FALHOU')

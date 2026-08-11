@@ -17,6 +17,10 @@
   --cor-fundo: #fff8ed;       /* creme claro — fundo/base               */
   --cor-texto: #4a2e3d;       /* ameixa escura — texto e contornos      */
 
+  /* Superfície de campo editável. Não faz parte das 7 cores da marca — existe
+     para que nenhum componente precise escrever um hex solto. */
+  --cor-campo: #ffffff;
+
   --espaco-1: 0.25rem;
   --espaco-2: 0.5rem;
   --espaco-3: 1rem;

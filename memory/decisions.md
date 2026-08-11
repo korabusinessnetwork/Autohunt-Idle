@@ -63,8 +63,9 @@ Architecture Decision Record (ADR) é um documento que captura uma escolha arqui
 
 | ID | Título | Status | Data | Supersede/Supersedido por |
 |---|---|---|---|---|
-| ADR-001 | {{TITULO_PRIMEIRO_ADR}} | Accepted | {{DATA}} | — |
-| ADR-001 (exemplo real) | Stack Inicial: React + Supabase + Vercel | Accepted | 2024-01-15 | — |
+| ADR-001 | Stack: React + Vite + Supabase + Vercel, sem VPS | Accepted | 2026-08-10 | — |
+| ADR-002 | Single-tenant: desvio do padrão multi-tenant/white-label da Kora | Accepted | 2026-08-10 | — |
+| ADR-003 | Renderização em Canvas 2D, i18n próprio e Vitest | Accepted | 2026-08-11 | Ajusta pontos em aberto de `docs/01_ARQUITETURA/tech-stack.md` |
 
 ## Regra Principal
 

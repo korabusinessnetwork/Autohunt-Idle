@@ -16,7 +16,17 @@ export interface Renderizador {
   destruir(): void
 }
 
-export function criarRenderizadorCanvas(canvas: HTMLCanvasElement): Renderizador {
+/**
+ * Tradutor dos nomes de inimigo. Passado de fora porque o motor não conhece
+ * idioma — e porque nome de inimigo é texto de jogo, então nasce nas duas
+ * línguas como qualquer outro (core, 13 e 14).
+ */
+export type NomeDeInimigo = (chave: EstadoMundo['inimigos'][number]['especie']['nome']) => string
+
+export function criarRenderizadorCanvas(
+  canvas: HTMLCanvasElement,
+  nomeDeInimigo: NomeDeInimigo,
+): Renderizador {
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('CANVAS_2D_INDISPONIVEL')
 
@@ -54,6 +64,21 @@ export function criarRenderizadorCanvas(canvas: HTMLCanvasElement): Renderizador
 
       for (const projetil of estado.projeteis) {
         desenharProjetil(ctx, projetil.x, projetil.y, paleta)
+      }
+
+      // Nome do alvo atual — é o que faz "Minhoca Azeda" / "Glum Worm"
+      // realmente aparecer para o jogador, em vez de existir só no dicionário.
+      const alvo = estado.inimigos.find((i) => i.id === estado.alvoId)
+      if (alvo) {
+        ctx.font = '700 11px system-ui, sans-serif'
+        ctx.textAlign = 'center'
+        ctx.lineWidth = 3
+        ctx.strokeStyle = paleta['--cor-fundo']
+        ctx.fillStyle = paleta['--cor-texto']
+        const rotulo = nomeDeInimigo(alvo.especie.nome)
+        const y = alvo.y + alvo.especie.raio + 15
+        ctx.strokeText(rotulo, alvo.x, y)
+        ctx.fillText(rotulo, alvo.x, y)
       }
 
       // Pisca no reinício de ciclo — sinal visual de que o servidor reportou

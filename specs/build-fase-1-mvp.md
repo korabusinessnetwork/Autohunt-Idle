@@ -192,3 +192,89 @@ Os 28 critérios acima marcados como **sim**, com evidência em arquivo/linha; `
 `npm run build` verdes; nenhum `console.log` esquecido; nenhum `TODO` sem justificativa escrita;
 nenhum segredo hardcodado; e a prova central do produto — **não existe caminho pelo qual o client
 declare quanto ganhou**, nem ao vivo nem offline — verificável lendo as assinaturas das RPCs.
+
+---
+
+# Resultado da review — 2026-08-11
+
+`npm test`: **52 passando**. `npm run build`: **verde** (`tsc --noEmit` + `vite build`).
+
+## Auditoria dos 28 critérios
+
+| # | Veredito | Evidência |
+|---|---|---|
+| 1 | sim | `src/game/mundo.ts:avancarMundo` move e atira sozinho; `grep addEventListener src/game` não retorna nada — nenhum input alimenta o combate |
+| 2 | sim | `src/game/motor.ts` dispara `aoValidarLote` a cada `INTERVALO_LOTE_MS` (15 s); `src/lib/services/farmService.test.ts` prova que o payload é `{}` e não contém campo de tempo ou recompensa |
+| 3 | sim | `resolver_ciclos` no SQL e o espelho em `regrasFarm.ts` descartam só o ciclo corrente; teste "perde SÓ o ciclo em que a Vitalidade zera" |
+| 4 | sim | `SessaoContext` trata `visibilitychange`/`pagehide`; a regra real é `last_seen_at` parar de avançar, então matar o navegador dá o mesmo resultado |
+| 5 | sim | `contratoRpc.test.ts` reprova qualquer função concedida a `authenticated` que tenha parâmetro |
+| 6 | sim | `c_teto_assinante_min = 1440` em `iniciar_sessao` |
+| 7 | sim | `v_multiplicador` aplicado dentro de `resolver_ciclos`, no SQL; teste confirma que dobra XP e **não** dobra moeda |
+| 8 | sim | `farm_state.minutos_anuncio_saldo` nasce 0; `tetoOfflineMinutos(false, 0) === 0` |
+| 9 | sim | `emitir_ticket_anuncio` emite 15 min; `creditar_anuncio` limita a 120/dia |
+| 10 | sim | reset por `now() - janela_anuncio_iniciada_em >= interval '24 hours'`, no servidor |
+| 11 | sim | `iniciar_sessao` só zera o pendente quando `expira_em <= now()`; `'cancelada'` segue valendo até lá |
+| 12 | sim | `select ... for update` antes de qualquer cálculo; crédito e avanço de `last_seen_at` na mesma instrução |
+| 13 | sim | `bigint` no schema, curva `50·(n-1)·n`, teste com nível 1.000.000; `grep` não acha constante de nível máximo |
+| 14 | sim | `revoke execute on function public.creditar_anuncio(uuid) from public, anon, authenticated` — verificado por teste |
+| 15 | sim | resgate atômico via `update ... where resgatado_em is null`; callback com status ≠ `concluido` não credita |
+| 16 | sim | `PainelDesbloqueio.motivoIndisponibilidade` desabilita o botão com o motivo antes de qualquer anúncio |
+| 17 | sim | `garantirSessao` chama `signInAnonymously` na inicialização; não há tela de boas-vindas nem escolha |
+| 18 | sim | `authService.cadastrar` usa `auth.updateUser`, mantendo o mesmo `user.id` |
+| 19 | sim | trigger `validar_idade_minima` no banco, além da validação de formulário; 9 testes em `idade.test.ts` |
+| 20 | sim | RLS + policy em todas as 5 tabelas (verificado por teste); `GRANT` de coluna impede o jogador de escrever progressão; nenhum hex/segredo hardcodado |
+| 21 | sim | `TelaRetorno` tem o caminho com ganho e o caminho "não foi salvo", cada um com o texto do motivo |
+| 22 | sim | os números saem do bloco `retorno` montado no servidor; não há `Date` em `features/farm-offline/` nem em `utils/formato.ts` |
+| 23 | sim | `en` é `Record<ChaveI18n, string>` — chave faltando quebra o build; detecção + troca manual persistida |
+| 24 | sim | Cone Head / Glum Worm / Sir Glazealot / Sucker Punch / Flanpathy / The Fluffwoods, com teste que reprova a tradução literal |
+| 25 | sim | só Postgres + RPC + Edge Function; nenhum worker ou processo persistente |
+| 26 | sim | `src/styles/tokens.css` é a única fonte; o canvas lê os tokens em runtime (`src/game/paleta.ts`); `grep` de hex fora do arquivo não retorna nada |
+| 27 | sim | 52 testes verdes, build verde; inclui o teste de relógio adiantado em 30 dias |
+| 28 | sim | `EstadoTela` concentra carregando/erro/vazio; a tela de retorno tem estado vazio próprio |
+
+## Corrigido durante a review (8 achados)
+
+1. **Trocar de aba remontava o jogo inteiro.** `conectar()` voltava para `carregando` a cada
+   retorno de visibilidade, destruindo e recriando o motor. Agora o resync não mexe no estado
+   de tela.
+2. **`subscriptionService` decidia assinatura pelo relógio do client** (`Date.now()`) — a mesma
+   classe de erro que a regra do farm offline proíbe. A função foi removida: quem responde isso
+   é o servidor, no snapshot.
+3. **Data de nascimento era regravável.** O jogador tem `UPDATE` na coluna, então o gate de 18+
+   era reversível com um clique. Agora um trigger a torna imutável depois de informada.
+4. **Cadastro poderia ser pedido de novo a quem já cadastrou.** Com confirmação de e-mail
+   ligada, `auth.users.email` fica vazio até o clique no link. Entrou `identidadeVerificada`,
+   que exige gate de idade **e** credenciais criadas (confirmadas ou pendentes).
+5. **Hex solto** (`#fff`) em `ModalCadastro.css`, furando a regra de fonte única da paleta.
+6. **`jogador.idioma` era coluna morta** — a troca de idioma só ia para o `localStorage`,
+   embora seja o campo que decide o gateway de pagamento do jogador.
+7. **Duas chaves de tradução mortas** (`hud.validando`, `cadastro.sucesso`) e um botão rotulado
+   "Assistir anúncio" que na verdade abria o painel de desbloqueio.
+8. **Os nomes bilíngues de inimigo não apareciam em lugar nenhum** — existiam nos dois
+   dicionários e nunca chegavam à tela. Agora o nome do alvo é desenhado no canvas.
+
+Três testes novos foram acrescentados para que esses achados não voltem: imutabilidade da data
+de nascimento, ausência de chave de tradução órfã, e o mapa explícito de códigos de erro do
+cadastro.
+
+## Precisa da sua decisão (não corrigido de propósito)
+
+Nenhum destes é bug: são escolhas de produto ou de negócio, registradas em
+`docs/09_BACKLOG/README.md` com o detalhe completo.
+
+1. **Confirmação de e-mail no Supabase Auth** — exigir (mais seguro) ou dispensar (menos
+   fricção, mais alinhado ao Princípio nº1)?
+2. **Provedor de anúncio** — sem ele, **não-assinante não tem nenhuma forma de farm offline**.
+   Depende da escolha de canal, que segue em aberto.
+3. **Gateway de pagamento** — sem conta contratada, não existe assinante, e os critérios 6 e 7
+   acima nunca são exercidos por um jogador de verdade.
+4. **Poki bloqueia chamada ao Supabase?** — `memory/restrictions.md` mandava confirmar **antes
+   do build** e isso não aconteceu. Se bloquear, a arquitetura SPA + BaaS não cabe naquele
+   canal. É a pendência de maior impacto.
+
+## Ressalva que não é decisão sua, é limite do ambiente
+
+As migrations foram **auditadas estruturalmente** (`src/lib/contratoRpc.test.ts` lê o SQL e
+reprova RPC exposta com parâmetro, tabela sem RLS e `tenant_id`), mas **não foram executadas**:
+não há Postgres nesta máquina. Aplicá-las num projeto Supabase e repetir os testes manuais da
+seção 7 é pré-requisito de qualquer deploy — registrado como D1 no backlog.

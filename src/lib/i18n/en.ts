@@ -27,7 +27,7 @@ export const en: Record<ChaveI18n, string> = {
   'hud.vitalidade': 'Vitality',
   'hud.xpParaProximo': '{atual} / {alvo} XP',
   'hud.aoVivo': 'Farming live',
-  'hud.validando': 'Saving progress…',
+  'hud.ativarOffline': 'Earn with the game closed',
 
   // --- Welcome back screen --------------------------------------------------
   'retorno.titulo': 'While you were out',
@@ -89,7 +89,6 @@ export const en: Record<ChaveI18n, string> = {
   'cadastro.erro.SENHA_CURTA': 'Your password needs at least 8 characters.',
   'cadastro.erro.EMAIL_EM_USO': 'That email already has an account. Your progress here is untouched.',
   'cadastro.erro.CADASTRO_FALHOU': "Couldn't create the login right now. Try again?",
-  'cadastro.sucesso': 'Done — your progress now keeps going with the game closed.',
 
   // --- Settings -------------------------------------------------------------
   'config.titulo': 'Settings',

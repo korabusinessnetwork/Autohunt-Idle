@@ -162,6 +162,16 @@ returns trigger
 language plpgsql
 as $$
 begin
+  -- Data de nascimento é imutável depois de informada. Sem isto, o jogador
+  -- teria UPDATE na própria coluna e poderia reescrevê-la à vontade — o gate
+  -- viraria uma formalidade de um clique só.
+  if tg_op = 'UPDATE'
+     and old.data_nascimento is not null
+     and new.data_nascimento is distinct from old.data_nascimento then
+    raise exception 'DATA_NASCIMENTO_IMUTAVEL'
+      using hint = 'A data de nascimento não pode ser alterada depois de informada.';
+  end if;
+
   if new.data_nascimento is not null then
     if new.data_nascimento > current_date then
       raise exception 'DATA_NASCIMENTO_INVALIDA'

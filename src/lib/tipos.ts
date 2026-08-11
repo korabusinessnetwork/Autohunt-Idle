@@ -24,6 +24,13 @@ export interface EstadoJogador {
   idioma: 'pt' | 'en'
   /** Se a conta anônima já ganhou e-mail/senha (core, 18). */
   temCadastro: boolean
+  /**
+   * Se o jogador já passou pelo cadastro e pelo gate de idade. Separado de
+   * `temCadastro` porque, com confirmação de e-mail ligada, `auth.users.email`
+   * só aparece depois do clique no link — e o modal não pode reaparecer para
+   * quem já cadastrou.
+   */
+  identidadeVerificada: boolean
 }
 
 export interface EstadoFarm {

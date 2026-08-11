@@ -15,23 +15,21 @@ import './ModalCadastro.css'
 // ACRESCENTADAS à conta anônima que já existe. Não há migração de progresso
 // porque nunca houve progresso fora dessa conta.
 
-const ERROS_CONHECIDOS = [
-  'IDADE_MINIMA_NAO_ATINGIDA',
-  'DATA_NASCIMENTO_INVALIDA',
-  'DATA_NASCIMENTO_OBRIGATORIA',
-  'EMAIL_INVALIDO',
-  'SENHA_CURTA',
-  'EMAIL_EM_USO',
-  'CADASTRO_FALHOU',
-] as const
-
-type ErroConhecido = (typeof ERROS_CONHECIDOS)[number]
+// Mapa explícito, não template string: assim o TypeScript confere cada chave
+// contra `ChaveI18n`, e um código de erro sem tradução não passa despercebido.
+const CHAVE_DO_ERRO: Record<string, ChaveI18n> = {
+  IDADE_MINIMA_NAO_ATINGIDA: 'cadastro.erro.IDADE_MINIMA_NAO_ATINGIDA',
+  DATA_NASCIMENTO_INVALIDA: 'cadastro.erro.DATA_NASCIMENTO_INVALIDA',
+  DATA_NASCIMENTO_IMUTAVEL: 'cadastro.erro.DATA_NASCIMENTO_INVALIDA',
+  DATA_NASCIMENTO_OBRIGATORIA: 'cadastro.erro.DATA_NASCIMENTO_OBRIGATORIA',
+  EMAIL_INVALIDO: 'cadastro.erro.EMAIL_INVALIDO',
+  SENHA_CURTA: 'cadastro.erro.SENHA_CURTA',
+  EMAIL_EM_USO: 'cadastro.erro.EMAIL_EM_USO',
+  CADASTRO_FALHOU: 'cadastro.erro.CADASTRO_FALHOU',
+}
 
 function chaveDoErro(codigo: string): ChaveI18n {
-  const conhecido = (ERROS_CONHECIDOS as readonly string[]).includes(codigo)
-    ? (codigo as ErroConhecido)
-    : 'CADASTRO_FALHOU'
-  return `cadastro.erro.${conhecido}` as ChaveI18n
+  return CHAVE_DO_ERRO[codigo] ?? 'cadastro.erro.CADASTRO_FALHOU'
 }
 
 interface Props {

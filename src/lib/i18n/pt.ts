@@ -22,7 +22,7 @@ export const pt = {
   'hud.vitalidade': 'Vitalidade',
   'hud.xpParaProximo': '{atual} / {alvo} XP',
   'hud.aoVivo': 'Farmando ao vivo',
-  'hud.validando': 'Salvando progresso…',
+  'hud.ativarOffline': 'Render com o jogo fechado',
 
   // --- Tela de retorno ----------------------------------------------------
   'retorno.titulo': 'Enquanto você tava fora',
@@ -85,7 +85,6 @@ export const pt = {
   'cadastro.erro.SENHA_CURTA': 'A senha precisa de pelo menos 8 caracteres.',
   'cadastro.erro.EMAIL_EM_USO': 'Esse e-mail já tem conta. Seu progresso aqui continua intacto.',
   'cadastro.erro.CADASTRO_FALHOU': 'Não deu pra criar o acesso agora. Tenta de novo?',
-  'cadastro.sucesso': 'Pronto — agora seu progresso continua com o jogo fechado.',
 
   // --- Configurações ------------------------------------------------------
   'config.titulo': 'Configurações',

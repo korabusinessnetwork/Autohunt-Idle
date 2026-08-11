@@ -1,51 +1,29 @@
 // Camada de serviço — assinatura.
 //
-// Leitura só: o estado de assinatura é escrito exclusivamente pelo webhook do
-// gateway (`supabase/functions/assinatura-webhook/`), com a `service_role`. A
-// RPC `aplicar_evento_assinatura` tem EXECUTE revogado de `authenticated`, então
-// o jogador não consegue se declarar assinante.
+// Este arquivo NÃO tem uma função "estado da assinatura". É deliberado: quem
+// diz se a assinatura está valendo é o servidor, no bloco `assinatura` do
+// snapshot (`montar_snapshot`), comparando `expira_em` com o `now()` do
+// Postgres. Uma versão client-side dessa checagem usaria `Date.now()`, ou
+// seja, o relógio da máquina do jogador — exatamente o que a regra do produto
+// proíbe para o cálculo offline, e não há motivo para abrir exceção justamente
+// no campo que decide quem tem 24h de farm por dia.
+//
+// A escrita é exclusividade do webhook do gateway
+// (`supabase/functions/assinatura-webhook/`), com a `service_role`: a RPC
+// `aplicar_evento_assinatura` tem EXECUTE revogado de `authenticated`, então o
+// jogador não consegue se declarar assinante.
 //
 // Fase 1: nenhum gateway contratado (`memory/restrictions.md` adia item pago
 // por padrão até decisão do dono). O roteamento por idioma já está decidido —
 // Stripe para EN, Asaas para PT (`docs/01_ARQUITETURA/tech-stack.md`) — só
-// falta a conta. `iniciarCheckout` recusa de forma legível em vez de abrir uma
-// tela de pagamento que não existe.
+// falta a conta.
 
-import { deErroSupabase, falha, ok, type Envelope } from '../envelope'
-import { obterSupabase } from '../supabaseClient'
-import type { EstadoAssinatura, Idioma } from './tiposReexport'
+import { falha, type Envelope } from '../envelope'
+import type { Idioma } from '../i18n'
 
 /** Gateway que atenderia o jogador, decidido pelo idioma dele. */
 export function gatewayPara(idioma: Idioma): 'stripe' | 'asaas' {
   return idioma === 'pt' ? 'asaas' : 'stripe'
-}
-
-export async function estadoAssinatura(playerId: string): Promise<Envelope<EstadoAssinatura>> {
-  // Campos explícitos: nunca `select *` em tabela com dado de cobrança
-  // (CLAUDE.md). `referencia_externa` fica fora de propósito — a UI não precisa
-  // do identificador da cobrança no gateway.
-  const { data, error } = await obterSupabase()
-    .from('assinatura')
-    .select('status, expira_em')
-    .eq('player_id', playerId)
-    .maybeSingle()
-
-  if (error) return deErroSupabase<EstadoAssinatura>(error, 'ASSINATURA_FALHOU')
-
-  const status = (data?.status ?? 'inexistente') as EstadoAssinatura['status']
-  const expiraEm = (data?.expira_em ?? null) as string | null
-  const ativa =
-    (status === 'ativa' || status === 'cancelada') &&
-    expiraEm !== null &&
-    new Date(expiraEm).getTime() > Date.now()
-
-  return ok<EstadoAssinatura>({
-    ativa,
-    status,
-    expiraEm,
-    multiplicadorXp: ativa ? 2 : 1,
-    tetoOfflineMinutos: ativa ? 24 * 60 : 0,
-  })
 }
 
 export type ResultadoCheckout = { url: string }

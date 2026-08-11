@@ -41,3 +41,29 @@
 - Ferramenta de gestão (GitHub Issues, Jira, Linear) — puxe dados daqui pro backlog
 - `memory/roadmap.md` — roadmap de produto (visão 3–6 meses)
 - `05_FLUXOS/` — fluxos que features implementam
+
+---
+
+## Pendências abertas do build da Fase 1 (2026-08-11)
+
+Registradas aqui para não morrerem em silêncio. Nenhuma delas bloqueou o build; todas
+bloqueiam o *lançamento*.
+
+### Precisam de decisão do dono
+
+| # | Pendência | Por que precisa de você |
+|---|---|---|
+| P1 | **Confirmação de e-mail no Supabase Auth** | Com "Confirm email" ligada, `auth.users.email` só é preenchido depois que o jogador clica no link — o cadastro fica pendente até lá. O código já lida com isso (o gate usa `identidadeVerificada`, que a data de nascimento imutável garante), mas a escolha entre *exigir confirmação* (mais seguro contra e-mail digitado errado) e *dispensar* (menos fricção, alinhado ao Princípio nº1) é de produto. |
+| P2 | **Provedor de anúncio recompensado** | Nenhum plugado. A escolha depende do canal, que está em aberto (`memory/restrictions.md`: Poki proíbe IAP, CrazyGames exige Xsolla e é por convite). Sem provedor, o botão de anúncio aparece desabilitado com o motivo — ou seja, **não-assinante não tem nenhuma forma de farm offline hoje**. |
+| P3 | **Gateway de pagamento** | Stripe/Asaas decididos no papel, nenhuma conta contratada. Sem gateway não existe assinante, e sem assinante os critérios 4 e 4a do core (24h + 2x XP) existem no código mas nunca são exercitados por um jogador real. |
+| P4 | **Poki bloqueia chamada ao Supabase?** | Restrição já registrada em `memory/restrictions.md` com a instrução "confirmar com a Poki **antes do build**". Não foi confirmada. Se a resposta for "bloqueia", a arquitetura inteira (SPA + BaaS direto) não cabe naquele canal — é a pendência de maior impacto da lista. |
+
+### Dívida técnica assumida
+
+| # | Item | Detalhe |
+|---|---|---|
+| D1 | **Migrations nunca executadas** | O SQL foi escrito e auditado *estruturalmente* por teste (`src/lib/contratoRpc.test.ts`), mas não rodou contra um Postgres. Antes de qualquer deploy: aplicar as duas migrations num projeto Supabase e repetir os testes manuais da seção "aprovado sem ressalvas" de `specs/build-fase-1-mvp.md`. |
+| D2 | **`signInAnonymously` precisa estar habilitado** | É pré-requisito do critério 17. Desabilitado, o jogo cai na tela de erro com retry (que existe e é legível), mas ninguém joga. |
+| D3 | **Arte é placeholder** | O brief foi ao Claude Design e os assets não voltaram. O jogo desenha silhuetas geométricas na paleta oficial; a camada de sprite está isolada em `src/game/sprites.ts` para troca sem tocar em motor/mundo. |
+| D4 | **Balanceamento é chute fundamentado** | Ciclo de 15s, 3 abates/ciclo, curva de XP `50·(n-1)·n`, derrota a cada ~11 ciclos. Números escolhidos para o sistema ficar observável e testável, não para ser divertido. Balancear com dado de jogador real é trabalho da Fase 2. |
+| D5 | **Docs 03, 04, 05, 06, 07 e 11 seguem vazios** | Regras de negócio, modelagem, fluxos, componentes, APIs e o plano de segurança continuam com o README de esqueleto. O schema e o contrato das RPCs existem em código e nas migrations, mas ainda não foram espelhados na documentação — e `CLAUDE.md` diz que a documentação é que prevalece. |

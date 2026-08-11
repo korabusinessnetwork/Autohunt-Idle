@@ -125,4 +125,11 @@ describe('isolamento e segurança do schema', () => {
     expect(fundacao).toContain('IDADE_MINIMA_NAO_ATINGIDA')
     expect(fundacao).toContain("current_date - interval '18 years'")
   })
+
+  it('a data de nascimento não pode ser reescrita depois de informada', () => {
+    // Sem isto o jogador teria UPDATE na própria coluna e o gate de idade
+    // viraria uma formalidade reversível a qualquer momento.
+    expect(fundacao).toContain('DATA_NASCIMENTO_IMUTAVEL')
+    expect(fundacao).toMatch(/old\.data_nascimento is not null/i)
+  })
 })

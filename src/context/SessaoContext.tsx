@@ -11,7 +11,7 @@ import {
 
 import { criarTradutor, idiomaInicial, salvarIdioma, type Idioma, type Tradutor } from '../lib/i18n'
 import type { ErroServico } from '../lib/envelope'
-import { garantirSessao } from '../lib/services/authService'
+import { garantirSessao, registrarIdioma } from '../lib/services/authService'
 import {
   coletarFarmOffline,
   encerrarSessao,
@@ -37,7 +37,7 @@ interface ValorSessao {
   /** Ciclos que o servidor reportou como perdidos no último lote. */
   ciclosPerdidosNoLote: number
   trocarIdioma: (idioma: Idioma) => void
-  conectar: () => Promise<void>
+  conectar: (mostrarCarregando?: boolean) => Promise<void>
   pedirValidacaoDeLote: () => void
   coletar: () => Promise<void>
   /** Relê o estado do servidor sem reabrir a sessão (ex.: após um anúncio). */
@@ -56,16 +56,24 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
 
   // Evita duas validações de lote em voo ao mesmo tempo (aba lenta, rede ruim).
   const validando = useRef(false)
+  // Espelho do idioma para `conectar` não precisar depender dele (e assim não
+  // reconectar a cada troca de idioma).
+  const idiomaAtual = useRef(idioma)
+  idiomaAtual.current = idioma
 
   const t = useMemo(() => criarTradutor(idioma), [idioma])
 
   const trocarIdioma = useCallback((novo: Idioma) => {
     setIdioma(novo)
     salvarIdioma(novo)
+    // O idioma também vive no perfil: é ele que decide o gateway de pagamento
+    // do jogador (`docs/01_ARQUITETURA/tech-stack.md`), então não pode existir
+    // só no localStorage de um navegador.
+    void registrarIdioma(novo)
   }, [])
 
-  const conectar = useCallback(async () => {
-    setEstado('carregando')
+  const conectar = useCallback(async (mostrarCarregando = true) => {
+    if (mostrarCarregando) setEstado('carregando')
     setErro(null)
 
     if (!configuracaoCompleta) {
@@ -94,6 +102,12 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
 
     setSnapshot(inicio.data)
     setEstado('pronto')
+
+    // O idioma detectado pelo navegador na primeira sessão precisa chegar ao
+    // perfil — é dele que sai o roteamento de gateway.
+    if (inicio.data.jogador?.idioma && inicio.data.jogador.idioma !== idiomaAtual.current) {
+      void registrarIdioma(idiomaAtual.current)
+    }
   }, [])
 
   const pedirValidacaoDeLote = useCallback(() => {
@@ -148,7 +162,10 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
       if (document.visibilityState === 'hidden') {
         void encerrarSessao()
       } else {
-        void conectar()
+        // Voltar para a aba não pode remontar o jogo: sem o `false`, a tela
+        // inteira volta para "carregando" e o motor é destruído e recriado a
+        // cada troca de aba.
+        void conectar(false)
       }
     }
 

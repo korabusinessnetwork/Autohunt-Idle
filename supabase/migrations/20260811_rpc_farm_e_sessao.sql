@@ -165,6 +165,7 @@ declare
   v_ass          public.assinatura%rowtype;
   v_assinante    boolean;
   v_tem_email    boolean;
+  v_credenciais  boolean;
   v_xp_base      numeric;
   v_xp_proximo   numeric;
 begin
@@ -179,8 +180,12 @@ begin
   v_assinante := coalesce(v_ass.status in ('ativa', 'cancelada')
                           and v_ass.expira_em > now(), false);
 
-  select (email is not null and email <> '')
-    into v_tem_email
+  -- `email` só é preenchido quando a confirmação por link acontece; enquanto
+  -- ela está pendente, o endereço fica em `email_change`. Para saber se o
+  -- jogador já criou credenciais, os dois casos contam.
+  select (email is not null and email <> ''),
+         (coalesce(email, '') <> '' or coalesce(email_change, '') <> '')
+    into v_tem_email, v_credenciais
     from auth.users
    where id = p_uid;
 
@@ -198,7 +203,15 @@ begin
       'vitalidadeAtual',    v_jog.vitalidade_atual,
       'vitalidadeMaxima',   public.vitalidade_maxima(v_jog.nivel),
       'idioma',             v_jog.idioma,
-      'temCadastro',        coalesce(v_tem_email, false)
+      'temCadastro',        coalesce(v_tem_email, false),
+      -- Cadastro concluído = passou pelo gate de idade E criou credenciais.
+      -- Separada de `temCadastro` de propósito: com a confirmação de e-mail
+      -- ligada, `auth.users.email` só é preenchido depois do clique no link, e
+      -- gatear só por ele faria o modal reaparecer para quem já cadastrou.
+      -- Exigir as duas metades evita o inverso — passar no gate de idade e
+      -- ficar liberado mesmo se a criação de credenciais tiver falhado.
+      'identidadeVerificada', (v_jog.data_nascimento is not null
+                               and coalesce(v_credenciais, false))
     ),
     'farm', jsonb_build_object(
       'minutosAcumulados',        v_fs.minutos_acumulados,

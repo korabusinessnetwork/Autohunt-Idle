@@ -53,7 +53,7 @@ export function Jogo() {
    * (core, 18).
    */
   function abrirDesbloqueio() {
-    setPainel(jogador?.temCadastro ? 'desbloqueio' : 'cadastro')
+    setPainel(jogador?.identidadeVerificada ? 'desbloqueio' : 'cadastro')
   }
 
   return (
@@ -100,7 +100,7 @@ export function Jogo() {
 
       <footer className="jogo__acoes">
         <Botao variante="recompensa" onClick={abrirDesbloqueio}>
-          {t('anuncio.assistir', { minutos: 15 })}
+          {t('hud.ativarOffline')}
         </Botao>
         <Botao variante="discreta" onClick={() => setPainel('configuracoes')}>
           {t('config.titulo')}

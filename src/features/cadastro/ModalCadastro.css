@@ -50,7 +50,7 @@
   font-weight: 400;
   padding: var(--espaco-2);
   color: var(--cor-texto);
-  background: #fff;
+  background: var(--cor-campo);
   border: var(--borda);
   border-radius: var(--raio);
 }

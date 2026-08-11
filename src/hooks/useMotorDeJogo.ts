@@ -14,13 +14,18 @@ import { criarRenderizadorCanvas } from '../game/renderizador'
 export function useMotorDeJogo(ativo: boolean) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const motorRef = useRef<Motor | null>(null)
-  const { pedirValidacaoDeLote, ciclosPerdidosNoLote } = useSessao()
+  const { pedirValidacaoDeLote, ciclosPerdidosNoLote, t } = useSessao()
+
+  // O motor não pode ser recriado a cada troca de idioma — o `t` corrente vive
+  // num ref, e o canvas passa a desenhar o nome novo já no quadro seguinte.
+  const tradutor = useRef(t)
+  tradutor.current = t
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!ativo || !canvas) return
 
-    const renderizador = criarRenderizadorCanvas(canvas)
+    const renderizador = criarRenderizadorCanvas(canvas, (chave) => tradutor.current(chave))
     const motor = criarMotor({ renderizador, aoValidarLote: pedirValidacaoDeLote })
     motorRef.current = motor
     motor.iniciar()

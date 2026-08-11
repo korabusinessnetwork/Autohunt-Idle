@@ -1,3 +1,4 @@
+import { readFileSync, readdirSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 import { detectarIdioma, traduzir } from './index'
@@ -32,6 +33,28 @@ describe('paridade entre os dicionários', () => {
     for (const chave of Object.keys(pt) as Array<keyof typeof pt>) {
       expect(placeholders(en[chave]), `divergência em ${chave}`).toEqual(placeholders(pt[chave]))
     }
+  })
+})
+
+describe('nenhuma chave morta', () => {
+  function arquivosDeCodigo(pasta: URL): string[] {
+    return readdirSync(pasta, { withFileTypes: true }).flatMap((entrada) => {
+      const caminho = new URL(`${entrada.name}${entrada.isDirectory() ? '/' : ''}`, pasta)
+      if (entrada.isDirectory()) return arquivosDeCodigo(caminho)
+      if (!/\.tsx?$/.test(entrada.name) || entrada.name.includes('.test.')) return []
+      // Os próprios dicionários não contam como uso.
+      if (caminho.pathname.includes('/lib/i18n/')) return []
+      return [readFileSync(caminho, 'utf8')]
+    })
+  }
+
+  it('toda chave traduzida é usada em algum lugar do código', () => {
+    // Chave morta é string que alguém traduziu duas vezes para ninguém ler —
+    // e some do radar justamente porque o tipo garante que ela "existe".
+    const codigo = arquivosDeCodigo(new URL('../../', import.meta.url)).join('\n')
+    const orfas = Object.keys(pt).filter((chave) => !codigo.includes(`'${chave}'`))
+
+    expect(orfas).toEqual([])
   })
 })
 
