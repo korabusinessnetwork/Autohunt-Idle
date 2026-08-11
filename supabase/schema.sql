@@ -1,0 +1,1 @@
+-- Fonte de verdade do banco. RLS obrigatório em toda tabela (multi-tenant).
