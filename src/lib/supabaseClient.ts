@@ -1,5 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
+import { obterArmazenamento } from './armazenamento'
+
 // Instância única do client Supabase — nenhum outro arquivo do projeto chama
 // createClient() (`docs/01_ARQUITETURA/padroes.md`).
 //
@@ -35,6 +37,11 @@ export function obterSupabase(): SupabaseClient {
       // A conta anônima precisa sobreviver ao fechar da aba: é ela que guarda
       // o progresso enquanto o jogador ainda não cadastrou e-mail (core, 17).
       storageKey: 'autohunt.sessao',
+      // Em portal o jogo roda num iframe de outro domínio, e a Poki exige
+      // funcionar em janela anônima — situações em que tocar em
+      // `localStorage` pode lançar exceção. O armazenamento resiliente cai
+      // para memória em vez de derrubar a autenticação.
+      storage: obterArmazenamento(),
     },
   })
   return instancia

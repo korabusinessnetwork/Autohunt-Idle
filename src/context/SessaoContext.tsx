@@ -19,6 +19,7 @@ import {
   iniciarSessao,
   validarLote,
 } from '../lib/services/farmService'
+import { sinalizarCarregamento, sinalizarJogo } from '../lib/portal'
 import { configuracaoCompleta } from '../lib/supabaseClient'
 import type { Snapshot } from '../lib/tipos'
 
@@ -102,6 +103,9 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
 
     setSnapshot(inicio.data)
     setEstado('pronto')
+    // O portal precisa saber que o carregamento acabou antes de o jogo
+    // aparecer — é o que tira a tela de loading dele de cima da nossa.
+    sinalizarCarregamento(1)
 
     // O idioma detectado pelo navegador na primeira sessão precisa chegar ao
     // perfil — é dele que sai o roteamento de gateway.
@@ -160,6 +164,7 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
   useEffect(() => {
     function aoMudarVisibilidade() {
       if (document.visibilityState === 'hidden') {
+        sinalizarJogo(false)
         void encerrarSessao()
       } else {
         // Voltar para a aba não pode remontar o jogo: sem o `false`, a tela
@@ -170,6 +175,7 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
     }
 
     function aoSair() {
+      sinalizarJogo(false)
       void encerrarSessao()
     }
 

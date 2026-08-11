@@ -62,6 +62,11 @@ export const pt = {
     'Anúncio recompensado ainda não está disponível nesta versão.',
   'anuncio.erro': 'O anúncio não completou, então nada foi creditado.',
 
+  // --- Desbloqueio de farm offline ----------------------------------------
+  // Título neutro, usado onde o canal proíbe qualquer elemento de compra
+  // (a Poki proíbe sem exceção — ver docs/01_ARQUITETURA/publicacao-portais.md).
+  'desbloqueio.titulo': 'Farm com o jogo fechado',
+
   // --- Assinatura ---------------------------------------------------------
   'assinatura.ativa': 'Assinante — 24h de farm por dia e 2x XP',
   'assinatura.inativa': 'Sem assinatura — farm offline só com anúncio',

@@ -36,6 +36,36 @@ Processo em 5 níveis: Requisitos → Feedback/Playtesting → Player Fit Test �
 - Ambas fazem curadoria de qualidade — não é upload-e-pronto, tem QA e teste com jogador real antes do lançamento completo
 - Nenhuma parece exigir CNPJ/empresa formal só pra **submeter** — o onboarding fiscal/pagamento entra na hora de **receber**, e aceita pessoa física ou jurídica
 
+## O que o build da Fase 2 já resolveu (2026-08-11)
+
+Implementado em `specs/build-fase-2-portal.md`, com testes que guardam cada item:
+
+- **Camada de portal isolada** (`src/lib/portal/`): CrazyGames, Poki e domínio próprio atrás da
+  mesma interface. Trocar de canal é `VITE_CANAL`, não reescrita — e como nenhum dos dois
+  portais exige exclusividade, dá pra publicar nos três ao mesmo tempo
+- **Nenhum adapter carrega SDK por conta própria.** O script vem da página que hospeda o jogo;
+  se não estiver lá, o adapter degrada para "sem anúncio" em vez de quebrar. Isso é
+  consequência direta do bloqueio de request externo da Poki
+- **Caminhos relativos no build** (`base: './'`) — os portais servem de subdiretório e a
+  CrazyGames recebe zip
+- **Orçamento de tamanho verificado a cada build** (`scripts/verificar-orcamento.mjs`): falha se
+  o download inicial passar de 8 MB (teto da Poki) ou o total de 250 MB / 1500 arquivos (teto da
+  CrazyGames). Hoje o artefato está em **0,39 MB**
+- **Modo incógnito coberto** (`src/lib/armazenamento.ts`): todo acesso a `localStorage` está em
+  `try/catch`, e sem armazenamento persistente o jogo cai para memória em vez de abrir em branco.
+  Vale também para o iframe de terceiro, que é a situação normal em portal
+- **`gameplayStart` / `gameplayStop`** disparados só na transição, e nunca durante carregamento,
+  painel aberto ou quebra comercial
+- **Zero elemento de compra onde o canal proíbe**: com `VITE_CANAL=poki`, nem a menção à
+  assinatura aparece na interface
+
+### Ressalva aberta — crédito de anúncio
+
+Os SDKs de anúncio recompensado dos dois portais são **client-side**: não existe callback
+servidor-a-servidor, que é o que o critério 7 de `specs/game-idle-farm-core.md` pede. A
+mitigação implementada (ticket emitido pelo servidor + JWT + tetos reaplicados no banco) está em
+**ADR-004, com status Proposto** — precisa de decisão antes de virar oficial.
+
 ## Decisão pendente
 
 Este documento não resolve qual canal usar primeiro — só mapeia o caminho técnico de cada um. Combinado com a restrição de pagamento já registrada, a leitura atual é: **CrazyGames tem menos fricção pro nosso modelo** (sem bloqueio de request externo documentado, PEGI12 já bate com a direção de arte), mas com IAP só depois de provar tração em anúncio. Poki tem alcance maior mas dois bloqueios técnicos/de negócio a resolver antes.

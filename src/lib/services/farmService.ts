@@ -8,7 +8,7 @@
 
 import { deErroSupabase, ok, type Envelope } from '../envelope'
 import { obterSupabase } from '../supabaseClient'
-import type { Snapshot, TicketAnuncio } from '../tipos'
+import type { ResgateAnuncio, Snapshot, TicketAnuncio } from '../tipos'
 
 /**
  * Reconnect: garante as linhas do jogador, aplica vencimento de assinatura,
@@ -70,6 +70,27 @@ export async function emitirTicketAnuncio(): Promise<Envelope<TicketAnuncio>> {
   const { data, error } = await obterSupabase().rpc('emitir_ticket_anuncio', {})
   if (error) return deErroSupabase<TicketAnuncio>(error, 'TICKET_FALHOU')
   return ok(data as TicketAnuncio)
+}
+
+/**
+ * Resgata um ticket depois que o SDK do canal informou que o anúncio terminou.
+ *
+ * O único dado enviado é o identificador opaco que o próprio servidor emitiu —
+ * nunca minutos, nunca tempo, nunca recompensa. A Edge Function confere que o
+ * ticket pertence a quem está pedindo, que ele nunca foi resgatado, e
+ * reaplica todos os tetos antes de creditar qualquer coisa.
+ *
+ * Isto NÃO é o callback servidor-a-servidor que o critério 7 do core descreve:
+ * a conclusão do anúncio é atestada pelo client, porque os SDKs da Poki e da
+ * CrazyGames não oferecem outra via. Ver ADR-004 para a exposição residual e a
+ * decisão pendente.
+ */
+export async function resgatarAnuncio(ticketId: string): Promise<Envelope<ResgateAnuncio>> {
+  const { data, error } = await obterSupabase().functions.invoke('anuncio-resgate', {
+    body: { ticketId },
+  })
+  if (error) return deErroSupabase<ResgateAnuncio>(error, 'RESGATE_FALHOU')
+  return ok(data as ResgateAnuncio)
 }
 
 /**

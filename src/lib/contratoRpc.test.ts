@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 // Verificação estrutural das migrations.
@@ -22,8 +22,20 @@ function semComentarios(sql: string): string {
 }
 
 const fundacao = lerMigration('20260811_fundacao_jogador_farm.sql')
-const rpcs = lerMigration('20260811_rpc_farm_e_sessao.sql')
-const sqlExecutavel = semComentarios(`${fundacao}\n${rpcs}`)
+
+/**
+ * Todas as migrations, em ordem cronológica — é assim que o Postgres as vê.
+ * Ler a pasta inteira em vez de listar arquivos garante que uma migration
+ * futura entre nesta auditoria sem ninguém precisar lembrar de adicioná-la.
+ */
+const PASTA_MIGRATIONS = new URL('../../supabase/migrations/', import.meta.url)
+const rpcs = readdirSync(PASTA_MIGRATIONS)
+  .filter((arquivo) => arquivo.endsWith('.sql'))
+  .sort()
+  .map((arquivo) => lerMigration(arquivo))
+  .join('\n')
+
+const sqlExecutavel = semComentarios(rpcs)
 
 describe('contrato das RPCs expostas ao jogador', () => {
   it('nenhuma função concedida a `authenticated` aceita parâmetro', () => {
@@ -41,7 +53,14 @@ describe('contrato das RPCs expostas ao jogador', () => {
   })
 
   it('as funções que aceitam parâmetro são exclusivas do servidor', () => {
-    for (const privilegiada of ['creditar_anuncio', 'aplicar_evento_assinatura']) {
+    for (const privilegiada of [
+      'creditar_anuncio',
+      'aplicar_evento_assinatura',
+      // Resgate atestado pelo client: o `player_id` vem do JWT conferido na
+      // Edge Function, nunca do corpo da requisição — por isso o jogador não
+      // pode alcançar esta função direto.
+      'resgatar_anuncio_do_jogador',
+    ]) {
       const revogacao = new RegExp(
         `revoke execute on function public\\.${privilegiada}[\\s\\S]{0,160}?from public, anon, authenticated`,
         'i',
@@ -62,9 +81,11 @@ describe('contrato das RPCs expostas ao jogador', () => {
       'emitir_ticket_anuncio',
       'creditar_anuncio',
       'aplicar_evento_assinatura',
+      'resgatar_anuncio_do_jogador',
+      'aplicar_credito_anuncio',
     ]) {
       const definicao = rpcs.slice(
-        rpcs.indexOf(`create or replace function public.${funcao}(`),
+        rpcs.lastIndexOf(`create or replace function public.${funcao}(`),
       )
       const corpo = definicao.slice(0, definicao.indexOf('$$'))
       expect(corpo, `${funcao} precisa ser SECURITY DEFINER`).toMatch(/security definer/i)

@@ -33,8 +33,16 @@ export function useMotorDeJogo(ativo: boolean) {
     const aoRedimensionar = () => renderizador.redimensionar()
     window.addEventListener('resize', aoRedimensionar)
 
+    // Em portal o jogo vive num iframe que o próprio portal redimensiona, e um
+    // painel abrindo também muda o espaço do canvas sem gerar `resize` de
+    // janela. O observador pega os dois casos.
+    const observador =
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(aoRedimensionar) : null
+    observador?.observe(canvas)
+
     return () => {
       window.removeEventListener('resize', aoRedimensionar)
+      observador?.disconnect()
       motor.parar()
       renderizador.destruir()
       motorRef.current = null

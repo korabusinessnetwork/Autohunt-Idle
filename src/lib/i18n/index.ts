@@ -1,3 +1,4 @@
+import { obterArmazenamento } from '../armazenamento'
 import { ehIdiomaSuportado, type ChaveI18n, type Idioma } from './chaves'
 import { en } from './en'
 import { pt } from './pt'
@@ -24,19 +25,18 @@ export function detectarIdioma(idiomasDoNavegador: readonly string[]): Idioma {
 
 /** Preferência manual do jogador vence a detecção automática. */
 export function idiomaInicial(): Idioma {
-  if (typeof window !== 'undefined') {
-    const salvo = window.localStorage?.getItem(CHAVE_ARMAZENAMENTO)
-    if (salvo && ehIdiomaSuportado(salvo)) return salvo
-    return detectarIdioma(window.navigator?.languages ?? [window.navigator?.language ?? 'en'])
-  }
-  return 'pt'
+  if (typeof window === 'undefined') return 'pt'
+
+  const salvo = obterArmazenamento().getItem(CHAVE_ARMAZENAMENTO)
+  if (salvo && ehIdiomaSuportado(salvo)) return salvo
+  return detectarIdioma(window.navigator?.languages ?? [window.navigator?.language ?? 'en'])
 }
 
 export function salvarIdioma(idioma: Idioma): void {
-  if (typeof window !== 'undefined') {
-    window.localStorage?.setItem(CHAVE_ARMAZENAMENTO, idioma)
-    window.document?.documentElement?.setAttribute('lang', idioma)
-  }
+  if (typeof window === 'undefined') return
+
+  obterArmazenamento().setItem(CHAVE_ARMAZENAMENTO, idioma)
+  window.document?.documentElement?.setAttribute('lang', idioma)
 }
 
 /**

@@ -79,6 +79,13 @@ export interface Snapshot {
   coleta?: { xpColetado: number; moedaColetada: number }
 }
 
+export interface ResgateAnuncio {
+  creditado: boolean
+  /** Quantos minutos o SERVIDOR decidiu creditar — nunca o que o client pediu. */
+  minutos?: number
+  motivo?: string
+}
+
 export interface TicketAnuncio {
   emitido: boolean
   ticketId?: string

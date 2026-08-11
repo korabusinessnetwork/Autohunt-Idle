@@ -66,6 +66,9 @@ export const en: Record<ChaveI18n, string> = {
   'anuncio.indisponivel.SEM_PROVEDOR': 'Rewarded ads are not available in this build yet.',
   'anuncio.erro': 'The ad did not finish, so nothing was credited.',
 
+  // --- Offline unlock -------------------------------------------------------
+  'desbloqueio.titulo': 'Farming with the game closed',
+
   // --- Subscription ---------------------------------------------------------
   'assinatura.ativa': 'Subscriber — 24h of farming a day and 2x XP',
   'assinatura.inativa': 'No subscription — offline farming only through ads',

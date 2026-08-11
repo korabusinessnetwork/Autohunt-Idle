@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { Botao } from '../components/shared/Botao'
 import { TelaCarregando, TelaErro } from '../components/shared/EstadoTela'
@@ -8,6 +8,7 @@ import { PainelConfiguracoes } from '../features/configuracoes/PainelConfiguraco
 import { PainelDesbloqueio } from '../features/desbloqueio/PainelDesbloqueio'
 import { TelaRetorno } from '../features/farm-offline/TelaRetorno'
 import { useMotorDeJogo } from '../hooks/useMotorDeJogo'
+import { sinalizarJogo } from '../lib/portal'
 import { formatarNumero } from '../utils/formato'
 import './Jogo.css'
 
@@ -21,7 +22,20 @@ type Painel = 'nenhum' | 'desbloqueio' | 'configuracoes' | 'cadastro'
 export function Jogo() {
   const { estado, erro, snapshot, t, idioma, conectar, recarregarEstado } = useSessao()
   const [painel, setPainel] = useState<Painel>('nenhum')
+  const [retornoAberto, setRetornoAberto] = useState(false)
   const canvasRef = useMotorDeJogo(estado === 'pronto')
+
+  // O portal só pode receber `gameplayStart` quando o jogador está de fato
+  // jogando — não durante o carregamento, nem com um painel por cima do mundo.
+  const jogando = estado === 'pronto' && painel === 'nenhum' && !retornoAberto
+  useEffect(() => {
+    sinalizarJogo(jogando)
+    return () => sinalizarJogo(false)
+  }, [jogando])
+
+  const aoMudarVisibilidadeDoRetorno = useCallback((visivel: boolean) => {
+    setRetornoAberto(visivel)
+  }, [])
 
   if (estado === 'carregando') {
     return <TelaCarregando mensagem={t('app.carregando')} />
@@ -107,7 +121,7 @@ export function Jogo() {
         </Botao>
       </footer>
 
-      <TelaRetorno />
+      <TelaRetorno aoMudarVisibilidade={aoMudarVisibilidadeDoRetorno} />
 
       {painel === 'desbloqueio' ? (
         <PainelDesbloqueio aoFechar={() => setPainel('nenhum')} />

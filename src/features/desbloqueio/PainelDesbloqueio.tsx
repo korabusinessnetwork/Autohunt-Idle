@@ -3,9 +3,15 @@ import { useState } from 'react'
 import { Botao } from '../../components/shared/Botao'
 import { useSessao } from '../../context/SessaoContext'
 import type { ChaveI18n } from '../../lib/i18n'
+import { obterPortal } from '../../lib/portal'
 import { anuncioDisponivel, assistirAnuncio } from '../../lib/services/adService'
 import { checkoutDisponivel } from '../../lib/services/subscriptionService'
-import { TETO_ANUNCIO_DIARIO_MIN } from '../../game/regrasFarm'
+import {
+  deveAvisarSobreAssinatura,
+  motivoIndisponibilidade,
+  tituloDoPainel,
+  type ContextoDesbloqueio,
+} from './regras'
 import './PainelDesbloqueio.css'
 
 // Painel de desbloqueio de farm offline — os dois caminhos do core: assinatura
@@ -13,23 +19,13 @@ import './PainelDesbloqueio.css'
 //
 // Transparência de monetização é restrição ética registrada
 // (memory/restrictions.md): o teto aparece sempre, em número, e quando o
-// anúncio não vai render nada o botão já sai desabilitado com o motivo — nunca
-// se gasta o tempo do jogador num anúncio inútil (edge case do core).
+// anúncio não vai render nada o botão já sai desabilitado com o motivo.
+//
+// As decisões de exibição moram em `regras.ts`, puras e testadas — inclusive a
+// que garante zero elemento de compra onde o canal proíbe.
 
 interface Props {
   aoFechar: () => void
-}
-
-function motivoIndisponibilidade(
-  assinante: boolean,
-  saldo: number,
-  restantesHoje: number,
-): ChaveI18n | null {
-  if (assinante) return 'anuncio.indisponivel.ASSINANTE_NAO_PRECISA'
-  if (!anuncioDisponivel()) return 'anuncio.indisponivel.SEM_PROVEDOR'
-  if (restantesHoje <= 0) return 'anuncio.indisponivel.TETO_DIARIO_ATINGIDO'
-  if (saldo >= TETO_ANUNCIO_DIARIO_MIN) return 'anuncio.indisponivel.SALDO_JA_NO_TETO'
-  return null
 }
 
 export function PainelDesbloqueio({ aoFechar }: Props) {
@@ -37,11 +33,15 @@ export function PainelDesbloqueio({ aoFechar }: Props) {
   const [ocupado, setOcupado] = useState(false)
   const [aviso, setAviso] = useState<ChaveI18n | null>(null)
 
-  const assinante = snapshot?.assinatura.ativa ?? false
-  const saldo = snapshot?.farm.minutosAnuncioSaldo ?? 0
-  const restantesHoje = snapshot?.farm.minutosAnuncioRestantes ?? 0
+  const contexto: ContextoDesbloqueio = {
+    permiteCompraNoJogo: obterPortal().permiteCompraNoJogo,
+    assinante: snapshot?.assinatura.ativa ?? false,
+    saldo: snapshot?.farm.minutosAnuncioSaldo ?? 0,
+    restantesHoje: snapshot?.farm.minutosAnuncioRestantes ?? 0,
+    anuncioDisponivel: anuncioDisponivel(),
+  }
 
-  const bloqueio = motivoIndisponibilidade(assinante, saldo, restantesHoje)
+  const bloqueio = motivoIndisponibilidade(contexto)
 
   async function aoAssistir() {
     setOcupado(true)
@@ -63,8 +63,8 @@ export function PainelDesbloqueio({ aoFechar }: Props) {
         return
       }
 
-      // O crédito vem do callback assinado do provedor, no servidor. O client
-      // só relê o estado para descobrir o resultado — nunca o declara.
+      // Quem creditou foi o servidor; o client só relê o estado para descobrir
+      // quanto entrou de fato.
       await recarregarEstado()
     } finally {
       setOcupado(false)
@@ -75,13 +75,13 @@ export function PainelDesbloqueio({ aoFechar }: Props) {
     <div className="desbloqueio" role="dialog" aria-modal="true" aria-labelledby="desbloqueio-titulo">
       <div className="desbloqueio__cartao">
         <h2 className="desbloqueio__titulo" id="desbloqueio-titulo">
-          {t(assinante ? 'assinatura.ativa' : 'assinatura.inativa')}
+          {t(tituloDoPainel(contexto))}
         </h2>
 
-        <p className="desbloqueio__saldo">{t('anuncio.saldo', { minutos: saldo })}</p>
-        {!assinante ? (
+        <p className="desbloqueio__saldo">{t('anuncio.saldo', { minutos: contexto.saldo })}</p>
+        {!contexto.assinante ? (
           <p className="desbloqueio__restante">
-            {t('anuncio.restanteHoje', { minutos: restantesHoje })}
+            {t('anuncio.restanteHoje', { minutos: contexto.restantesHoje })}
           </p>
         ) : null}
 
@@ -100,7 +100,7 @@ export function PainelDesbloqueio({ aoFechar }: Props) {
           </p>
         ) : null}
 
-        {!assinante && !checkoutDisponivel() ? (
+        {deveAvisarSobreAssinatura(contexto, checkoutDisponivel()) ? (
           <p className="desbloqueio__motivo">{t('assinatura.indisponivel')}</p>
         ) : null}
 

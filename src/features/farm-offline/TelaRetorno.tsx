@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+
 import { Botao } from '../../components/shared/Botao'
 import { useSessao } from '../../context/SessaoContext'
 import type { ChaveI18n } from '../../lib/i18n'
@@ -23,9 +25,21 @@ const CHAVE_MOTIVO: Record<MotivoRetorno, ChaveI18n> = {
   assinatura_vencida: 'retorno.motivo.assinatura_vencida',
 }
 
-export function TelaRetorno() {
+interface Props {
+  /**
+   * Avisa quem está por fora que esta tela cobriu o jogo. O portal precisa
+   * saber: um modal em cima do mundo é pausa, não gameplay.
+   */
+  aoMudarVisibilidade?: (visivel: boolean) => void
+}
+
+export function TelaRetorno({ aoMudarVisibilidade }: Props) {
   const { t, idioma } = useSessao()
   const { retorno, visivel, coletando, temGanho, fechar, coletarEFechar } = useFarmOffline()
+
+  useEffect(() => {
+    aoMudarVisibilidade?.(visivel)
+  }, [visivel, aoMudarVisibilidade])
 
   if (!visivel || !retorno) return null
 

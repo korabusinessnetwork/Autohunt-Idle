@@ -6,10 +6,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 // SQL das migrations.
 
 const chamadas: Array<{ nome: string; parametros: unknown }> = []
+const invocacoes: Array<{ nome: string; corpo: unknown }> = []
 
 vi.mock('../supabaseClient', () => ({
   configuracaoCompleta: true,
   obterSupabase: () => ({
+    functions: {
+      invoke: (nome: string, opcoes: { body?: unknown }) => {
+        invocacoes.push({ nome, corpo: opcoes?.body })
+        return Promise.resolve({ data: { creditado: true, minutos: 15 }, error: null })
+      },
+    },
     rpc: (nome: string, parametros: unknown) => {
       chamadas.push({ nome, parametros })
       // O servidor devolve números prontos — repare que nada aqui depende do
@@ -25,8 +32,14 @@ vi.mock('../supabaseClient', () => ({
   }),
 }))
 
-const { coletarFarmOffline, emitirTicketAnuncio, encerrarSessao, iniciarSessao, validarLote } =
-  await import('./farmService')
+const {
+  coletarFarmOffline,
+  emitirTicketAnuncio,
+  encerrarSessao,
+  iniciarSessao,
+  resgatarAnuncio,
+  validarLote,
+} = await import('./farmService')
 
 const CAMPOS_PROIBIDOS = [
   'timestamp',
@@ -44,6 +57,7 @@ const CAMPOS_PROIBIDOS = [
 
 beforeEach(() => {
   chamadas.length = 0
+  invocacoes.length = 0
 })
 
 afterEach(() => {
@@ -100,6 +114,19 @@ describe('contrato das chamadas de farm', () => {
 
     // Byte a byte igual: não existe canal por onde a mentira passe.
     expect(comHoraForjada).toBe(comHoraReal)
+  })
+
+  it('o resgate de anúncio manda só o ticket, nunca minutos', async () => {
+    await resgatarAnuncio('ticket-abc')
+
+    expect(invocacoes).toEqual([{ nome: 'anuncio-resgate', corpo: { ticketId: 'ticket-abc' } }])
+
+    // Quantos minutos vale o ticket está gravado no ticket, no servidor. Se o
+    // client pudesse mandar esse número, o teto de 2h/dia seria decorativo.
+    const serializado = JSON.stringify(invocacoes).toLowerCase()
+    for (const proibido of ['minuto', 'segundos', 'xp', 'moeda', 'recompensa']) {
+      expect(serializado).not.toContain(proibido)
+    }
   })
 
   it('devolve os números que vieram do servidor, sem recalcular', async () => {

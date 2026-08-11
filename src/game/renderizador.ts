@@ -33,14 +33,26 @@ export function criarRenderizadorCanvas(
   let paleta: Paleta = lerPaleta(document.documentElement)
 
   function redimensionar(): void {
-    const escala = Math.min(
-      canvas.clientWidth / LARGURA_MUNDO,
-      canvas.clientHeight / ALTURA_MUNDO,
-    )
+    const largura = canvas.clientWidth
+    const altura = canvas.clientHeight
+    // O elemento pode ainda não ter sido posicionado (primeiro quadro, aba em
+    // background). Escala zero geraria NaN no transform.
+    if (largura <= 0 || altura <= 0) return
+
+    const escala = Math.min(largura / LARGURA_MUNDO, altura / ALTURA_MUNDO)
     const dpr = window.devicePixelRatio || 1
-    canvas.width = Math.round(canvas.clientWidth * dpr)
-    canvas.height = Math.round(canvas.clientHeight * dpr)
-    ctx!.setTransform(escala * dpr, 0, 0, escala * dpr, 0, 0)
+
+    canvas.width = Math.round(largura * dpr)
+    canvas.height = Math.round(altura * dpr)
+
+    // Centraliza o mundo 16:9 dentro do espaço disponível. Sem este
+    // deslocamento, o jogo fica colado no canto superior esquerdo em qualquer
+    // container que não seja exatamente 16:9 — que é a regra dentro de um
+    // iframe de portal, não a exceção.
+    const deslocX = (largura - LARGURA_MUNDO * escala) / 2
+    const deslocY = (altura - ALTURA_MUNDO * escala) / 2
+
+    ctx!.setTransform(escala * dpr, 0, 0, escala * dpr, deslocX * dpr, deslocY * dpr)
     paleta = lerPaleta(document.documentElement)
   }
 
@@ -48,6 +60,14 @@ export function criarRenderizadorCanvas(
 
   return {
     desenhar(estado) {
+      // Pinta a moldura (o que sobra do 16:9) antes de entrar nas coordenadas
+      // do mundo, para a área extra não ficar transparente.
+      ctx.save()
+      ctx.setTransform(1, 0, 0, 1, 0, 0)
+      ctx.fillStyle = paleta['--cor-fundo']
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.restore()
+
       desenharCenario(ctx, LARGURA_MUNDO, ALTURA_MUNDO, paleta)
 
       for (const inimigo of estado.inimigos) {
