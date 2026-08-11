@@ -46,6 +46,13 @@
   -webkit-text-stroke: 1px var(--cor-texto);
 }
 
+/* Cor distinta da do ouro: as duas moedas nunca podem ser confundidas de
+   relance, porque só uma delas paga a fortificação. */
+.jogo__valor--diamante {
+  color: var(--cor-secundaria);
+  -webkit-text-stroke: 1px var(--cor-texto);
+}
+
 .jogo__detalhe {
   font-size: 0.75rem;
   opacity: 0.75;

@@ -19,6 +19,12 @@ export interface EstadoJogador {
   xpNoNivel: number
   xpParaProximoNivel: number
   moeda: number
+  /**
+   * Moeda premium. Ganha derrotando o boss de dungeon e — quando houver
+   * gateway — comprada do operador. Nunca volta a ser dinheiro: o único gasto
+   * que existe no schema é a loja de ouro.
+   */
+  diamante: number
   vitalidadeAtual: number
   vitalidadeMaxima: number
   idioma: 'pt' | 'en'
@@ -166,6 +172,24 @@ export interface EstadoInventario {
   porTipoERaridade: GrupoInventario[]
 }
 
+/**
+ * Um pacote da loja de ouro: X diamantes entregam sempre exatamente Y ouro.
+ *
+ * Vem do servidor em vez de estar fixo aqui porque o preço tem que aparecer na
+ * tela antes da compra e ser o mesmo que o servidor vai cobrar — sem faixa,
+ * sem bônus aleatório, sem letra miúda.
+ */
+export interface PacoteOuro {
+  id: string
+  diamantes: number
+  ouro: number
+}
+
+export interface ResultadoCompraOuro {
+  pacote: string
+  ouroRecebido: number
+}
+
 export interface ResultadoDungeon {
   resolvida: boolean
   venceu?: boolean
@@ -177,9 +201,12 @@ export interface Snapshot {
   jogador: EstadoJogador
   atributos: EstadoAtributos
   inventario: EstadoInventario
+  /** Catálogo da loja de ouro, publicado pelo servidor. */
+  lojaOuro: PacoteOuro[]
   dungeon?: ResultadoDungeon
   sintese?: { consumidos: number; produziuRaridade: number }
   fortificacao?: ResultadoFortificacao
+  compra?: ResultadoCompraOuro
   farm: EstadoFarm
   assinatura: EstadoAssinatura
   retorno?: RetornoOffline

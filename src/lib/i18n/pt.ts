@@ -18,7 +18,8 @@ export const pt = {
 
   // --- HUD ----------------------------------------------------------------
   'hud.nivel': 'Nível',
-  'hud.moeda': 'Moedas',
+  'hud.moeda': 'Ouro',
+  'hud.diamante': 'Diamantes',
   'hud.vitalidade': 'Vitalidade',
   'hud.xpParaProximo': '{atual} / {alvo} XP',
   'hud.aoVivo': 'Farmando ao vivo',
@@ -29,7 +30,7 @@ export const pt = {
   'retorno.tempoFora': 'Você ficou {tempo} fora',
   'retorno.tempoRendido': 'Rendeu por {tempo}',
   'retorno.xpGanho': '+{valor} XP',
-  'retorno.moedaGanha': '+{valor} moedas',
+  'retorno.moedaGanha': '+{valor} de ouro',
   'retorno.coletar': 'Coletar tudo',
   'retorno.coletando': 'Coletando…',
   'retorno.voltarAoJogo': 'Voltar pro jogo',
@@ -233,6 +234,25 @@ export const pt = {
   'fort.erro.SEM_PEDRA': 'Você não tem a pedra necessária.',
   'fort.erro.ITEM_NAO_FORTIFICAVEL': 'Esse item não dá pra fortificar.',
   'fort.erro.FORTIFICACAO_FALHOU': 'Não deu pra fortificar agora. Tenta de novo?',
+
+  // --- Loja de ouro -------------------------------------------------------
+  // A quantidade aparece inteira, no cartão, antes do botão. É o que o
+  // critério 4 da spec exige — e é o oposto de "pague e veja o que vem".
+  'loja.titulo': 'Loja de ouro',
+  'loja.explicacao': 'Troque diamante por ouro. A quantidade é fixa: o que tá escrito é o que você recebe.',
+  'loja.pacote.punhado': 'Punhado',
+  'loja.pacote.saco': 'Saco',
+  'loja.pacote.bau': 'Baú',
+  'loja.ouro': '{ouro} de ouro',
+  'loja.preco': '{diamantes} diamantes',
+  'loja.comprar': 'Trocar',
+  'loja.comprando': 'Trocando…',
+  'loja.comprou': 'Pronto! +{ouro} de ouro.',
+  'loja.comoGanhar': 'Diamante você ganha derrotando o boss da dungeon.',
+  'loja.vazia': 'Nenhum pacote disponível agora.',
+  'loja.erro.DIAMANTE_INSUFICIENTE': 'Falta diamante para esse pacote.',
+  'loja.erro.PACOTE_INDISPONIVEL': 'Esse pacote não tá mais à venda.',
+  'loja.erro.COMPRA_FALHOU': 'Não deu pra trocar agora. Tenta de novo?',
 
   // --- Configurações ------------------------------------------------------
   'config.titulo': 'Configurações',

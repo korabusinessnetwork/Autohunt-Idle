@@ -23,7 +23,8 @@ export const en: Record<ChaveI18n, string> = {
 
   // --- HUD ------------------------------------------------------------------
   'hud.nivel': 'Level',
-  'hud.moeda': 'Coins',
+  'hud.moeda': 'Gold',
+  'hud.diamante': 'Gems',
   'hud.vitalidade': 'Vitality',
   'hud.xpParaProximo': '{atual} / {alvo} XP',
   'hud.aoVivo': 'Farming live',
@@ -34,7 +35,7 @@ export const en: Record<ChaveI18n, string> = {
   'retorno.tempoFora': 'You were away for {tempo}',
   'retorno.tempoRendido': 'Earned for {tempo}',
   'retorno.xpGanho': '+{valor} XP',
-  'retorno.moedaGanha': '+{valor} coins',
+  'retorno.moedaGanha': '+{valor} gold',
   'retorno.coletar': 'Collect it all',
   'retorno.coletando': 'Collecting…',
   'retorno.voltarAoJogo': 'Back to the game',
@@ -243,6 +244,23 @@ export const en: Record<ChaveI18n, string> = {
   'fort.erro.SEM_PEDRA': "You don't have the stone you need.",
   'fort.erro.ITEM_NAO_FORTIFICAVEL': 'That item cannot be upgraded.',
   'fort.erro.FORTIFICACAO_FALHOU': "Couldn't upgrade right now. Try again?",
+
+  // --- Gold shop ------------------------------------------------------------
+  'loja.titulo': 'Gold shop',
+  'loja.explicacao': 'Trade gems for gold. The amount is fixed: what it says is what you get.',
+  'loja.pacote.punhado': 'Handful',
+  'loja.pacote.saco': 'Sack',
+  'loja.pacote.bau': 'Chest',
+  'loja.ouro': '{ouro} gold',
+  'loja.preco': '{diamantes} gems',
+  'loja.comprar': 'Trade',
+  'loja.comprando': 'Trading…',
+  'loja.comprou': 'Done! +{ouro} gold.',
+  'loja.comoGanhar': 'Gems come from beating the dungeon boss.',
+  'loja.vazia': 'No packs available right now.',
+  'loja.erro.DIAMANTE_INSUFICIENTE': 'Not enough gems for that pack.',
+  'loja.erro.PACOTE_INDISPONIVEL': 'That pack is no longer for sale.',
+  'loja.erro.COMPRA_FALHOU': "Couldn't trade right now. Try again?",
 
   // --- Settings -------------------------------------------------------------
   'config.titulo': 'Settings',

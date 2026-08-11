@@ -140,6 +140,9 @@ describe('contrato das RPCs expostas ao jogador', () => {
       // Edge Function, nunca do corpo da requisição — por isso o jogador não
       // pode alcançar esta função direto.
       'resgatar_anuncio_do_jogador',
+      // Crédito de diamante comprado com dinheiro: só entra por webhook
+      // assinado, mesmo padrão da assinatura (critério 9 da spec da loja).
+      'creditar_diamante',
     ]) {
       const revogacao = new RegExp(
         `revoke execute on function public\\.${privilegiada}[\\s\\S]{0,160}?from public, anon, authenticated`,
@@ -187,6 +190,50 @@ describe('contrato das RPCs expostas ao jogador', () => {
     expect(suspeitas).toEqual([])
   })
 
+  it('o único débito de diamante do schema é a compra de ouro', () => {
+    // Critério 7 da spec da loja. Diamante só pode sair do saldo virando ouro
+    // — e ouro é item de jogo, não valor transferível. Se um dia aparecer um
+    // segundo débito (presente para outro jogador, "conversão", saque), ele
+    // reprova aqui antes de existir em produção.
+    const debitos = [...sqlExecutavel.matchAll(/diamante\s*=\s*diamante\s*-/gi)]
+    expect(debitos.length).toBe(1)
+
+    const inicio = sqlExecutavel.lastIndexOf('create or replace function public.comprar_ouro(')
+    expect(inicio).toBeGreaterThan(-1)
+    const fim = sqlExecutavel.indexOf('$$;', inicio)
+    expect(debitos[0]!.index).toBeGreaterThan(inicio)
+    expect(debitos[0]!.index).toBeLessThan(fim)
+  })
+
+  it('a quantidade de ouro do pacote é fixa, nunca sorteada', () => {
+    // Critério 3: "X diamantes entregam sempre exatamente Y ouro". O que
+    // transformaria isso em recompensa aleatória paga — a restrição CRÍTICA
+    // permanente — é justamente um sorteio no meio do caminho.
+    const inicio = sqlExecutavel.lastIndexOf('create or replace function public.comprar_ouro(')
+    const corpo = sqlExecutavel.slice(inicio, sqlExecutavel.indexOf('$$;', inicio)).toLowerCase()
+
+    for (const proibido of ['random(', 'sorteio01', 'escalar_raridade', 'conceder_item']) {
+      expect(corpo, `comprar_ouro não pode usar ${proibido}`).not.toContain(proibido)
+    }
+    // O ouro creditado é a coluna do pacote, lida do servidor — não um valor
+    // vindo do client nem calculado na hora.
+    expect(corpo).toContain('moeda + v_pacote.ouro')
+  })
+
+  it('nenhuma rota converte diamante, ouro ou item em dinheiro', () => {
+    // Critério 8, e a restrição que sustenta vender diamante como moeda de
+    // jogo: sem caminho de volta para dinheiro, não há transmissão de valor
+    // entre pessoas para regular.
+    const SAIDA_EM_DINHEIRO =
+      /\b(saque|sacar|resgatar_saldo|reembolso|estorno|estornar|payout|withdraw|cash_?out|transferir_para_jogador)\b/i
+    expect(sqlExecutavel).not.toMatch(SAIDA_EM_DINHEIRO)
+
+    // E a rota que existe entre jogadores também não: não há nenhuma. Um
+    // update de saldo cujo alvo não seja `auth.uid()` nem o `p_player_id` de
+    // uma função de service_role seria o começo dela.
+    expect(sqlExecutavel).not.toMatch(/diamante\s*=\s*diamante\s*\+[\s\S]{0,120}?p_destinatario/i)
+  })
+
   it('as RPCs de sessão e farm são SECURITY DEFINER', () => {
     for (const funcao of [
       'iniciar_sessao',
@@ -207,6 +254,8 @@ describe('contrato das RPCs expostas ao jogador', () => {
       'sintetizar',
       'equipar_item',
       'fortificar_item',
+      'comprar_ouro',
+      'creditar_diamante',
     ]) {
       const definicao = rpcs.slice(
         rpcs.lastIndexOf(`create or replace function public.${funcao}(`),

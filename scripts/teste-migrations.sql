@@ -464,12 +464,108 @@ end $$;
 -- ---------------------------------------------------------------------------
 -- Permissões: o jogador não alcança o que é do servidor
 -- ---------------------------------------------------------------------------
+-- ---------------------------------------------------------------------------
+-- Loja de ouro: diamante vira ouro em quantidade fixa, e nada além disso
+-- ---------------------------------------------------------------------------
+\echo '== loja de ouro =='
+do $$
+declare
+  v_uid       uuid := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  v_pacote    public.pacote_ouro%rowtype;
+  v_ouro_ini  bigint;
+  v_diam_ini  bigint;
+  v_snap      jsonb;
+  v_erro      text;
+begin
+  insert into auth.users (id, email) values (v_uid, 'loja@exemplo.com');
+  perform set_config('autohunt.uid', v_uid::text, false);
+  perform public.iniciar_sessao();
+
+  select * into v_pacote from public.pacote_ouro where id = 'punhado';
+
+  -- Sem diamante nenhum: recusa, e não consome nada.
+  v_ouro_ini := (select moeda from public.jogador where id = v_uid);
+  begin
+    perform public.comprar_ouro('punhado');
+    perform public.checar(false, 'compra sem saldo deveria falhar');
+  exception when others then
+    get stacked diagnostics v_erro = message_text;
+    perform public.checar(v_erro = 'DIAMANTE_INSUFICIENTE', 'compra sem diamante é recusada');
+  end;
+  perform public.checar(
+    (select moeda from public.jogador where id = v_uid) = v_ouro_ini,
+    'compra recusada não credita ouro');
+
+  -- Saldo exato: permitido, e deixa o saldo em zero (edge case da spec).
+  update public.jogador set diamante = v_pacote.diamantes where id = v_uid;
+  v_ouro_ini := (select moeda from public.jogador where id = v_uid);
+
+  v_snap := public.comprar_ouro('punhado');
+
+  perform public.checar(
+    (select diamante from public.jogador where id = v_uid) = 0,
+    'compra com saldo exato zera o diamante');
+  -- A prova central do critério 3: a quantidade é EXATAMENTE a publicada.
+  perform public.checar(
+    (select moeda from public.jogador where id = v_uid) = v_ouro_ini + v_pacote.ouro,
+    'o ouro creditado é exatamente o do pacote');
+  perform public.checar(
+    (v_snap #>> '{compra,ouroRecebido}')::bigint = v_pacote.ouro,
+    'o snapshot devolve a quantidade que o servidor creditou');
+  perform public.checar(
+    (v_snap #>> '{jogador,diamante}')::bigint = 0,
+    'o snapshot expõe o saldo de diamante');
+  perform public.checar(
+    jsonb_array_length(v_snap -> 'lojaOuro') = 3,
+    'o snapshot publica o catálogo da loja');
+
+  -- Pacote desativado é recusado mesmo com saldo de sobra.
+  update public.jogador set diamante = 10000 where id = v_uid;
+  update public.pacote_ouro set ativo = false where id = 'bau';
+  begin
+    perform public.comprar_ouro('bau');
+    perform public.checar(false, 'pacote desativado deveria falhar');
+  exception when others then
+    get stacked diagnostics v_erro = message_text;
+    perform public.checar(v_erro = 'PACOTE_INDISPONIVEL', 'pacote desativado é recusado');
+  end;
+  update public.pacote_ouro set ativo = true where id = 'bau';
+
+  -- O saldo nunca fica negativo, nem por caminho direto.
+  begin
+    update public.jogador set diamante = -1 where id = v_uid;
+    perform public.checar(false, 'saldo negativo de diamante deveria ser impossível');
+  exception when check_violation then
+    perform public.checar(true, 'o saldo de diamante nunca fica negativo');
+  end;
+
+  -- Vencer a dungeon é a fonte GRATUITA — é o que sustenta a condição de
+  -- compliance da fortificação.
+  v_diam_ini := (select diamante from public.jogador where id = v_uid);
+  insert into public.item_jogador (player_id, tipo, raridade, origem)
+  values (v_uid, 'chave', 1, 'mundo');
+  -- Poder alto o bastante para a vitória ser certa neste nível.
+  update public.atributo_jogador set forca = 400 where player_id = v_uid;
+
+  v_snap := public.resolver_uma_dungeon(v_uid);
+  if (v_snap ->> 'venceu')::boolean then
+    perform public.checar(
+      (select diamante from public.jogador where id = v_uid) > v_diam_ini,
+      'derrotar o boss concede diamante');
+  else
+    perform public.checar(
+      (select diamante from public.jogador where id = v_uid) = v_diam_ini,
+      'perder a dungeon não concede diamante');
+  end if;
+end $$;
+
 \echo '== permissões =='
 do $$
 declare v_privilegiadas text[] := array[
   'creditar_anuncio', 'aplicar_evento_assinatura', 'resgatar_anuncio_do_jogador',
   'conceder_item', 'resolver_drops', 'creditar_ciclos', 'resolver_uma_dungeon',
-  'resolver_dungeons', 'poder_de_ataque', 'auto_alocar_atributos', 'recomputar_ranking'
+  'resolver_dungeons', 'poder_de_ataque', 'auto_alocar_atributos', 'recomputar_ranking',
+  'creditar_diamante'
 ];
   v_nome text;
 begin
@@ -488,7 +584,8 @@ begin
   foreach v_nome in array array['iniciar_sessao', 'validar_lote', 'coletar_farm_offline',
                                 'emitir_ticket_anuncio', 'redistribuir_atributos',
                                 'definir_apelido', 'ranking_global', 'iniciar_dungeon',
-                                'sintetizar', 'equipar_item', 'fortificar_item'] loop
+                                'sintetizar', 'equipar_item', 'fortificar_item',
+                                'comprar_ouro'] loop
     perform public.checar(
       exists (
         select 1 from pg_proc p

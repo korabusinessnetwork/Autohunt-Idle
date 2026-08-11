@@ -8,6 +8,7 @@ import { ModalCadastro } from '../features/cadastro/ModalCadastro'
 import { PainelConfiguracoes } from '../features/configuracoes/PainelConfiguracoes'
 import { PainelDesbloqueio } from '../features/desbloqueio/PainelDesbloqueio'
 import { TelaRetorno } from '../features/farm-offline/TelaRetorno'
+import { PainelLoja } from '../features/loja/PainelLoja'
 import { PainelEquipamento } from '../features/mochila/PainelEquipamento'
 import { PainelMochila } from '../features/mochila/PainelMochila'
 import { TelaRanking } from '../features/ranking/TelaRanking'
@@ -30,6 +31,7 @@ type Painel =
   | 'ranking'
   | 'mochila'
   | 'equipamento'
+  | 'loja'
 
 export function Jogo() {
   const { estado, erro, snapshot, t, idioma, conectar, recarregarEstado } = useSessao()
@@ -124,6 +126,10 @@ export function Jogo() {
           <strong className="jogo__valor jogo__valor--moeda">
             {formatarNumero(jogador?.moeda ?? 0, idioma)}
           </strong>
+          <span className="jogo__rotulo">{t('hud.diamante')}</span>
+          <strong className="jogo__valor jogo__valor--diamante">
+            {formatarNumero(jogador?.diamante ?? 0, idioma)}
+          </strong>
         </div>
       </header>
 
@@ -150,6 +156,7 @@ export function Jogo() {
           {chaves > 0 ? <span className="jogo__selo">{chaves}</span> : null}
         </Botao>
         <Botao onClick={() => setPainel('equipamento')}>{t('mochila.equipamento')}</Botao>
+        <Botao onClick={() => setPainel('loja')}>{t('loja.titulo')}</Botao>
         <Botao onClick={() => setPainel('ranking')}>{t('ranking.titulo')}</Botao>
         <Botao variante="discreta" onClick={() => setPainel('configuracoes')}>
           {t('config.titulo')}
@@ -171,6 +178,8 @@ export function Jogo() {
       {painel === 'equipamento' ? (
         <PainelEquipamento aoFechar={() => setPainel('nenhum')} />
       ) : null}
+
+      {painel === 'loja' ? <PainelLoja aoFechar={() => setPainel('nenhum')} /> : null}
 
       {painel === 'ranking' ? (
         <TelaRanking
