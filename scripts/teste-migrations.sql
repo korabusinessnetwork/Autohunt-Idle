@@ -560,6 +560,135 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------
+-- Passe: progresso por jogar, recompensa específica, nada expira, nada é tirado
+-- ---------------------------------------------------------------------------
+\echo '== passe de recompensas =='
+do $$
+declare
+  v_uid      uuid := 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
+  v_sem      uuid := 'ffffffff-ffff-ffff-ffff-ffffffffffff';
+  v_snap     jsonb;
+  v_itens    bigint;
+  v_pontos   bigint;
+  v_tier     integer;
+  v_esperado public.passe_recompensa%rowtype;
+begin
+  insert into auth.users (id, email) values (v_uid, 'passe@exemplo.com'), (v_sem, null);
+
+  -- --- Sem passe, jogar não dá ponto (critério 4) ---
+  perform set_config('autohunt.uid', v_sem::text, false);
+  perform public.iniciar_sessao();
+  perform public.creditar_ciclos(v_sem, 500, 1, false);
+  perform public.checar(
+    coalesce((select pontos from public.passe_jogador where player_id = v_sem), 0) = 0,
+    'sem passe ativo, jogar não acumula ponto');
+
+  -- --- Com passe, o progresso vem de jogar ---
+  perform set_config('autohunt.uid', v_uid::text, false);
+  perform public.iniciar_sessao();
+
+  v_snap := public.montar_snapshot(v_uid);
+  perform public.checar((v_snap #>> '{passe,ativo}')::boolean = false,
+                        'o passe começa desativado');
+  -- A trilha inteira aparece MESMO sem ter comprado: é o que permite ver o que
+  -- se está comprando antes de pagar.
+  perform public.checar(jsonb_array_length(v_snap #> '{passe,trilha}') = 12,
+                        'a trilha inteira é publicada antes da compra');
+
+  perform public.ativar_passe(v_uid, 'ref-passe-1');
+  perform public.creditar_ciclos(v_uid, 150, 1, false);
+
+  select pontos, tier into v_pontos, v_tier
+    from public.passe_jogador where player_id = v_uid;
+  perform public.checar(v_pontos = 150, 'jogar com passe ativo acumula ponto');
+  perform public.checar(v_tier = 1, 'cruzar o primeiro tier concede sozinho, sem resgatar');
+
+  -- --- A recompensa é EXATAMENTE a publicada (critério 6) ---
+  select * into v_esperado from public.passe_recompensa where tier = 1;
+  perform public.checar(
+    exists (select 1 from public.item_jogador
+             where player_id = v_uid and origem = 'passe'
+               and tipo = v_esperado.tipo and raridade = v_esperado.raridade),
+    'a recompensa concedida é exatamente a que a trilha publicava');
+
+  -- --- Vários tiers de uma vez, sem pular nenhum (edge case) ---
+  -- 150 + 1000 = 1150 pontos. A trilha pede 100/300/600/1000 nos quatro
+  -- primeiros tiers e 1500 no quinto: cruza até o 4, e para exatamente ali.
+  perform public.creditar_ciclos(v_uid, 1000, 1, false);
+  select tier into v_tier from public.passe_jogador where player_id = v_uid;
+  perform public.checar(v_tier = 4, 'uma ausência longa concede vários tiers de uma vez');
+  perform public.checar(
+    (select count(*) from public.item_jogador
+      where player_id = v_uid and origem = 'passe') = 4,
+    'nenhum tier é pulado — um item por tier cruzado');
+  perform public.checar(
+    not exists (select 1 from public.passe_recompensa r
+                 where r.tier <= v_tier
+                   and not exists (select 1 from public.item_jogador i
+                                    where i.player_id = v_uid and i.origem = 'passe'
+                                      and i.tipo = r.tipo and i.raridade = r.raridade)),
+    'todo tier cruzado entregou a recompensa que publicava');
+
+  -- --- Desativar não tira nada, e congela o progresso (critérios 4 e 8) ---
+  select count(*) into v_itens
+    from public.item_jogador where player_id = v_uid and origem = 'passe';
+
+  perform public.desativar_passe(v_uid);
+  perform public.creditar_ciclos(v_uid, 5000, 1, false);
+
+  perform public.checar(
+    (select count(*) from public.item_jogador
+      where player_id = v_uid and origem = 'passe') = v_itens,
+    'desativar o passe não retira nenhuma recompensa já destravada');
+  perform public.checar(
+    (select pontos from public.passe_jogador where player_id = v_uid) = 1150,
+    'passe desativado para de acumular ponto');
+  perform public.checar(
+    (select tier from public.passe_jogador where player_id = v_uid) = 4,
+    'passe desativado não regride o tier');
+
+  -- --- Reativar retoma do mesmo ponto, sem zerar ---
+  perform public.ativar_passe(v_uid);
+  perform public.creditar_ciclos(v_uid, 400, 1, false);
+  perform public.checar(
+    (select pontos from public.passe_jogador where player_id = v_uid) = 1550,
+    'reativar retoma de onde parou, sem zerar');
+
+  -- --- A skin exclusiva só sai da trilha (critério 9) ---
+  perform public.checar(
+    not exists (select 1 from public.item_jogador
+                 where exclusivo_do_passe and origem <> 'passe'),
+    'nenhuma rota fora do passe concede item exclusivo');
+
+  -- --- O passe é independente da assinatura (critério 1) ---
+  -- Ter passe não torna ninguém assinante…
+  v_snap := public.montar_snapshot(v_uid);
+  perform public.checar((v_snap #>> '{passe,ativo}')::boolean,
+                        'o passe está ativo');
+  perform public.checar((v_snap #>> '{assinatura,ativa}')::boolean = false,
+                        'ter passe não torna o jogador assinante');
+  perform public.checar((v_snap #>> '{assinatura,multiplicadorXp}')::integer = 1,
+                        'o passe não dá o 2x XP da assinatura');
+
+  -- …e assinar não mexe no passe, nem cancelar a assinatura o desliga.
+  perform public.aplicar_evento_assinatura(v_uid, 'ativa', now() + interval '30 days',
+                                           'stripe', 'ref-passe-ass');
+  select tier into v_tier from public.passe_jogador where player_id = v_uid;
+  perform public.aplicar_evento_assinatura(v_uid, 'vencida', now() - interval '1 day',
+                                           'stripe', 'ref-passe-ass');
+  v_snap := public.montar_snapshot(v_uid);
+  perform public.checar((v_snap #>> '{passe,ativo}')::boolean,
+                        'a assinatura vencer não desliga o passe');
+  perform public.checar((v_snap #>> '{passe,tier}')::integer = v_tier,
+                        'a assinatura vencer não mexe no tier do passe');
+
+  -- --- E entra na exportação de LGPD ---
+  v_snap := public.exportar_meus_dados();
+  perform public.checar((v_snap #>> '{passe,tier}')::integer = 5,
+                        'a exportação de dados inclui o progresso do passe');
+end $$;
+
+-- ---------------------------------------------------------------------------
 -- LGPD: exportar e excluir os próprios dados
 -- ---------------------------------------------------------------------------
 \echo '== dados pessoais (LGPD) =='
@@ -640,7 +769,7 @@ begin
   foreach v_tabela in array array['jogador', 'farm_state', 'assinatura',
                                   'atributo_jogador', 'item_jogador',
                                   'evento_jogo', 'ticket_anuncio',
-                                  'ranking_posicao'] loop
+                                  'ranking_posicao', 'passe_jogador'] loop
     execute format('select count(*) from public.%I where %I = $1',
                    v_tabela,
                    case when v_tabela = 'jogador' then 'id' else 'player_id' end)
@@ -674,7 +803,8 @@ declare v_privilegiadas text[] := array[
   'creditar_anuncio', 'aplicar_evento_assinatura', 'resgatar_anuncio_do_jogador',
   'conceder_item', 'resolver_drops', 'creditar_ciclos', 'resolver_uma_dungeon',
   'resolver_dungeons', 'poder_de_ataque', 'auto_alocar_atributos', 'recomputar_ranking',
-  'creditar_diamante'
+  'creditar_diamante', 'ativar_passe', 'desativar_passe', 'progredir_passe',
+  'conceder_recompensa_passe'
 ];
   v_nome text;
 begin

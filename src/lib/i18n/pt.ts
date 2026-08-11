@@ -254,6 +254,24 @@ export const pt = {
   'loja.erro.PACOTE_INDISPONIVEL': 'Esse pacote não tá mais à venda.',
   'loja.erro.COMPRA_FALHOU': 'Não deu pra trocar agora. Tenta de novo?',
 
+  // --- Passe de recompensas -----------------------------------------------
+  // Nenhuma string aqui tem prazo, contagem regressiva ou "última chance" — a
+  // trilha não expira, e a ausência de urgência é a decisão de produto
+  // (`specs/passe-de-recompensas.md`, nota de design).
+  'passe.titulo': 'Trilha de recompensas',
+  'passe.ativo': 'Sua trilha tá rolando',
+  'passe.inativo': 'Você ainda não tem a trilha',
+  'passe.explicacao': 'Com a trilha ativa, jogar normalmente vai destravando cada prêmio abaixo.',
+  'passe.semPrazo': 'Sem prazo: o que você destravar é seu pra sempre, mesmo se cancelar depois.',
+  'passe.tier': '{tier}º',
+  'passe.custa': '{pontos} pts',
+  'passe.destravado': 'Destravado',
+  'passe.exclusiva': 'Só na trilha',
+  'passe.faltam': 'Faltam {pontos} pts pro {tier}º prêmio',
+  'passe.completa': 'Você destravou a trilha inteira.',
+  'passe.comprar': 'Ativar a trilha',
+  'passe.indisponivel': 'A trilha ainda não está à venda nesta versão.',
+
   // --- Configurações ------------------------------------------------------
   'config.titulo': 'Configurações',
   'config.idioma': 'Idioma',

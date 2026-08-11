@@ -1,6 +1,7 @@
 # Modelo de ameaças — Autohunt Idle
 
-> Reconciliado com o código em **2026-08-11**, contra 12 migrations e 40+ funções.
+> Reconciliado com o código em **2026-08-11**, contra 13 migrations e 45+ funções.
+> Superfície 10 (passe) acrescentada na 9ª rodada.
 > Ver `docs/11_SEGURANCA/README.md` para os princípios, e `checklist-de-release.md` para o que
 > rodar antes de publicar.
 
@@ -128,7 +129,26 @@ Superfície nova, criada na 7ª rodada, e a que mais depende de invariante e men
 | 9.6 | SDK de terceiro injetando código | **MITIGADA** | O build nunca busca script externo; nos portais o SDK é injetado pela página hospedeira (`VITE_CANAL`). Ver `docs/01_ARQUITETURA/publicacao-portais.md` |
 | 9.7 | Dependência vulnerável | **FECHADA** *(nesta rodada)* | `npm audit --audit-level=critical` no CI |
 
-## 10. O que este modelo não cobre
+## 10. Superfície: passe de recompensas
+
+Superfície nova, criada na 9ª rodada. É a segunda coisa do jogo que se compra com dinheiro, e a
+primeira que entrega **conteúdo** em troca — o que a aproxima perigosamente da restrição de
+recompensa aleatória paga.
+
+| # | Ameaça | Estado | Prova |
+|---|---|---|---|
+| 11.1 | O passe virar recompensa aleatória paga | **FECHADA** | `a recompensa do passe nunca é sorteada` — `conceder_recompensa_passe` não pode usar `sorteio01`, `escalar_raridade`, `random(` nem `conceder_item`; a raridade vem escrita da linha da trilha. **A diferença entre este passe e uma loot box é exatamente esta**, e o jogador lê a trilha inteira antes de comprar |
+| 11.2 | Prazo/temporada empurrando urgência de compra | **FECHADA** | `nada na trilha do passe expira` — a tabela `passe_recompensa` não pode ter coluna de `expira`, `validade`, `temporada`, `prazo` ou `termina`. Restrição "sem dark pattern de urgência" virando ausência verificada |
+| 11.3 | Recompensa destravada ser retirada ao cancelar | **FECHADA** | `recompensa de passe já destravada nunca é retirada` — `desativar_passe` não menciona `item_jogador` nem `delete`; `desativar o passe não retira nenhuma recompensa já destravada` (fumaça) |
+| 11.4 | Client se declarar portador do passe | **FECHADA** | `o client nunca informa progresso de passe nem se declara portador` — `ativar_passe` e `desativar_passe` revogadas de `authenticated`, concedidas a `service_role`. Mesmo padrão da assinatura |
+| 11.5 | Client informar quantos pontos ganhou | **FECHADA** | Mesmo teste: o progresso entra por `creditar_ciclos`, a rota que já credita tudo e que o client não alcança |
+| 11.6 | Ganhar pontos sem ter o passe | **FECHADA** | `progredir_passe` sai cedo quando o passe não está ativo; `sem passe ativo, jogar não acumula ponto` (fumaça) |
+| 11.7 | A skin "exclusiva" aparecer por outra rota | **FECHADA** | `só a trilha do passe concede item exclusivo` — existe **um** `insert` no schema inteiro que marca `exclusivo_do_passe`, e ele está dentro de `conceder_recompensa_passe`; `nenhuma rota fora do passe concede item exclusivo` (fumaça) |
+| 11.8 | Pular tier numa ausência longa | **FECHADA** | `nenhum tier é pulado — um item por tier cruzado` e `todo tier cruzado entregou a recompensa que publicava` (fumaça) |
+| 11.9 | Progresso do passe não entrar na exportação de LGPD | **FECHADA** | `a exportação de dados inclui o progresso do passe` (fumaça). Tabela nova de dado do jogador entra na exportação junto — senão o direito de acesso vira promessa parcial |
+| 11.10 | Calibragem tornar a trilha inalcançável sem pagar mais | **ABERTA** | Mesma família de 4.7: os pontos por ciclo e o custo de cada tier são balanceamento (D4), e nenhum teste pode julgar se a curva é honesta. Só dado de jogador real resolve |
+
+## 12. O que este modelo não cobre
 
 Registrado para não virar ponto cego por omissão:
 

@@ -262,6 +262,21 @@ export const en: Record<ChaveI18n, string> = {
   'loja.erro.PACOTE_INDISPONIVEL': 'That pack is no longer for sale.',
   'loja.erro.COMPRA_FALHOU': "Couldn't trade right now. Try again?",
 
+  // --- Reward track ---------------------------------------------------------
+  'passe.titulo': 'Reward track',
+  'passe.ativo': 'Your track is running',
+  'passe.inativo': "You don't have the track yet",
+  'passe.explicacao': 'With the track on, just playing unlocks each prize below.',
+  'passe.semPrazo': 'No deadline: whatever you unlock is yours forever, even if you cancel later.',
+  'passe.tier': '#{tier}',
+  'passe.custa': '{pontos} pts',
+  'passe.destravado': 'Unlocked',
+  'passe.exclusiva': 'Track only',
+  'passe.faltam': '{pontos} pts to prize #{tier}',
+  'passe.completa': "You've unlocked the whole track.",
+  'passe.comprar': 'Get the track',
+  'passe.indisponivel': 'The track is not on sale in this build yet.',
+
   // --- Settings -------------------------------------------------------------
   'config.titulo': 'Settings',
   'config.idioma': 'Language',

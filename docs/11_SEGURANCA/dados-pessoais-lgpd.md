@@ -23,7 +23,8 @@ um plano de segurança tem que fechar em vez de repetir. Esta rodada fechou.
 | Idioma | `jogador.idioma` | Preferência | Não |
 | Progressão | `jogador`, `farm_state`, `atributo_jogador`, `item_jogador` | Dado de uso, não pessoal isoladamente | Gerado jogando |
 | Estado de assinatura | `assinatura.status`, `expira_em` | Dado contratual | Só para assinante |
-| Referência no gateway | `assinatura.referencia_externa`, `provedor` | Dado do provedor | **Nunca concedido ao client**, e fora da exportação |
+| Referência no gateway | `assinatura.referencia_externa`, `provedor`, `passe_jogador.referencia_externa` | Dado do provedor | **Nunca concedido ao client**, e fora da exportação |
+| Progresso do passe | `passe_jogador.ativo`, `pontos`, `tier` | Dado de uso e contratual | Só para quem comprou a trilha |
 | Log de atividade | `evento_jogo` | Dado de uso | Gerado jogando |
 | Dado de cartão | **nenhum lugar** | — | Processamento 100% do gateway |
 | Token de sessão | `localStorage` do navegador, chave `autohunt.sessao` | Credencial local | Mecanismo padrão do SDK |
@@ -35,7 +36,11 @@ deste produto, decisão registrada em `memory/restrictions.md` e revisitável se
 ## 3. Direito de acesso e portabilidade — `exportar_meus_dados()`
 
 Devolve, num JSON só, tudo da tabela acima que pertence a quem chamou. Seções: `conta`,
-`progresso`, `atributos`, `farm`, `assinatura`, `itens`, `eventos`.
+`progresso`, `atributos`, `farm`, `assinatura`, `passe`, `itens`, `eventos`.
+
+**Tabela nova de dado do jogador entra aqui junto, na mesma rodada.** Uma exportação que esquece
+uma tabela é o direito de acesso virando promessa parcial — foi por isso que o passe entrou na
+função na própria migration que criou a tabela, e não numa limpeza posterior.
 
 **Três decisões de desenho valem registro:**
 
@@ -55,13 +60,13 @@ uma conta sem cadastro ainda tem progressão, e progressão é dado do titular.
 ## 4. Direito de eliminação — `excluir_minha_conta()`
 
 Apaga a linha de `auth.users`. O `on delete cascade` de `jogador` leva junto `farm_state`,
-`atributo_jogador`, `item_jogador`, `assinatura`, `ticket_anuncio`, `evento_jogo` e
-`ranking_posicao`.
+`atributo_jogador`, `item_jogador`, `assinatura`, `passe_jogador`, `ticket_anuncio`,
+`evento_jogo` e `ranking_posicao`.
 
 **Apagar em cascata, e não tabela por tabela, é escolha deliberada:** uma tabela criada amanhã já
 nasce coberta pela cascata, enquanto uma lista explícita precisaria ser lembrada — e a lista que
 alguém esquece de atualizar é exatamente como dado órfão sobrevive a uma exclusão. O teste de
-fumaça confere as 8 tabelas uma a uma, incluindo `ranking_posicao`, a única com dado visível a
+fumaça confere as 9 tabelas uma a uma, incluindo `ranking_posicao`, a única com dado visível a
 terceiros.
 
 **Não existe "desativar".** Guardar o dado "por precaução" depois que o titular pediu eliminação é

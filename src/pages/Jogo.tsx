@@ -11,6 +11,7 @@ import { TelaRetorno } from '../features/farm-offline/TelaRetorno'
 import { PainelLoja } from '../features/loja/PainelLoja'
 import { PainelEquipamento } from '../features/mochila/PainelEquipamento'
 import { PainelMochila } from '../features/mochila/PainelMochila'
+import { PainelPasse } from '../features/passe/PainelPasse'
 import { TelaRanking } from '../features/ranking/TelaRanking'
 import { useMotorDeJogo } from '../hooks/useMotorDeJogo'
 import { sinalizarJogo } from '../lib/portal'
@@ -32,6 +33,7 @@ type Painel =
   | 'mochila'
   | 'equipamento'
   | 'loja'
+  | 'passe'
 
 export function Jogo() {
   const { estado, erro, snapshot, t, idioma, conectar, recarregarEstado } = useSessao()
@@ -157,6 +159,7 @@ export function Jogo() {
         </Botao>
         <Botao onClick={() => setPainel('equipamento')}>{t('mochila.equipamento')}</Botao>
         <Botao onClick={() => setPainel('loja')}>{t('loja.titulo')}</Botao>
+        <Botao onClick={() => setPainel('passe')}>{t('passe.titulo')}</Botao>
         <Botao onClick={() => setPainel('ranking')}>{t('ranking.titulo')}</Botao>
         <Botao variante="discreta" onClick={() => setPainel('configuracoes')}>
           {t('config.titulo')}
@@ -180,6 +183,8 @@ export function Jogo() {
       ) : null}
 
       {painel === 'loja' ? <PainelLoja aoFechar={() => setPainel('nenhum')} /> : null}
+
+      {painel === 'passe' ? <PainelPasse aoFechar={() => setPainel('nenhum')} /> : null}
 
       {painel === 'ranking' ? (
         <TelaRanking

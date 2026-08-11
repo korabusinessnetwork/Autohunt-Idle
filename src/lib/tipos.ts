@@ -190,6 +190,29 @@ export interface ResultadoCompraOuro {
   ouroRecebido: number
 }
 
+/**
+ * Um degrau da trilha do passe.
+ *
+ * Vem do servidor inteiro, e **sempre** — inclusive para quem ainda não
+ * comprou. É o que permite ver exatamente o que se está comprando antes de
+ * pagar, e é a diferença entre este passe e uma caixa de recompensa aleatória.
+ */
+export interface TierDoPasse {
+  tier: number
+  pontos: number
+  tipo: TipoItem
+  raridade: number
+  /** Recompensa que nenhuma outra rota do jogo concede. */
+  exclusiva: boolean
+}
+
+export interface EstadoPasse {
+  ativo: boolean
+  pontos: number
+  tier: number
+  trilha: TierDoPasse[]
+}
+
 export interface ResultadoDungeon {
   resolvida: boolean
   venceu?: boolean
@@ -203,6 +226,8 @@ export interface Snapshot {
   inventario: EstadoInventario
   /** Catálogo da loja de ouro, publicado pelo servidor. */
   lojaOuro: PacoteOuro[]
+  /** Progresso e trilha do passe. A trilha vem completa, com ou sem passe. */
+  passe: EstadoPasse
   dungeon?: ResultadoDungeon
   sintese?: { consumidos: number; produziuRaridade: number }
   fortificacao?: ResultadoFortificacao

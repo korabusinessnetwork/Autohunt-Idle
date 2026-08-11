@@ -15,11 +15,11 @@
 
 | Comando | O que garante |
 |---|---|
-| `npm test` | 174 testes, dos quais 24 auditam o contrato do schema e 5 auditam a superfície do client. É aqui que moram as provas do `modelo-de-ameacas.md` |
+| `npm test` | 179 testes, dos quais 29 auditam o contrato do schema e 5 auditam a superfície do client. É aqui que moram as provas do `modelo-de-ameacas.md` |
 | `npm run build` | Tipo, compilação e o orçamento de peso do portal |
 | `npm audit --audit-level=critical` | Nenhuma dependência com vulnerabilidade crítica aberta |
 | `gitleaks` (com `fetch-depth: 0`) | Nenhum segredo no repositório — **inclusive no histórico**, porque segredo "removido num commit seguinte" continua lá |
-| `./scripts/pg-local.sh` | As 12 migrations aplicam em ordem contra um Postgres 16 real, e o teste de fumaça executa a lógica ponta a ponta |
+| `./scripts/pg-local.sh` | As 13 migrations aplicam em ordem contra um Postgres 16 real, e o teste de fumaça executa a lógica ponta a ponta |
 
 **Para rodar tudo localmente antes de subir:**
 
@@ -53,6 +53,10 @@ que remover a proteção quebre um teste com nome legível em vez de passar desp
 - **`service_role` fora do bundle** → `a service_role nunca é referenciada no client`
 - **Nenhuma chave hardcoded no client** → `nenhuma chave ou URL de API é hardcoded`
 - **Nenhum log no client** → `não existe console.* no código de produção`
+- **Passe não é loot box** → `a recompensa do passe nunca é sorteada`
+- **Nada na trilha expira** → `nada na trilha do passe expira`
+- **Recompensa destravada não é retirada** → `recompensa de passe já destravada nunca é retirada`
+- **Skin do passe é exclusiva de verdade** → `só a trilha do passe concede item exclusivo`
 
 ## 3. Manual — configuração do projeto Supabase
 

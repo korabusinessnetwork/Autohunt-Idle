@@ -1,0 +1,151 @@
+.passe {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--espaco-3);
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--cor-texto) 55%, transparent);
+  z-index: 25;
+}
+
+.passe__cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  width: min(32rem, 100%);
+  max-height: 90dvh;
+  padding: var(--espaco-4);
+  overflow-y: auto;
+  background: var(--cor-fundo);
+  border: var(--borda);
+  border-radius: var(--raio);
+}
+
+.passe__titulo {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.passe__estado {
+  margin: 0;
+  font-weight: 700;
+}
+
+.passe__detalhe {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+
+.passe__detalhe--calmo {
+  opacity: 0.7;
+}
+
+.passe__barra {
+  height: 0.75rem;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--cor-texto) 12%, transparent);
+  border: 2px solid var(--cor-texto);
+  border-radius: 999px;
+}
+
+.passe__barra-preenchida {
+  height: 100%;
+  background: var(--cor-recompensa);
+  transition: width 0.3s ease-out;
+}
+
+.passe__trilha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.passe__degrau {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  gap: var(--espaco-1) var(--espaco-2);
+  align-items: center;
+  padding: var(--espaco-2);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+  /* Degrau ainda não alcançado fica sóbrio, nunca bloqueado com cadeado: o
+     tom da casa não cobra, e a trilha não tem prazo para pressionar. */
+  opacity: 0.75;
+}
+
+.passe__degrau--destravado {
+  opacity: 1;
+  background: color-mix(in srgb, var(--cor-positivo) 22%, var(--cor-fundo));
+}
+
+.passe__tier {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.passe__raridade {
+  padding: 0.1rem var(--espaco-2);
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 2px solid var(--cor-texto);
+  border-radius: 999px;
+}
+
+.passe__raridade--comum {
+  background: color-mix(in srgb, var(--cor-texto) 12%, transparent);
+}
+.passe__raridade--incomum {
+  background: var(--cor-positivo);
+}
+.passe__raridade--raro {
+  background: var(--cor-secundaria);
+}
+.passe__raridade--epico {
+  background: var(--cor-primaria);
+}
+.passe__raridade--lendario {
+  background: var(--cor-recompensa);
+}
+.passe__raridade--caramelizado {
+  background: color-mix(in srgb, var(--cor-recompensa) 70%, var(--cor-bloqueado));
+}
+.passe__raridade--glaceado {
+  background: color-mix(in srgb, var(--cor-secundaria) 55%, var(--cor-fundo));
+}
+.passe__raridade--dourado {
+  background: color-mix(in srgb, var(--cor-recompensa) 85%, var(--cor-texto));
+}
+.passe__raridade--cristalizado {
+  background: color-mix(in srgb, var(--cor-secundaria) 65%, var(--cor-primaria));
+}
+.passe__raridade--cosmico {
+  background: color-mix(in srgb, var(--cor-primaria) 60%, var(--cor-secundaria));
+}
+
+.passe__premio {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  font-weight: 700;
+}
+
+.passe__exclusiva {
+  padding: 0.1rem var(--espaco-2);
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: var(--cor-primaria);
+  border: 2px solid var(--cor-texto);
+  border-radius: 999px;
+}
+
+.passe__pontos {
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}

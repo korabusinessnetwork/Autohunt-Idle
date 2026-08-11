@@ -27,7 +27,7 @@ Na prática:
 
 | Documento | Para quê | Quando ler |
 |---|---|---|
-| [`modelo-de-ameacas.md`](modelo-de-ameacas.md) | 10 superfícies, cada ameaça com estado (FECHADA / MITIGADA / ABERTA) e a prova | Antes de mexer em RPC, GRANT, RLS ou economia |
+| [`modelo-de-ameacas.md`](modelo-de-ameacas.md) | 11 superfícies, cada ameaça com estado (FECHADA / MITIGADA / ABERTA) e a prova | Antes de mexer em RPC, GRANT, RLS ou economia |
 | [`checklist-de-release.md`](checklist-de-release.md) | O que roda sozinho, o que é manual, o que só um Supabase real prova | Antes de publicar qualquer coisa |
 | [`dados-pessoais-lgpd.md`](dados-pessoais-lgpd.md) | Inventário do dado pessoal e o desenho de exportar/excluir | Ao mexer em dado de conta |
 | [`plano-mercado-p2p.md`](plano-mercado-p2p.md) | O plano específico que `memory/restrictions.md` exige antes de construir o mercado | Antes da primeira linha do mercado |
@@ -37,14 +37,14 @@ Na prática:
 
 | | |
 |---|---|
-| Ameaças mapeadas | **53**, em 10 superfícies |
-| **FECHADAS** — com teste que reprova o build | **43** (7 fechadas nesta rodada) |
+| Ameaças mapeadas | **63**, em 11 superfícies |
+| **FECHADAS** — com teste que reprova o build | **52** |
 | **MITIGADAS** — protegidas, mas nada trava se alguém desfizer | **5** |
-| **ABERTAS** | **4** |
+| **ABERTAS** | **5** |
 | **ACEITA por proporcionalidade** | **1** — data de nascimento falsa; verificação por documento é paga e desproporcional ao risco deste produto |
 
-As quatro abertas, em ordem de impacto. **Nenhuma depende de trabalho de código pendente** — todas
-esperam decisão do dono ou serviço contratado:
+As cinco abertas, em ordem de impacto. **Nenhuma depende de trabalho de código pendente** — todas
+esperam decisão do dono, dado de jogador real ou serviço contratado:
 
 1. **RLS não é exercitada por JWT real** (7.5) — o Postgres local reproduz `auth.uid()` a partir de
    uma variável de sessão, não de um JWT. A política pode estar sintaticamente certa e
@@ -53,10 +53,12 @@ esperam decisão do dono ou serviço contratado:
 2. **Calibragem do preço da fortificação** (4.7) — se o custo em ouro forçar a compra, o caminho
    gratuito vira fachada e a restrição de recompensa aleatória paga volta a valer *de fato*, com o
    código intacto (P6). Só dado de jogador real resolve.
-3. **Webhook de gateway forjado** (3.4) — depende de P3.
-4. **Replay do callback de anúncio** (2.3) — depende de P2.
+3. **Calibragem da trilha do passe** (10.10) — mesma família da anterior: nenhum teste julga se a
+   curva de pontos é honesta.
+4. **Webhook de gateway forjado** (3.4) — depende de P3.
+5. **Replay do callback de anúncio** (2.3) — depende de P2.
 
-Além delas, `modelo-de-ameacas.md` §10 registra quatro coisas que o modelo **não cobre**: abuso de
+Além delas, `modelo-de-ameacas.md` §12 registra quatro coisas que o modelo **não cobre**: abuso de
 volume, disponibilidade (DDoS/WAF), segurança operacional das contas do dono, e o mercado P2P —
 que tem documento próprio.
 

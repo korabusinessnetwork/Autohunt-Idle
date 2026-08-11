@@ -143,6 +143,10 @@ describe('contrato das RPCs expostas ao jogador', () => {
       // Crédito de diamante comprado com dinheiro: só entra por webhook
       // assinado, mesmo padrão da assinatura (critério 9 da spec da loja).
       'creditar_diamante',
+      // Ativação de passe: mesmo padrão, mesmo motivo — quem pagou é o webhook
+      // do gateway que diz, nunca o client.
+      'ativar_passe',
+      'desativar_passe',
     ]) {
       const revogacao = new RegExp(
         `revoke execute on function public\\.${privilegiada}[\\s\\S]{0,160}?from public, anon, authenticated`,
@@ -256,6 +260,12 @@ describe('contrato das RPCs expostas ao jogador', () => {
       'fortificar_item',
       'comprar_ouro',
       'creditar_diamante',
+      'ativar_passe',
+      'desativar_passe',
+      'progredir_passe',
+      'conceder_recompensa_passe',
+      'exportar_meus_dados',
+      'excluir_minha_conta',
     ]) {
       const definicao = rpcs.slice(
         rpcs.lastIndexOf(`create or replace function public.${funcao}(`),
@@ -340,6 +350,86 @@ describe('isolamento e segurança do schema', () => {
     // "verificar se está livre" e "gravar" cabe outro jogador gravando igual.
     expect(corpo).toContain('unique_violation')
     expect(corpo).toContain('APELIDO_EM_USO')
+  })
+
+  it('a recompensa do passe nunca é sorteada', () => {
+    // A diferença entre este passe e uma caixa de recompensa aleatória paga —
+    // a restrição CRÍTICA permanente — é que o jogador lê a recompensa de cada
+    // tier ANTES de comprar. Um sorteio no caminho apagaria essa diferença sem
+    // mudar uma linha da tela.
+    const inicio = sqlExecutavel.lastIndexOf(
+      'create or replace function public.conceder_recompensa_passe(',
+    )
+    expect(inicio).toBeGreaterThan(-1)
+    const corpo = sqlExecutavel.slice(inicio, sqlExecutavel.indexOf('$$;', inicio)).toLowerCase()
+
+    for (const proibido of ['sorteio01', 'escalar_raridade', 'random(', 'conceder_item']) {
+      expect(corpo, `conceder_recompensa_passe não pode usar ${proibido}`).not.toContain(proibido)
+    }
+    // A raridade sai da linha da trilha, não de um cálculo.
+    expect(corpo).toContain('v_r.raridade')
+  })
+
+  it('nada na trilha do passe expira', () => {
+    // "Sem dark pattern de urgência" (`memory/restrictions.md`). Passe de
+    // mercado usa temporada com prazo justamente para empurrar compra; a spec
+    // de origem decidiu o contrário, e isso é a ausência de uma coluna.
+    const inicio = sqlExecutavel.indexOf('create table if not exists public.passe_recompensa')
+    expect(inicio).toBeGreaterThan(-1)
+    const tabela = sqlExecutavel.slice(inicio, sqlExecutavel.indexOf(');', inicio)).toLowerCase()
+
+    for (const proibida of ['expira', 'validade', 'temporada', 'prazo', 'termina']) {
+      expect(tabela, `a trilha não pode ter coluna de ${proibida}`).not.toContain(proibida)
+    }
+  })
+
+  it('recompensa de passe já destravada nunca é retirada', () => {
+    // Critério 4 da spec de origem, e o mesmo princípio que já protege a
+    // fortificação: progresso não é punido. Desativar o passe para o ganho de
+    // pontos e não toca em item nenhum.
+    expect(sqlExecutavel).not.toMatch(/delete\s+from\s+public\.item_jogador[\s\S]{0,200}?'passe'/i)
+    expect(sqlExecutavel).not.toMatch(/delete\s+from\s+public\.item_jogador[\s\S]{0,200}?exclusivo/i)
+
+    const inicio = sqlExecutavel.lastIndexOf('create or replace function public.desativar_passe(')
+    const corpo = sqlExecutavel.slice(inicio, sqlExecutavel.indexOf('$$;', inicio)).toLowerCase()
+    expect(corpo).not.toContain('item_jogador')
+    expect(corpo).not.toContain('delete')
+  })
+
+  it('só a trilha do passe concede item exclusivo', () => {
+    // É o que sustenta a exclusividade da skin (critério 9): não é uma promessa
+    // de conteúdo, é a única escrita da coluna no schema inteiro.
+    const escritas = [...sqlExecutavel.matchAll(/exclusivo_do_passe/gi)]
+    // Coluna, comentário já removido, e o insert da trilha.
+    expect(escritas.length).toBeGreaterThan(0)
+
+    const inserts = [
+      ...sqlExecutavel.matchAll(/insert into public\.item_jogador\s*\(([^)]*)\)/gi),
+    ].filter(([, colunas]) => /exclusivo_do_passe/i.test(colunas!))
+
+    expect(inserts.length, 'só um insert marca item como exclusivo').toBe(1)
+
+    const inicio = sqlExecutavel.lastIndexOf(
+      'create or replace function public.conceder_recompensa_passe(',
+    )
+    const fim = sqlExecutavel.indexOf('$$;', inicio)
+    expect(inserts[0]!.index).toBeGreaterThan(inicio)
+    expect(inserts[0]!.index).toBeLessThan(fim)
+  })
+
+  it('o client nunca informa progresso de passe nem se declara portador', () => {
+    for (const funcao of ['ativar_passe', 'desativar_passe', 'progredir_passe']) {
+      expect(rpcs, funcao).toMatch(
+        new RegExp(
+          `revoke execute on function public\\.${funcao}[\\s\\S]{0,160}?from public, anon, authenticated`,
+          'i',
+        ),
+      )
+    }
+    // O progresso entra pela mesma rota que já credita XP e moeda.
+    const inicio = sqlExecutavel.lastIndexOf('create or replace function public.creditar_ciclos(')
+    const corpo = sqlExecutavel.slice(inicio, sqlExecutavel.indexOf('$$;', inicio))
+    expect(corpo).toContain('public.progredir_passe(p_player_id, p_ciclos::bigint)')
   })
 
   it('nenhum sorteio do jogo usa random() do Postgres', () => {
