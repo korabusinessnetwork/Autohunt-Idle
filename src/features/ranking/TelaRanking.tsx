@@ -23,10 +23,17 @@ import './TelaRanking.css'
 const ERRO_APELIDO: Record<string, ChaveI18n> = {
   APELIDO_TAMANHO_INVALIDO: 'ranking.apelido.erro.APELIDO_TAMANHO_INVALIDO',
   APELIDO_CARACTERE_INVALIDO: 'ranking.apelido.erro.APELIDO_CARACTERE_INVALIDO',
+  APELIDO_EM_USO: 'ranking.apelido.erro.APELIDO_EM_USO',
   APELIDO_FALHOU: 'ranking.apelido.erro.APELIDO_FALHOU',
 }
 
-export function TelaRanking({ aoFechar }: { aoFechar: () => void }) {
+interface Props {
+  aoFechar: () => void
+  /** Chamado quando o jogador quer entrar no placar mas ainda é anônimo. */
+  aoPedirCadastro: () => void
+}
+
+export function TelaRanking({ aoFechar, aoPedirCadastro }: Props) {
   const { t, idioma, snapshot, atualizarSnapshot } = useSessao()
 
   const [ranking, setRanking] = useState<RankingGlobal | null>(null)
@@ -36,6 +43,10 @@ export function TelaRanking({ aoFechar }: { aoFechar: () => void }) {
   const [erroApelido, setErroApelido] = useState<ChaveI18n | null>(null)
 
   const temApelido = Boolean(snapshot?.jogador.apelido)
+  // Apelido é único e ninguém mais pode usar — então precisa de uma conta que
+  // não se perca junto com o `localStorage`. Mesmo princípio do critério 18 do
+  // core: cadastro só é pedido quando a identidade permanente é necessária.
+  const podeEscolherApelido = snapshot?.jogador.identidadeVerificada ?? false
 
   const carregar = useCallback(async () => {
     setEstado('carregando')
@@ -76,7 +87,15 @@ export function TelaRanking({ aoFechar }: { aoFechar: () => void }) {
           {t('ranking.titulo')}
         </h2>
 
-        {!temApelido ? (
+        {!temApelido && !podeEscolherApelido ? (
+          <div className="ranking__apelido">
+            <h3 className="ranking__apelido-titulo">{t('ranking.cadastro.titulo')}</h3>
+            <p className="ranking__apelido-explicacao">{t('ranking.cadastro.explicacao')}</p>
+            <Botao onClick={aoPedirCadastro}>{t('ranking.cadastro.criar')}</Botao>
+          </div>
+        ) : null}
+
+        {!temApelido && podeEscolherApelido ? (
           <form className="ranking__apelido" onSubmit={(e) => void aoDefinirApelido(e)}>
             <h3 className="ranking__apelido-titulo">{t('ranking.apelido.titulo')}</h3>
             <p className="ranking__apelido-explicacao">{t('ranking.apelido.explicacao')}</p>

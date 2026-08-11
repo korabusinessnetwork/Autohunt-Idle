@@ -134,7 +134,12 @@ export const pt = {
   'ranking.apelido.enviando': 'Entrando…',
   'ranking.apelido.erro.APELIDO_TAMANHO_INVALIDO': 'O apelido precisa ter de 3 a 20 caracteres.',
   'ranking.apelido.erro.APELIDO_CARACTERE_INVALIDO': 'Esse apelido tem caractere que não vale.',
+  'ranking.apelido.erro.APELIDO_EM_USO': 'Esse apelido já é de outro jogador. Escolhe outro?',
   'ranking.apelido.erro.APELIDO_FALHOU': 'Não deu pra salvar o apelido agora. Tenta de novo?',
+  'ranking.cadastro.titulo': 'O placar pede um acesso',
+  'ranking.cadastro.explicacao':
+    'Apelido no ranking é só seu, e ninguém mais pode usar — por isso ele precisa de uma conta que não se perca. Jogar continua livre sem isso.',
+  'ranking.cadastro.criar': 'Criar meu acesso',
 
   // --- Configurações ------------------------------------------------------
   'config.titulo': 'Configurações',

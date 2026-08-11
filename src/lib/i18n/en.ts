@@ -136,7 +136,12 @@ export const en: Record<ChaveI18n, string> = {
   'ranking.apelido.enviando': 'Joining…',
   'ranking.apelido.erro.APELIDO_TAMANHO_INVALIDO': 'The name needs 3 to 20 characters.',
   'ranking.apelido.erro.APELIDO_CARACTERE_INVALIDO': 'That name has a character we cannot use.',
+  'ranking.apelido.erro.APELIDO_EM_USO': 'Another player already has that name. Pick another?',
   'ranking.apelido.erro.APELIDO_FALHOU': "Couldn't save the name right now. Try again?",
+  'ranking.cadastro.titulo': 'The board needs a login',
+  'ranking.cadastro.explicacao':
+    'A ranking name is yours alone, and nobody else can take it — so it needs an account that will not get lost. Playing stays free without one.',
+  'ranking.cadastro.criar': 'Create my login',
 
   // --- Settings -------------------------------------------------------------
   'config.titulo': 'Settings',

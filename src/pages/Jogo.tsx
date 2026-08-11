@@ -24,6 +24,8 @@ type Painel = 'nenhum' | 'desbloqueio' | 'configuracoes' | 'cadastro' | 'atribut
 export function Jogo() {
   const { estado, erro, snapshot, t, idioma, conectar, recarregarEstado } = useSessao()
   const [painel, setPainel] = useState<Painel>('nenhum')
+  // De onde o cadastro foi pedido — o jogador volta para lá ao concluir.
+  const [origemDoCadastro, setOrigemDoCadastro] = useState<Painel>('desbloqueio')
   const [retornoAberto, setRetornoAberto] = useState(false)
   const canvasRef = useMotorDeJogo(estado === 'pronto')
 
@@ -72,7 +74,13 @@ export function Jogo() {
    * (core, 18).
    */
   function abrirDesbloqueio() {
+    setOrigemDoCadastro('desbloqueio')
     setPainel(jogador?.identidadeVerificada ? 'desbloqueio' : 'cadastro')
+  }
+
+  function pedirCadastroPeloRanking() {
+    setOrigemDoCadastro('ranking')
+    setPainel('cadastro')
   }
 
   return (
@@ -141,7 +149,12 @@ export function Jogo() {
         <PainelAtributos aoFechar={() => setPainel('nenhum')} />
       ) : null}
 
-      {painel === 'ranking' ? <TelaRanking aoFechar={() => setPainel('nenhum')} /> : null}
+      {painel === 'ranking' ? (
+        <TelaRanking
+          aoFechar={() => setPainel('nenhum')}
+          aoPedirCadastro={pedirCadastroPeloRanking}
+        />
+      ) : null}
 
       {painel === 'configuracoes' ? (
         <PainelConfiguracoes aoFechar={() => setPainel('nenhum')} />
@@ -152,7 +165,9 @@ export function Jogo() {
           aoFechar={() => setPainel('nenhum')}
           aoConcluir={() => {
             void recarregarEstado()
-            setPainel('desbloqueio')
+            // Volta para onde o cadastro foi pedido: quem veio do placar quer
+            // escolher o apelido, não abrir o painel de farm offline.
+            setPainel(origemDoCadastro)
           }}
         />
       ) : null}

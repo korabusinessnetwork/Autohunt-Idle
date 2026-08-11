@@ -78,5 +78,5 @@ nas specs de origem.
 | # | Decisão | Origem | Como reverter |
 |---|---|---|---|
 | R1 | Desempate no ranking: maior XP total, depois quem chegou primeiro | `specs/ranking-global.md`, edge cases | trocar o `order by` de `recomputar_ranking()` |
-| R2 | Apelido duplicado é permitido | `specs/ranking-global.md`, edge cases | constraint `unique` em `jogador.apelido` — mas aí o cadastro ganha a fricção de "nome já existe" |
+| R2 | ~~Apelido duplicado é permitido~~ → **revertido pelo dono em 2026-08-11**: apelido é único (sem diferenciar maiúscula) **e exige cadastro**. Conta anônima joga normal, só não entra no placar | `specs/ranking-global.md`, edge cases | remover o índice `jogador_apelido_unico` e o gate `identidade_verificada` em `definir_apelido` |
 | R3 | Auto-alocação desliga no primeiro respec manual | não estava na spec; sem isso ela desfaria a escolha do jogador | coluna `atributo_jogador.auto_alocar` |

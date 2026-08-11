@@ -208,6 +208,28 @@ describe('isolamento e segurança do schema', () => {
     expect(fundacao).toContain("current_date - interval '18 years'")
   })
 
+  it('o apelido é único, sem diferenciar maiúscula de minúscula', () => {
+    // "Duda" e "duda" são o mesmo nome aos olhos do jogador; deixar os dois
+    // coexistirem devolveria a personificação pela porta dos fundos.
+    expect(rpcs).toMatch(
+      /create unique index[\s\S]{0,80}on public\.jogador \(lower\(apelido\)\)/i,
+    )
+  })
+
+  it('entrar no placar exige identidade permanente', () => {
+    // Sem cadastro, um nome único ficaria preso a uma conta anônima que
+    // ninguém consegue recuperar — e o nome, ocupado para sempre.
+    const definir = rpcs.slice(rpcs.lastIndexOf('create or replace function public.definir_apelido'))
+    const corpo = definir.slice(0, definir.indexOf('$$;'))
+
+    expect(corpo).toContain('public.identidade_verificada')
+    expect(corpo).toContain('CADASTRO_NECESSARIO')
+    // E a colisão é decidida pelo índice, não por uma consulta prévia: entre
+    // "verificar se está livre" e "gravar" cabe outro jogador gravando igual.
+    expect(corpo).toContain('unique_violation')
+    expect(corpo).toContain('APELIDO_EM_USO')
+  })
+
   it('a data de nascimento não pode ser reescrita depois de informada', () => {
     // Sem isto o jogador teria UPDATE na própria coluna e o gate de idade
     // viraria uma formalidade reversível a qualquer momento.
