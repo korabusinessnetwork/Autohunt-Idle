@@ -149,7 +149,7 @@ export function Jogo() {
           {t('mochila.titulo')}
           {chaves > 0 ? <span className="jogo__selo">{chaves}</span> : null}
         </Botao>
-        <Botao onClick={() => setPainel('equipamento')}>{t('mochila.slot.arma')}</Botao>
+        <Botao onClick={() => setPainel('equipamento')}>{t('mochila.equipamento')}</Botao>
         <Botao onClick={() => setPainel('ranking')}>{t('ranking.titulo')}</Botao>
         <Botao variante="discreta" onClick={() => setPainel('configuracoes')}>
           {t('config.titulo')}

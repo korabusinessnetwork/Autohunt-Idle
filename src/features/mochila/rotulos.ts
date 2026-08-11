@@ -1,6 +1,6 @@
 import { nomeDaRaridade, type Raridade } from '../../game/regrasLoot'
 import type { ChaveI18n } from '../../lib/i18n'
-import type { TipoItem } from '../../lib/tipos'
+import type { SlotEquipamento, TipoItem } from '../../lib/tipos'
 
 // Mapas explícitos em vez de template string: assim o TypeScript confere cada
 // chave contra `ChaveI18n`, e o teste de chave órfã enxerga o uso. Ficam num
@@ -21,9 +21,23 @@ export const ROTULO_RARIDADE: Record<Raridade, ChaveI18n> = {
 
 export const ROTULO_TIPO: Record<TipoItem, ChaveI18n> = {
   arma: 'item.arma',
+  capacete: 'item.capacete',
+  armadura: 'item.armadura',
+  luva: 'item.luva',
+  bota: 'item.bota',
   acessorio: 'item.acessorio',
   skin: 'item.skin',
   chave: 'item.chave',
+}
+
+export const ROTULO_SLOT: Record<SlotEquipamento, ChaveI18n> = {
+  arma: 'mochila.slot.arma',
+  capacete: 'mochila.slot.capacete',
+  armadura: 'mochila.slot.armadura',
+  luva: 'mochila.slot.luva',
+  bota: 'mochila.slot.bota',
+  acessorio: 'mochila.slot.acessorio',
+  skin: 'mochila.slot.skin',
 }
 
 export function chaveDaRaridade(tier: number): ChaveI18n {

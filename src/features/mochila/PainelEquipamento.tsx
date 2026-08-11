@@ -2,12 +2,13 @@ import { useState } from 'react'
 
 import { Botao } from '../../components/shared/Botao'
 import { useSessao } from '../../context/SessaoContext'
+import { SLOTS_DE_PODER } from '../../game/regrasEquipamento'
 import { nomeDaRaridade } from '../../game/regrasLoot'
 import type { ChaveI18n } from '../../lib/i18n'
 import { equiparItem } from '../../lib/services/itemService'
 import type { ItemPossuido, SlotEquipamento, TipoDano } from '../../lib/tipos'
 import { formatarNumero } from '../../utils/formato'
-import { chaveDaRaridade } from './rotulos'
+import { chaveDaRaridade, ROTULO_SLOT } from './rotulos'
 import './PainelEquipamento.css'
 
 // Equipamento: 3 slots (1 arma + 2 acessórios) mais a skin.
@@ -18,13 +19,6 @@ import './PainelEquipamento.css'
 //
 // A skin aparece no mesmo painel, mas com o aviso de que não muda número: é
 // justamente o ponto que o critério 5 protege.
-
-const ROTULO_SLOT: Record<SlotEquipamento, ChaveI18n> = {
-  arma: 'mochila.slot.arma',
-  acessorio1: 'mochila.slot.acessorio1',
-  acessorio2: 'mochila.slot.acessorio2',
-  skin: 'mochila.slot.skin',
-}
 
 const ROTULO_DANO: Record<TipoDano, ChaveI18n> = {
   fisico: 'dano.fisico',
@@ -38,13 +32,13 @@ const ROTULO_CONJUNTO: Record<string, ChaveI18n> = {
   'brutamontes-nougat': 'conjunto.brutamontes-nougat',
 }
 
-const SLOTS: readonly SlotEquipamento[] = ['arma', 'acessorio1', 'acessorio2', 'skin']
+// A lista canônica de slots de poder vive nas regras; a skin é acrescentada
+// aqui só para a UI, porque ela é equipável mas não entra em cálculo nenhum.
+const SLOTS: readonly SlotEquipamento[] = [...SLOTS_DE_PODER, 'skin']
 
-/** Quais itens cabem em cada slot. */
+/** O tipo do item é o slot dele — por isso equipar não precisa informar slot. */
 function cabeNoSlot(item: ItemPossuido, slot: SlotEquipamento): boolean {
-  if (slot === 'arma') return item.tipo === 'arma'
-  if (slot === 'skin') return item.tipo === 'skin'
-  return item.tipo === 'acessorio'
+  return item.tipo === slot
 }
 
 export function PainelEquipamento({ aoFechar }: { aoFechar: () => void }) {
@@ -59,7 +53,7 @@ export function PainelEquipamento({ aoFechar }: { aoFechar: () => void }) {
   // Peças do conjunto mais representado entre os 3 slots de poder — a skin
   // nunca entra nessa conta.
   const conjuntos = new Map<string, number>()
-  for (const slot of ['arma', 'acessorio1', 'acessorio2'] as const) {
+  for (const slot of SLOTS_DE_PODER) {
     const id = loadout[slot]?.conjuntoId
     if (id) conjuntos.set(id, (conjuntos.get(id) ?? 0) + 1)
   }
@@ -74,7 +68,7 @@ export function PainelEquipamento({ aoFechar }: { aoFechar: () => void }) {
   async function equipar(item: ItemPossuido) {
     setOcupado(true)
     try {
-      const resposta = await equiparItem(item.id, slotAberto)
+      const resposta = await equiparItem(item.id)
       if (resposta.data) atualizarSnapshot(resposta.data)
     } finally {
       setOcupado(false)
@@ -109,7 +103,7 @@ export function PainelEquipamento({ aoFechar }: { aoFechar: () => void }) {
         {conjuntoLider && pecas >= 2 ? (
           <p className="equip__conjunto">
             {t(ROTULO_CONJUNTO[conjuntoLider] ?? 'conjunto.bruxa-caramelo')} ·{' '}
-            {t('conjunto.pecas', { pecas })} · {t(pecas >= 3 ? 'conjunto.bonus3' : 'conjunto.bonus2')}
+            {t('conjunto.pecas', { pecas })} · {t(pecas >= 6 ? 'conjunto.bonus3' : 'conjunto.bonus2')}
           </p>
         ) : null}
 

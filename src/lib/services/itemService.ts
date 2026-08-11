@@ -7,7 +7,7 @@
 
 import { deErroSupabase, ok, type Envelope } from '../envelope'
 import { obterSupabase } from '../supabaseClient'
-import type { SlotEquipamento, Snapshot, TipoItem } from '../tipos'
+import type { Snapshot, TipoItem } from '../tipos'
 
 /**
  * Roda uma dungeon.
@@ -40,20 +40,16 @@ export async function sintetizar(
 }
 
 /**
- * Equipa um item num slot.
+ * Equipa um item.
  *
- * O client manda um id e um slot; quem confere posse e se o tipo cabe ali é o
- * servidor. Trocar é livre — sem cooldown, sem custo, sem confirmação —, e
+ * O client manda só o id: o slot é derivado do tipo do item no servidor, que
+ * também confere a posse. Trocar é livre — sem cooldown, sem custo, sem confirmação —, e
  * equipar uma skin não altera número nenhum do jogo: o cálculo de poder nem
  * olha para o slot de skin.
  */
-export async function equiparItem(
-  itemId: string,
-  slot: SlotEquipamento,
-): Promise<Envelope<Snapshot>> {
+export async function equiparItem(itemId: string): Promise<Envelope<Snapshot>> {
   const { data, error } = await obterSupabase().rpc('equipar_item', {
     p_item_id: itemId,
-    p_slot: slot,
   })
   if (error) return deErroSupabase<Snapshot>(error, 'EQUIPAR_FALHOU')
   return ok(data as Snapshot)

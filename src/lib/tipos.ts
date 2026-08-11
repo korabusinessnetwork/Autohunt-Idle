@@ -102,7 +102,15 @@ export interface RankingGlobal {
   atualizadoEm: string | null
 }
 
-export type TipoItem = 'arma' | 'acessorio' | 'skin' | 'chave'
+export type TipoItem =
+  | 'arma'
+  | 'capacete'
+  | 'armadura'
+  | 'luva'
+  | 'bota'
+  | 'acessorio'
+  | 'skin'
+  | 'chave'
 
 export interface GrupoInventario {
   tipo: TipoItem
@@ -111,7 +119,8 @@ export interface GrupoInventario {
   quantidade: number
 }
 
-export type SlotEquipamento = 'arma' | 'acessorio1' | 'acessorio2' | 'skin'
+/** O slot é sempre igual ao tipo do item — por isso equipar não informa slot. */
+export type SlotEquipamento = Exclude<TipoItem, 'chave'>
 export type TipoDano = 'fisico' | 'magico'
 
 export interface ItemPossuido {

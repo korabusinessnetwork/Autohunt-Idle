@@ -23,7 +23,19 @@ Tipos de item (arma, acessório, skin, chave — skin e chave já especificados 
 
 1. **Não existe seleção de classe** no início do jogo — personagem começa universal, sem build travada por escolha inicial
 2. Todo item tem exatamente um de 4 tipos: **arma**, **acessório**, **skin**, **chave de dungeon**
-3. **(Amendado)** Personagem tem **3 slots de equipamento**: 1 arma + **2 acessórios** (antes era só 1 acessório) — abre espaço pra sistema de conjunto (ver critérios 15-18)
+3. ~~**(Amendado)** Personagem tem **3 slots de equipamento**: 1 arma + **2 acessórios**~~
+3. **(Amendado de novo — 2026-08-11, decisão do dono)** Personagem tem **6 slots de equipamento**,
+   um por parte do corpo, no modelo clássico do gênero: **arma, capacete, armadura, luva, bota e
+   acessório** — mais o slot de skin, que continua puramente cosmético.
+   **Isto reverte a exclusão "mais de 4 tipos de item" da seção 2** e o escopo mínimo que estava
+   registrado ali. Consequências assumidas, todas tratadas em
+   `specs/build-fase-3d-slots-por-parte.md`:
+   - o bônus de conjunto deixa de ser 2/3 peças e passa a ser **2/4/6**, porque "conjunto
+     completo" agora são seis peças, não três;
+   - **afinidade deixa de ser exclusiva do acessório** e passa a valer em qualquer peça que não
+     seja a arma — senão cinco dos seis slots viravam só um número;
+   - o drop se espalha por seis tipos, então cada peça específica demora mais a cair. É
+     balanceamento, mas é o custo real da decisão.
 4. Arma e acessório têm stat que escala com raridade (comum = baixo, lendário = alto)
 5. Skin **nunca** tem stat, em nenhuma raridade — reafirma `specs/dungeons-loot-skins.md` critério 8
 6. Arma equipada determina o efeito especial auto-disparado em combate — **não existe botão/input de habilidade**

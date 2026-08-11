@@ -155,6 +155,10 @@ export const pt = {
 
   // --- Itens e mochila ----------------------------------------------------
   'item.arma': 'Arma',
+  'item.capacete': 'Capacete',
+  'item.armadura': 'Armadura',
+  'item.luva': 'Luva',
+  'item.bota': 'Bota',
   'item.acessorio': 'Acessório',
   'item.skin': 'Skin',
   'item.chave': 'Chave',
@@ -167,9 +171,13 @@ export const pt = {
   'mochila.equipada': 'Em uso',
   'mochila.poder': 'Poder de ataque: {poder}',
   'mochila.slot.arma': 'Arma',
-  'mochila.slot.acessorio1': 'Acessório 1',
-  'mochila.slot.acessorio2': 'Acessório 2',
+  'mochila.slot.capacete': 'Capacete',
+  'mochila.slot.armadura': 'Armadura',
+  'mochila.slot.luva': 'Luva',
+  'mochila.slot.bota': 'Bota',
+  'mochila.slot.acessorio': 'Acessório',
   'mochila.slot.skin': 'Skin',
+  'mochila.equipamento': 'Equipamento',
   'mochila.slot.vazio': 'Vazio',
   'mochila.semStat': 'Skin não muda nenhum número — é só aparência.',
 
@@ -182,7 +190,7 @@ export const pt = {
   'conjunto.cavaleiro-biscoito': 'Conjunto do Cavaleiro Biscoito',
   'conjunto.feiticeira-menta': 'Conjunto da Feiticeira Menta',
   'conjunto.brutamontes-nougat': 'Conjunto do Brutamontes Nougá',
-  'conjunto.pecas': '{pecas} de 3 peças',
+  'conjunto.pecas': '{pecas} de 6 peças',
   'conjunto.bonus2': 'Bônus de 2 peças ativo',
   'conjunto.bonus3': 'Conjunto completo — bônus cheio',
 

@@ -162,6 +162,10 @@ export const en: Record<ChaveI18n, string> = {
 
   // --- Items and bag --------------------------------------------------------
   'item.arma': 'Weapon',
+  'item.capacete': 'Helmet',
+  'item.armadura': 'Armor',
+  'item.luva': 'Gloves',
+  'item.bota': 'Boots',
   'item.acessorio': 'Accessory',
   'item.skin': 'Skin',
   'item.chave': 'Key',
@@ -174,9 +178,13 @@ export const en: Record<ChaveI18n, string> = {
   'mochila.equipada': 'In use',
   'mochila.poder': 'Attack power: {poder}',
   'mochila.slot.arma': 'Weapon',
-  'mochila.slot.acessorio1': 'Accessory 1',
-  'mochila.slot.acessorio2': 'Accessory 2',
+  'mochila.slot.capacete': 'Helmet',
+  'mochila.slot.armadura': 'Armor',
+  'mochila.slot.luva': 'Gloves',
+  'mochila.slot.bota': 'Boots',
+  'mochila.slot.acessorio': 'Accessory',
   'mochila.slot.skin': 'Skin',
+  'mochila.equipamento': 'Gear',
   'mochila.slot.vazio': 'Empty',
   'mochila.semStat': 'A skin changes no numbers — it is looks only.',
 
@@ -192,7 +200,7 @@ export const en: Record<ChaveI18n, string> = {
   'conjunto.cavaleiro-biscoito': 'Biscuit Knight Set',
   'conjunto.feiticeira-menta': 'Peppermint Sorceress Set',
   'conjunto.brutamontes-nougat': 'Nougat Bruiser Set',
-  'conjunto.pecas': '{pecas} of 3 pieces',
+  'conjunto.pecas': '{pecas} of 6 pieces',
   'conjunto.bonus2': '2-piece bonus active',
   'conjunto.bonus3': 'Full set — complete bonus',
 

@@ -183,7 +183,7 @@ describe('contrato das RPCs expostas ao jogador', () => {
       'resolver_dungeons',
       'iniciar_dungeon',
       'sintetizar',
-      'equipar_skin',
+      'equipar_item',
     ]) {
       const definicao = rpcs.slice(
         rpcs.lastIndexOf(`create or replace function public.${funcao}(`),
