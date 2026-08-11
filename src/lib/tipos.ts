@@ -22,6 +22,8 @@ export interface EstadoJogador {
   vitalidadeAtual: number
   vitalidadeMaxima: number
   idioma: 'pt' | 'en'
+  /** Nome de exibição no ranking. Nulo = jogador não aparece no placar. */
+  apelido: string | null
   /** Se a conta anônima já ganhou e-mail/senha (core, 18). */
   temCadastro: boolean
   /**
@@ -69,9 +71,39 @@ export interface ResultadoLote {
   moedaGanha: number
 }
 
+export interface EstadoAtributos {
+  forca: number
+  inteligencia: number
+  vitalidade: number
+  sorte: number
+  /** Pontos ganhos e ainda não gastos. */
+  pontosLivres: number
+  /**
+   * Se o servidor ainda distribui os pontos novos sozinho. Vira `false` quando
+   * o jogador redistribui à mão — senão a auto-alocação desfaria a escolha
+   * dele no lote seguinte.
+   */
+  autoAlocar: boolean
+}
+
+export interface LinhaRanking {
+  posicao: number
+  apelido: string
+  nivel: number
+  euMesmo: boolean
+}
+
+export interface RankingGlobal {
+  top: LinhaRanking[]
+  /** A própria linha — `null` enquanto o jogador não tiver apelido. */
+  eu: LinhaRanking | null
+  atualizadoEm: string | null
+}
+
 export interface Snapshot {
   existe: boolean
   jogador: EstadoJogador
+  atributos: EstadoAtributos
   farm: EstadoFarm
   assinatura: EstadoAssinatura
   retorno?: RetornoOffline

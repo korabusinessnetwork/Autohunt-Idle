@@ -3,10 +3,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { Botao } from '../components/shared/Botao'
 import { TelaCarregando, TelaErro } from '../components/shared/EstadoTela'
 import { useSessao } from '../context/SessaoContext'
+import { PainelAtributos } from '../features/atributos/PainelAtributos'
 import { ModalCadastro } from '../features/cadastro/ModalCadastro'
 import { PainelConfiguracoes } from '../features/configuracoes/PainelConfiguracoes'
 import { PainelDesbloqueio } from '../features/desbloqueio/PainelDesbloqueio'
 import { TelaRetorno } from '../features/farm-offline/TelaRetorno'
+import { TelaRanking } from '../features/ranking/TelaRanking'
 import { useMotorDeJogo } from '../hooks/useMotorDeJogo'
 import { sinalizarJogo } from '../lib/portal'
 import { formatarNumero } from '../utils/formato'
@@ -17,7 +19,7 @@ import './Jogo.css'
 // Princípio nº1). Nenhum listener de teclado/clique alimenta o combate: a ação
 // principal se explica sozinha em cinco segundos porque acontece sozinha.
 
-type Painel = 'nenhum' | 'desbloqueio' | 'configuracoes' | 'cadastro'
+type Painel = 'nenhum' | 'desbloqueio' | 'configuracoes' | 'cadastro' | 'atributos' | 'ranking'
 
 export function Jogo() {
   const { estado, erro, snapshot, t, idioma, conectar, recarregarEstado } = useSessao()
@@ -54,6 +56,9 @@ export function Jogo() {
   }
 
   const jogador = snapshot?.jogador
+  // Ponto livre sobrando é raro (a auto-alocação gasta quase tudo), mas quando
+  // sobra vale sinalizar — sem transformar em cobrança.
+  const pontosLivres = snapshot?.atributos.pontosLivres ?? 0
   const proporcaoXp = jogador?.xpParaProximoNivel
     ? Math.min(1, jogador.xpNoNivel / jogador.xpParaProximoNivel)
     : 0
@@ -116,6 +121,11 @@ export function Jogo() {
         <Botao variante="recompensa" onClick={abrirDesbloqueio}>
           {t('hud.ativarOffline')}
         </Botao>
+        <Botao onClick={() => setPainel('atributos')}>
+          {t('atributos.titulo')}
+          {pontosLivres > 0 ? <span className="jogo__selo">{pontosLivres}</span> : null}
+        </Botao>
+        <Botao onClick={() => setPainel('ranking')}>{t('ranking.titulo')}</Botao>
         <Botao variante="discreta" onClick={() => setPainel('configuracoes')}>
           {t('config.titulo')}
         </Botao>
@@ -126,6 +136,12 @@ export function Jogo() {
       {painel === 'desbloqueio' ? (
         <PainelDesbloqueio aoFechar={() => setPainel('nenhum')} />
       ) : null}
+
+      {painel === 'atributos' ? (
+        <PainelAtributos aoFechar={() => setPainel('nenhum')} />
+      ) : null}
+
+      {painel === 'ranking' ? <TelaRanking aoFechar={() => setPainel('nenhum')} /> : null}
 
       {painel === 'configuracoes' ? (
         <PainelConfiguracoes aoFechar={() => setPainel('nenhum')} />

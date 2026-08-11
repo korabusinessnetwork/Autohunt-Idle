@@ -1,0 +1,121 @@
+.atributos {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--espaco-3);
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--cor-texto) 55%, transparent);
+  z-index: 25;
+}
+
+.atributos__cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  width: min(26rem, 100%);
+  padding: var(--espaco-4);
+  background: var(--cor-fundo);
+  border: var(--borda);
+  border-radius: var(--raio);
+}
+
+.atributos__titulo {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.atributos__explicacao,
+.atributos__dica {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  opacity: 0.8;
+}
+
+.atributos__pontos {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--cor-positivo);
+}
+
+.atributos__lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.atributos__linha {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--espaco-1) var(--espaco-3);
+  align-items: center;
+  padding: var(--espaco-2);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+}
+
+.atributos__info {
+  display: flex;
+  flex-direction: column;
+}
+
+.atributos__efeito {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.atributos__controles {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+}
+
+.atributos__passo {
+  width: 2rem;
+  height: 2rem;
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--cor-texto);
+  background: var(--cor-secundaria);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+  cursor: pointer;
+}
+
+.atributos__passo:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.atributos__valor {
+  min-width: 2.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.atributos__custo {
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  text-align: end;
+  opacity: 0.7;
+}
+
+.atributos__erro {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--cor-bloqueado);
+}
+
+.atributos__acoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+}

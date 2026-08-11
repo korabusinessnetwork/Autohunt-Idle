@@ -10,6 +10,8 @@
 // Como a matemática é determinística e sem aleatoriedade, o espelho pode ser
 // testado sozinho e serve de documentação executável da regra do SQL.
 
+import { atributosZerados, type Atributos } from './regrasAtributos'
+
 /** Duração de um ciclo de farm, em segundos. Espelha `c_ciclo_segundos`. */
 export const CICLO_SEGUNDOS = 15
 
@@ -32,6 +34,10 @@ const ABATES_BASE = 3
 const XP_BASE_POR_ABATE = 4
 const MOEDA_BASE_POR_ABATE = 2
 const DANO_BASE_POR_CICLO = 8
+/** Quanto cada ponto de Vitalidade acrescenta à Vitalidade máxima. */
+const VITALIDADE_POR_PONTO = 25
+/** Quantos pontos de Força + Inteligência valem um abate a mais por ciclo. */
+const ATAQUE_POR_ABATE = 8
 
 /**
  * XP total exigido para alcançar o nível informado: `50 * (n-1) * n`.
@@ -55,12 +61,29 @@ export function nivelPorXp(xpTotal: number): number {
   return nivel
 }
 
-export function vitalidadeMaxima(nivel: number): number {
-  return 100 + nivel * 10
+/**
+ * Vitalidade máxima do ciclo de farm.
+ *
+ * Escala com o nível para a frequência de derrota não piorar conforme o
+ * jogador cresce, e com o atributo Vitalidade — que é justamente o que ele
+ * compra ao investir nele (`specs/ranking-global.md`, critério 8).
+ */
+export function vitalidadeMaxima(nivel: number, vitalidade = 0): number {
+  return 100 + nivel * 10 + vitalidade * VITALIDADE_POR_PONTO
 }
 
-export function abatesPorCiclo(nivel: number): number {
-  return ABATES_BASE + Math.floor(nivel / 10)
+/**
+ * Abates por ciclo.
+ *
+ * Força e Inteligência somam no mesmo termo por enquanto: a separação entre
+ * dano físico e mágico só existe quando houver tipo de dano de arma
+ * (`specs/equipamento-e-poder.md`), e inventar a divisão antes disso seria
+ * decidir por uma spec que ainda não foi construída.
+ */
+export function abatesPorCiclo(nivel: number, forca = 0, inteligencia = 0): number {
+  return (
+    ABATES_BASE + Math.floor(nivel / 10) + Math.floor((forca + inteligencia) / ATAQUE_POR_ABATE)
+  )
 }
 
 export function xpPorAbate(nivel: number): number {
@@ -94,9 +117,10 @@ export function resolverCiclos(
   vitalidadeInicial: number,
   ciclos: number,
   multiplicadorXp: number,
+  atributos: Atributos = atributosZerados(),
 ): ResultadoCiclos {
-  const vitMax = vitalidadeMaxima(nivel)
-  const abates = abatesPorCiclo(nivel)
+  const vitMax = vitalidadeMaxima(nivel, atributos.vitalidade)
+  const abates = abatesPorCiclo(nivel, atributos.forca, atributos.inteligencia)
   const xpAbate = xpPorAbate(nivel)
   const moedaAbate = moedaPorAbate(nivel)
   const dano = danoPorCiclo(nivel)

@@ -97,6 +97,19 @@
   border-radius: 999px;
 }
 
+.jogo__selo {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  margin-inline-start: var(--espaco-2);
+  padding-inline: 0.3rem;
+  font-size: 0.8rem;
+  background: var(--cor-recompensa);
+  border: 2px solid var(--cor-texto);
+  border-radius: 999px;
+}
+
 .jogo__acoes {
   display: flex;
   flex-wrap: wrap;

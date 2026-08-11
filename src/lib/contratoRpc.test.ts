@@ -37,18 +37,79 @@ const rpcs = readdirSync(PASTA_MIGRATIONS)
 
 const sqlExecutavel = semComentarios(rpcs)
 
+/**
+ * As RPCs que creditam valor. Estas continuam obrigadas a ter ZERO parâmetro:
+ * sem campo, não há como o client injetar timestamp, duração ou recompensa
+ * (core, critério 3).
+ */
+const RPCS_QUE_CREDITAM = [
+  'iniciar_sessao',
+  'validar_lote',
+  'encerrar_sessao',
+  'coletar_farm_offline',
+  'emitir_ticket_anuncio',
+]
+
+/**
+ * Nomes de parâmetro proibidos em QUALQUER RPC exposta ao jogador. É a regra
+ * que a versão anterior deste teste realmente queria dizer: o problema nunca
+ * foi ter parâmetro, foi o client poder declarar tempo ou ganho. Escolher onde
+ * gastar um ponto de atributo é decisão dele; dizer quanto ganhou, não.
+ */
+const PARAMETROS_PROIBIDOS =
+  /timestamp|agora|now|tempo|segundo|minuto|hora|duracao|_xp|moeda|recompensa|abate|nivel|saldo/i
+
 describe('contrato das RPCs expostas ao jogador', () => {
-  it('nenhuma função concedida a `authenticated` aceita parâmetro', () => {
+  it('as RPCs que creditam valor não aceitam parâmetro nenhum', () => {
     const concessoes = [
       ...rpcs.matchAll(/grant execute on function public\.(\w+)\(([^)]*)\)\s+to authenticated/gi),
     ]
 
     expect(concessoes.length).toBeGreaterThan(0)
 
+    const encontradas = concessoes
+      .map(([, nome]) => nome!)
+      .filter((nome) => RPCS_QUE_CREDITAM.includes(nome))
+
+    // Se uma delas sumir da lista de grants, o teste precisa saber.
+    expect(encontradas.sort()).toEqual([...RPCS_QUE_CREDITAM].sort())
+
     for (const [, nome, parametros] of concessoes) {
-      // Lista de parâmetros vazia é a garantia: sem campo, não há como o client
-      // injetar timestamp, duração ou recompensa (core, 3).
+      if (!RPCS_QUE_CREDITAM.includes(nome!)) continue
       expect(`${nome}(${parametros!.trim()})`).toBe(`${nome}()`)
+    }
+  })
+
+  it('nenhuma RPC do jogador aceita parâmetro de tempo ou de recompensa', () => {
+    // Cobre também as RPCs que legitimamente têm parâmetro (alocar atributo,
+    // definir apelido): elas podem receber escolhas, nunca ganhos.
+    const definicoes = [
+      ...rpcs.matchAll(
+        /create or replace function public\.(\w+)\(([\s\S]*?)\)\s*returns/gi,
+      ),
+    ]
+
+    // Só as funções concedidas ao JOGADOR entram na regra. As de
+    // `service_role` são chamadas por Edge Function e legitimamente recebem
+    // `p_minutos`, `p_player_id` e afins.
+    const expostas = new Set(
+      [
+        ...rpcs.matchAll(
+          /grant execute on function public\.(\w+)\([^)]*\)\s+to authenticated/gi,
+        ),
+      ].map(([, nome]) => nome!),
+    )
+    expect(expostas.size).toBeGreaterThan(0)
+
+    for (const [, nome, assinatura] of definicoes) {
+      if (!expostas.has(nome!)) continue
+      const parametros = [...assinatura!.matchAll(/\bp_(\w+)/g)].map(([campo]) => campo)
+
+      for (const parametro of parametros) {
+        expect(parametro, `${nome} não pode receber ${parametro}`).not.toMatch(
+          PARAMETROS_PROIBIDOS,
+        )
+      }
     }
   })
 

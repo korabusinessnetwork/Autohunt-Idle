@@ -86,6 +86,68 @@ describe('resolução de ciclos', () => {
   })
 })
 
+describe('efeito dos atributos no farm (specs/ranking-global.md, critério 8)', () => {
+  const zerados = { forca: 0, inteligencia: 0, vitalidade: 0, sorte: 0 }
+
+  it('Vitalidade aumenta a Vitalidade máxima', () => {
+    expect(vitalidadeMaxima(1, 0)).toBe(110)
+    expect(vitalidadeMaxima(1, 4)).toBe(210)
+  })
+
+  it('Vitalidade reduz quantos ciclos são perdidos por derrota', () => {
+    const semVitalidade = resolverCiclos(1, vitalidadeMaxima(1, 0), 240, 1, zerados)
+    const comVitalidade = resolverCiclos(1, vitalidadeMaxima(1, 20), 240, 1, {
+      ...zerados,
+      vitalidade: 20,
+    })
+
+    expect(comVitalidade.ciclosPerdidos).toBeLessThan(semVitalidade.ciclosPerdidos)
+  })
+
+  it('Força e Inteligência aumentam o rendimento por ciclo', () => {
+    const semAtaque = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, zerados)
+    const comAtaque = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, {
+      ...zerados,
+      forca: 8,
+      inteligencia: 8,
+    })
+
+    expect(comAtaque.xp).toBeGreaterThan(semAtaque.xp)
+    expect(comAtaque.moeda).toBeGreaterThan(semAtaque.moeda)
+  })
+
+  it('Força e Inteligência somam no mesmo termo por enquanto', () => {
+    // A separação entre dano físico e mágico só existe com tipo de dano de
+    // arma (`specs/equipamento-e-poder.md`) — até lá, 16 em Força rende igual
+    // a 8 + 8 divididos.
+    const soForca = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, { ...zerados, forca: 16 })
+    const dividido = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, {
+      ...zerados,
+      forca: 8,
+      inteligencia: 8,
+    })
+
+    expect(soForca.xp).toBe(dividido.xp)
+  })
+
+  it('Sorte ainda não tem efeito, e isso é declarado', () => {
+    // O consumidor de Sorte é a chance de raridade no drop, que só existe com
+    // `specs/dungeons-loot-skins.md`.
+    const semSorte = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, zerados)
+    const comSorte = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, { ...zerados, sorte: 500 })
+
+    expect(comSorte).toEqual(semSorte)
+  })
+
+  it('sem atributos, o resultado é idêntico ao da Fase 1', () => {
+    // Garante que acrescentar atributos não mudou o comportamento de quem não
+    // tem nenhum ponto alocado.
+    expect(resolverCiclos(1, vitalidadeMaxima(1, 0), 13, 1, zerados)).toEqual(
+      resolverCiclos(1, vitalidadeMaxima(1), 13, 1),
+    )
+  })
+})
+
 describe('teto de farm offline', () => {
   it('dá 24h ao assinante, sem depender de anúncio (core, 4)', () => {
     expect(tetoOfflineMinutos(true, 0)).toBe(TETO_ASSINANTE_MIN)

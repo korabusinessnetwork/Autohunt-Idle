@@ -67,3 +67,16 @@ bloqueiam o *lançamento*.
 | D3 | **Arte é placeholder** | O brief foi ao Claude Design e os assets não voltaram. O jogo desenha silhuetas geométricas na paleta oficial; a camada de sprite está isolada em `src/game/sprites.ts` para troca sem tocar em motor/mundo. |
 | D4 | **Balanceamento é chute fundamentado** | Ciclo de 15s, 3 abates/ciclo, curva de XP `50·(n-1)·n`, derrota a cada ~11 ciclos. Números escolhidos para o sistema ficar observável e testável, não para ser divertido. Balancear com dado de jogador real é trabalho da Fase 2. |
 | D5 | **Docs 03, 04, 05, 06, 07 e 11 seguem vazios** | Regras de negócio, modelagem, fluxos, componentes, APIs e o plano de segurança continuam com o README de esqueleto. O schema e o contrato das RPCs existem em código e nas migrations, mas ainda não foram espelhados na documentação — e `CLAUDE.md` diz que a documentação é que prevalece. |
+| D6 | **`recomputar_ranking()` precisa de um agendador** | A função existe e é revogada do client, mas nada a chama ainda. Falta ligar o `pg_cron` no projeto Supabase (extensão gratuita, roda dentro do Postgres — não fere a restrição de "sem processo persistente"). Sem isso o placar só se atualiza quando alguém define um apelido. |
+| D7 | **Fase 3 está sendo construída sem o dado da Fase 2** | O roadmap condiciona a Fase 3 ao que a validação com jogador real mostrar. A construção começou antes disso, por decisão do dono, em ordem de dependência — o risco de construir sistema que o dado não justifique está aceito e registrado aqui. |
+
+### Decisões tomadas por padrão, reversíveis
+
+Ficam listadas para não virarem regra por esquecimento. Todas estavam marcadas como "a definir"
+nas specs de origem.
+
+| # | Decisão | Origem | Como reverter |
+|---|---|---|---|
+| R1 | Desempate no ranking: maior XP total, depois quem chegou primeiro | `specs/ranking-global.md`, edge cases | trocar o `order by` de `recomputar_ranking()` |
+| R2 | Apelido duplicado é permitido | `specs/ranking-global.md`, edge cases | constraint `unique` em `jogador.apelido` — mas aí o cadastro ganha a fricção de "nome já existe" |
+| R3 | Auto-alocação desliga no primeiro respec manual | não estava na spec; sem isso ela desfaria a escolha do jogador | coluna `atributo_jogador.auto_alocar` |
