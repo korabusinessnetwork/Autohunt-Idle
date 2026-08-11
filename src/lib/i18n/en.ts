@@ -143,6 +143,54 @@ export const en: Record<ChaveI18n, string> = {
     'A ranking name is yours alone, and nobody else can take it — so it needs an account that will not get lost. Playing stays free without one.',
   'ranking.cadastro.criar': 'Create my login',
 
+  // --- Rarity (10 tiers) ----------------------------------------------------
+  // The first five are standard loot-game vocabulary, and translating them
+  // straight is the correct call — a player scanning a tier list expects
+  // exactly these words. The candy-themed top five got their own jokes
+  // (core, criterion 14): "Glazed Over" is also being dazed, "Rock Candy" is a
+  // real sweet made of crystallised sugar, "Starfrosted" reads as endgame.
+  'raridade.comum': 'Common',
+  'raridade.incomum': 'Uncommon',
+  'raridade.raro': 'Rare',
+  'raridade.epico': 'Epic',
+  'raridade.lendario': 'Legendary',
+  'raridade.caramelizado': 'Toffee-Touched',
+  'raridade.glaceado': 'Glazed Over',
+  'raridade.dourado': 'Gilded',
+  'raridade.cristalizado': 'Rock Candy',
+  'raridade.cosmico': 'Starfrosted',
+
+  // --- Items and bag --------------------------------------------------------
+  'item.arma': 'Weapon',
+  'item.acessorio': 'Accessory',
+  'item.skin': 'Skin',
+  'item.chave': 'Key',
+  'mochila.titulo': 'Bag',
+  'mochila.chaves': '{quantidade} dungeon keys',
+  'mochila.vazia.titulo': 'Nothing in the bag yet',
+  'mochila.vazia.mensagem': 'Your hero is farming. The first drop lands soon.',
+  'mochila.quantidade': '{quantidade}x',
+  'mochila.equipar': 'Wear this skin',
+  'mochila.equipada': 'Wearing',
+
+  // --- Dungeon --------------------------------------------------------------
+  'dungeon.entrar': 'Enter the dungeon',
+  'dungeon.entrando': 'Entering…',
+  'dungeon.semChave': 'You need a key. They drop in the open world and from mini bosses.',
+  'dungeon.venceu': 'Boss down! Rare loot guaranteed.',
+  'dungeon.perdeu': 'The boss held on this time. The key is gone, but nothing else is.',
+  'dungeon.offline': '{resolvidas} dungeons while you were out',
+
+  // --- Synthesis ------------------------------------------------------------
+  'sintese.titulo': 'Synthesis',
+  'sintese.explicacao': 'Stack 9 matching items and they become 1 of the tier above. Costs nothing.',
+  'sintese.combinar': 'Combine 9',
+  'sintese.combinando': 'Combining…',
+  'sintese.faltam': '{faltam} more to combine',
+  'sintese.erro.ITENS_INSUFICIENTES': "You don't have 9 matching items there.",
+  'sintese.erro.TIER_MAXIMO': 'Starfrosted is the top — nothing above it.',
+  'sintese.erro.SINTESE_FALHOU': "Couldn't combine right now. Try again?",
+
   // --- Settings -------------------------------------------------------------
   'config.titulo': 'Settings',
   'config.idioma': 'Language',

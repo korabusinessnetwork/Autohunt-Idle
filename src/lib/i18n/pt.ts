@@ -141,6 +141,49 @@ export const pt = {
     'Apelido no ranking é só seu, e ninguém mais pode usar — por isso ele precisa de uma conta que não se perca. Jogar continua livre sem isso.',
   'ranking.cadastro.criar': 'Criar meu acesso',
 
+  // --- Raridade (10 tiers) ------------------------------------------------
+  'raridade.comum': 'Comum',
+  'raridade.incomum': 'Incomum',
+  'raridade.raro': 'Raro',
+  'raridade.epico': 'Épico',
+  'raridade.lendario': 'Lendário',
+  'raridade.caramelizado': 'Caramelizado',
+  'raridade.glaceado': 'Glaceado',
+  'raridade.dourado': 'Dourado',
+  'raridade.cristalizado': 'Cristalizado',
+  'raridade.cosmico': 'Cósmico',
+
+  // --- Itens e mochila ----------------------------------------------------
+  'item.arma': 'Arma',
+  'item.acessorio': 'Acessório',
+  'item.skin': 'Skin',
+  'item.chave': 'Chave',
+  'mochila.titulo': 'Mochila',
+  'mochila.chaves': '{quantidade} chaves de dungeon',
+  'mochila.vazia.titulo': 'Mochila vazia por enquanto',
+  'mochila.vazia.mensagem': 'Seu personagem tá farmando. O primeiro item cai logo.',
+  'mochila.quantidade': '{quantidade}x',
+  'mochila.equipar': 'Usar essa skin',
+  'mochila.equipada': 'Em uso',
+
+  // --- Dungeon ------------------------------------------------------------
+  'dungeon.entrar': 'Entrar na dungeon',
+  'dungeon.entrando': 'Entrando…',
+  'dungeon.semChave': 'Você precisa de uma chave. Elas caem no mundo aberto e nos mini bosses.',
+  'dungeon.venceu': 'Boss derrotado! Loot raro garantido.',
+  'dungeon.perdeu': 'O boss aguentou dessa vez. A chave foi embora, mas você não perdeu nada além dela.',
+  'dungeon.offline': '{resolvidas} dungeons enquanto você tava fora',
+
+  // --- Síntese ------------------------------------------------------------
+  'sintese.titulo': 'Síntese',
+  'sintese.explicacao': 'Junte 9 itens iguais e eles viram 1 do tier de cima. Sem pagar nada.',
+  'sintese.combinar': 'Combinar 9',
+  'sintese.combinando': 'Combinando…',
+  'sintese.faltam': 'Faltam {faltam} para combinar',
+  'sintese.erro.ITENS_INSUFICIENTES': 'Você não tem 9 itens iguais aí.',
+  'sintese.erro.TIER_MAXIMO': 'Cósmico é o topo — não dá pra subir mais.',
+  'sintese.erro.SINTESE_FALHOU': 'Não deu pra combinar agora. Tenta de novo?',
+
   // --- Configurações ------------------------------------------------------
   'config.titulo': 'Configurações',
   'config.idioma': 'Idioma',

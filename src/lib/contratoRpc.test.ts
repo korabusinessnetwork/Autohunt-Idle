@@ -113,6 +113,25 @@ describe('contrato das RPCs expostas ao jogador', () => {
     }
   })
 
+  it('as funções internas de loot são exclusivas do servidor', () => {
+    // Se o jogador alcançasse qualquer uma delas, escolheria a própria
+    // raridade ou concederia item a si mesmo.
+    for (const interna of [
+      'conceder_item',
+      'resolver_drops',
+      'creditar_ciclos',
+      'resolver_uma_dungeon',
+      'resolver_dungeons',
+    ]) {
+      expect(rpcs, interna).toMatch(
+        new RegExp(
+          `revoke execute on function\\s+public\\.${interna}[\\s\\S]{0,160}?from public, anon, authenticated`,
+          'i',
+        ),
+      )
+    }
+  })
+
   it('as funções que aceitam parâmetro são exclusivas do servidor', () => {
     for (const privilegiada of [
       'creditar_anuncio',
@@ -126,11 +145,24 @@ describe('contrato das RPCs expostas ao jogador', () => {
         `revoke execute on function public\\.${privilegiada}[\\s\\S]{0,160}?from public, anon, authenticated`,
         'i',
       )
-      expect(rpcs).toMatch(revogacao)
+      expect(rpcs, privilegiada).toMatch(revogacao)
       expect(rpcs).toMatch(
         new RegExp(`grant execute on function public\\.${privilegiada}[\\s\\S]{0,160}?to service_role`, 'i'),
       )
     }
+  })
+
+  it('a resolução de recompensa não conhece skin (critério 15 da spec de dungeon)', () => {
+    // Prova estrutural de que skin é puramente cosmética: a função que decide
+    // XP, moeda e Vitalidade não recebe nem consulta skin nenhuma. Não é
+    // promessa de documentação — não existe caminho para ela influenciar.
+    const inicio = rpcs.lastIndexOf('create or replace function public.resolver_ciclos(')
+    expect(inicio).toBeGreaterThan(-1)
+
+    const corpo = rpcs.slice(inicio, rpcs.indexOf('$$;', inicio)).toLowerCase()
+    expect(corpo).not.toContain('skin')
+    expect(corpo).not.toContain('equipado')
+    expect(corpo).not.toContain('item_jogador')
   })
 
   it('as RPCs de sessão e farm são SECURITY DEFINER', () => {
@@ -144,6 +176,14 @@ describe('contrato das RPCs expostas ao jogador', () => {
       'aplicar_evento_assinatura',
       'resgatar_anuncio_do_jogador',
       'aplicar_credito_anuncio',
+      'creditar_ciclos',
+      'resolver_drops',
+      'conceder_item',
+      'resolver_uma_dungeon',
+      'resolver_dungeons',
+      'iniciar_dungeon',
+      'sintetizar',
+      'equipar_skin',
     ]) {
       const definicao = rpcs.slice(
         rpcs.lastIndexOf(`create or replace function public.${funcao}(`),

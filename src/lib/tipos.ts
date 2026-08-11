@@ -62,6 +62,8 @@ export interface RetornoOffline {
   ciclosPerdidos?: number
   tetoMinutos: number
   motivo: MotivoRetorno
+  /** Dungeons que o servidor resolveu durante a ausência. */
+  dungeons?: { resolvidas: number; vitorias: number }
 }
 
 export interface ResultadoLote {
@@ -100,10 +102,42 @@ export interface RankingGlobal {
   atualizadoEm: string | null
 }
 
+export type TipoItem = 'arma' | 'acessorio' | 'skin' | 'chave'
+
+export interface GrupoInventario {
+  tipo: TipoItem
+  /** 1 = comum … 10 = cósmico. Decidida no servidor. */
+  raridade: number
+  quantidade: number
+}
+
+export interface SkinPossuida {
+  id: string
+  raridade: number
+  equipada: boolean
+}
+
+export interface EstadoInventario {
+  chaves: number
+  skinEquipada: string | null
+  /** Skins são os únicos itens equipáveis nesta fase, e equipar precisa de id. */
+  skins: SkinPossuida[]
+  porTipoERaridade: GrupoInventario[]
+}
+
+export interface ResultadoDungeon {
+  resolvida: boolean
+  venceu?: boolean
+  motivo?: 'SEM_CHAVE'
+}
+
 export interface Snapshot {
   existe: boolean
   jogador: EstadoJogador
   atributos: EstadoAtributos
+  inventario: EstadoInventario
+  dungeon?: ResultadoDungeon
+  sintese?: { consumidos: number; produziuRaridade: number }
   farm: EstadoFarm
   assinatura: EstadoAssinatura
   retorno?: RetornoOffline

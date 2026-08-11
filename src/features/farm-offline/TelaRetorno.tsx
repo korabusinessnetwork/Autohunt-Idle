@@ -82,6 +82,17 @@ export function TelaRetorno({ aoMudarVisibilidade }: Props) {
           </div>
         )}
 
+        {/*
+          Dungeons resolvidas pelo SERVIDOR durante a ausência (critério 13 da
+          spec de dungeon). Aparece só quando houve alguma, para não poluir a
+          tela de quem ainda não tem chave.
+        */}
+        {retorno.dungeons && retorno.dungeons.resolvidas > 0 ? (
+          <p className="retorno__dungeons">
+            {t('dungeon.offline', { resolvidas: retorno.dungeons.resolvidas })}
+          </p>
+        ) : null}
+
         <p className="retorno__motivo">{t(CHAVE_MOTIVO[retorno.motivo])}</p>
 
         {rendeu ? (

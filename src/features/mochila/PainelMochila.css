@@ -1,0 +1,127 @@
+.mochila {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--espaco-3);
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--cor-texto) 55%, transparent);
+  z-index: 25;
+}
+
+.mochila__cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  width: min(30rem, 100%);
+  max-height: 90dvh;
+  padding: var(--espaco-4);
+  overflow-y: auto;
+  background: var(--cor-fundo);
+  border: var(--borda);
+  border-radius: var(--raio);
+}
+
+.mochila__titulo {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.mochila__subtitulo {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.mochila__chaves {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--cor-recompensa);
+  -webkit-text-stroke: 1px var(--cor-texto);
+}
+
+.mochila__explicacao,
+.mochila__aviso,
+.mochila__faltam {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+
+.mochila__lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mochila__linha {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--espaco-1) var(--espaco-2);
+  align-items: center;
+  padding: var(--espaco-2);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+}
+
+.mochila__linha > :last-child {
+  grid-column: 1 / -1;
+}
+
+/*
+ * Cor de contorno por tier — a linguagem visual que o brief de arte descreve
+ * (`docs/02_DESIGN_SYSTEM/brief-arte-claude-design.md`). Os cinco tiers do topo
+ * ainda não têm cor definida pela arte; até lá reaproveitam a paleta oficial
+ * com peso crescente, sem inventar hex novo fora de tokens.css.
+ */
+.mochila__tier {
+  padding: 0.1rem var(--espaco-2);
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 2px solid var(--cor-texto);
+  border-radius: 999px;
+}
+
+.mochila__tier--comum {
+  background: color-mix(in srgb, var(--cor-texto) 12%, transparent);
+}
+.mochila__tier--incomum {
+  background: var(--cor-positivo);
+}
+.mochila__tier--raro {
+  background: var(--cor-secundaria);
+}
+.mochila__tier--epico {
+  background: var(--cor-primaria);
+}
+.mochila__tier--lendario {
+  background: var(--cor-recompensa);
+}
+.mochila__tier--caramelizado {
+  background: color-mix(in srgb, var(--cor-recompensa) 70%, var(--cor-bloqueado));
+}
+.mochila__tier--glaceado {
+  background: color-mix(in srgb, var(--cor-secundaria) 55%, var(--cor-fundo));
+}
+.mochila__tier--dourado {
+  background: color-mix(in srgb, var(--cor-recompensa) 85%, var(--cor-texto));
+}
+.mochila__tier--cristalizado {
+  background: color-mix(in srgb, var(--cor-secundaria) 65%, var(--cor-primaria));
+}
+.mochila__tier--cosmico {
+  background: color-mix(in srgb, var(--cor-primaria) 60%, var(--cor-secundaria));
+}
+
+.mochila__tipo {
+  font-weight: 700;
+}
+
+.mochila__quantidade {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
