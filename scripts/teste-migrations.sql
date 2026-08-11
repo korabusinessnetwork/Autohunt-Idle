@@ -1,0 +1,548 @@
+-- ============================================================================
+-- Teste de fumaça das migrations, contra um Postgres de verdade.
+--
+-- Complementa `src/lib/contratoRpc.test.ts`, que audita o TEXTO do SQL. Este
+-- aqui EXECUTA: pega erro de tipo, constraint que não pega, índice parcial que
+-- não aplica, forma fechada que diverge do somatório — nada disso um teste de
+-- leitura de arquivo consegue ver.
+--
+-- Como rodar (ver `scripts/pg-local.sh`):
+--   psql -d autohunt -f scripts/stub-supabase.sql
+--   psql -d autohunt -f supabase/migrations/*.sql
+--   psql -d autohunt -v ON_ERROR_STOP=1 -f scripts/teste-migrations.sql
+--
+-- Qualquer falha levanta exceção e derruba o script.
+-- ============================================================================
+
+\set ON_ERROR_STOP on
+
+create or replace function public.checar(p_condicao boolean, p_nome text)
+returns void language plpgsql as $$
+begin
+  if not p_condicao then
+    raise exception 'FALHOU: %', p_nome;
+  end if;
+  raise notice '  ok  %', p_nome;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Matemática pura
+-- ---------------------------------------------------------------------------
+\echo '== matemática =='
+do $$
+declare v_n bigint; v_soma bigint; v_i integer;
+begin
+  -- Curva de XP: a inversa precisa bater com a direta em qualquer nível.
+  foreach v_n in array array[1, 2, 7, 50, 999, 12345, 100000]::bigint[] loop
+    perform public.checar(
+      public.nivel_por_xp(public.xp_acumulado_para_nivel(v_n)::bigint) = v_n,
+      format('nivel_por_xp inverte a curva no nível %s', v_n));
+  end loop;
+
+  perform public.checar(public.nivel_por_xp(0) = 1, 'XP zero é nível 1');
+  perform public.checar(public.nivel_por_xp(99) = 1, 'XP 99 ainda é nível 1');
+  perform public.checar(public.nivel_por_xp(100) = 2, 'XP 100 vira nível 2');
+
+  -- Custo de atributo: a forma fechada precisa bater com o somatório real.
+  v_soma := 0;
+  for v_i in 0 .. 250 loop
+    perform public.checar(public.custo_acumulado_atributo(v_i) = v_soma,
+                          format('custo acumulado fecha no nível %s', v_i));
+    v_soma := v_soma + public.custo_proximo_nivel_atributo(v_i);
+  end loop;
+
+  -- A regra que a prosa da spec contradizia: subir de 10 para 11 custa 2.
+  perform public.checar(public.custo_proximo_nivel_atributo(9) = 1, 'subir para +10 custa 1');
+  perform public.checar(public.custo_proximo_nivel_atributo(10) = 2, 'subir de 10 para 11 custa 2');
+
+  -- Sorteio determinístico: mesma semente, mesmo número, sempre em [0,1).
+  perform public.checar(public.sorteio01('a') = public.sorteio01('a'), 'sorteio é determinístico');
+  perform public.checar(public.sorteio01('a') <> public.sorteio01('b'), 'sementes diferentes divergem');
+  perform public.checar(public.sorteio01('x') >= 0 and public.sorteio01('x') < 1,
+                        'sorteio fica em [0,1)');
+
+  -- Piso de raridade é garantia, não sorteio.
+  perform public.checar(public.escalar_raridade('qualquer', 3::smallint, 10::smallint, 0) >= 3,
+                        'boss garante piso raro');
+  perform public.checar(public.escalar_raridade('qualquer', 2::smallint, 3::smallint, 9999) <= 3,
+                        'mini boss respeita o teto raro');
+
+  -- Fortificação: chance nunca sobe, custo sempre cresce.
+  for v_i in 0 .. 14 loop
+    perform public.checar(
+      public.chance_de_fortificar(v_i + 1) <= public.chance_de_fortificar(v_i),
+      format('chance de fortificar não sobe de %s para %s', v_i, v_i + 1));
+    perform public.checar(
+      public.custo_de_fortificar(v_i + 1, 5) > public.custo_de_fortificar(v_i, 5),
+      format('custo de fortificar cresce de %s para %s', v_i, v_i + 1));
+  end loop;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Fluxo de sessão
+-- ---------------------------------------------------------------------------
+\echo '== sessão e farm =='
+do $$
+declare
+  v_uid  uuid := '11111111-1111-1111-1111-111111111111';
+  v_snap jsonb;
+  v_xp   bigint;
+begin
+  insert into auth.users (id, email) values (v_uid, null);
+  perform set_config('autohunt.uid', v_uid::text, false);
+
+  v_snap := public.iniciar_sessao();
+  perform public.checar((v_snap ->> 'existe')::boolean, 'primeira sessão cria o jogador');
+  perform public.checar((v_snap #>> '{jogador,nivel}')::bigint = 1, 'começa no nível 1');
+  perform public.checar((v_snap #>> '{retorno,houveAusencia}')::boolean = false,
+                        'primeira sessão não é ausência');
+
+  -- Arma inicial: o personagem nunca fica sem nada equipado (core do
+  -- equipamento, critério 8).
+  perform public.checar(
+    exists (select 1 from public.item_jogador
+             where player_id = v_uid and tipo = 'arma' and slot = 'arma'),
+    'ganha arma inicial equipada');
+
+  -- Ausência de 3h. Sem assinatura e sem anúncio, o teto é zero.
+  update public.farm_state set last_seen_at = now() - interval '3 hours' where player_id = v_uid;
+  v_snap := public.iniciar_sessao();
+  perform public.checar((v_snap #>> '{retorno,motivo}') = 'sem_desbloqueio',
+                        'sem desbloqueio não credita nada');
+  perform public.checar((v_snap #>> '{retorno,minutosCreditados}')::integer = 0,
+                        'não-assinante acumula 0h por padrão');
+
+  -- Com saldo de anúncio, credita só até onde o saldo cobre.
+  update public.farm_state
+     set minutos_anuncio_saldo = 60, last_seen_at = now() - interval '3 hours'
+   where player_id = v_uid;
+  v_snap := public.iniciar_sessao();
+  perform public.checar((v_snap #>> '{retorno,minutosCreditados}')::integer = 60,
+                        'credita exatamente o saldo de anúncio');
+  perform public.checar((v_snap #>> '{retorno,motivo}') = 'teto_anuncio',
+                        'motivo indica o teto do anúncio');
+  perform public.checar((v_snap #>> '{farm,minutosAnuncioSaldo}')::integer = 0,
+                        'saldo de anúncio é consumido');
+
+  v_xp := (v_snap #>> '{farm,xpPendente}')::bigint;
+  perform public.checar(v_xp > 0, 'farm offline gera XP pendente');
+
+  -- Coleta move o pendente para o total e sobe de nível.
+  v_snap := public.coletar_farm_offline();
+  perform public.checar((v_snap #>> '{farm,xpPendente}')::bigint = 0, 'coleta zera o pendente');
+  perform public.checar((v_snap #>> '{jogador,xpTotal}')::bigint >= v_xp,
+                        'XP coletado entra no total');
+  perform public.checar((v_snap #>> '{jogador,nivel}')::bigint > 1, 'jogador subiu de nível');
+
+  -- Auto-alocação: quem nunca abriu a tela de atributos tem build coerente.
+  perform public.checar((v_snap #>> '{atributos,forca}')::integer > 0,
+                        'pontos foram auto-alocados');
+  perform public.checar((v_snap #>> '{atributos,pontosLivres}')::integer < 4,
+                        'quase nenhum ponto sobra sem gastar');
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Assinatura: 24h e 2x XP
+-- ---------------------------------------------------------------------------
+\echo '== assinatura =='
+do $$
+declare
+  v_uid  uuid := '22222222-2222-2222-2222-222222222222';
+  v_snap jsonb;
+  v_sem  bigint;
+  v_com  bigint;
+  v_vit  integer;
+begin
+  insert into auth.users (id, email) values (v_uid, null);
+  perform set_config('autohunt.uid', v_uid::text, false);
+  perform public.iniciar_sessao();
+
+  -- A Vitalidade é levada de um ciclo para o outro, e é ela que decide ONDE
+  -- caem as derrotas. Duas resoluções seguidas partindo de Vitalidade
+  -- diferente rendem números diferentes mesmo com o multiplicador correto —
+  -- por isso o ponto de partida precisa ser restaurado antes da comparação.
+  select vitalidade_atual into v_vit from public.jogador where id = v_uid;
+
+  update public.farm_state
+     set minutos_anuncio_saldo = 120, last_seen_at = now() - interval '2 hours'
+   where player_id = v_uid;
+  v_snap := public.iniciar_sessao();
+  v_sem := (v_snap #>> '{retorno,xpGanho}')::bigint;
+
+  perform public.aplicar_evento_assinatura(v_uid, 'ativa', now() + interval '30 days',
+                                           'stripe', 'ref-1');
+  update public.jogador set vitalidade_atual = v_vit where id = v_uid;
+  -- O saldo de anúncio foi consumido pela rodada anterior; repor deixa o
+  -- cenário idêntico e ainda permite provar que o assinante NÃO o gasta.
+  update public.farm_state
+     set xp_pendente = 0, minutos_anuncio_saldo = 120,
+         last_seen_at = now() - interval '2 hours'
+   where player_id = v_uid;
+  v_snap := public.iniciar_sessao();
+  v_com := (v_snap #>> '{retorno,xpGanho}')::bigint;
+
+  perform public.checar(v_com = v_sem * 2, 'assinante recebe exatamente 2x XP');
+  perform public.checar((v_snap #>> '{assinatura,tetoOfflineMinutos}')::integer = 1440,
+                        'assinante tem teto de 24h');
+
+  -- Assinante não consome saldo de anúncio.
+  perform public.checar((v_snap #>> '{farm,minutosAnuncioSaldo}')::integer = 120,
+                        'assinante não gasta minutos de anúncio');
+
+  -- Vencer de fato zera o pendente não coletado; cancelar não.
+  perform public.aplicar_evento_assinatura(v_uid, 'cancelada', now() + interval '5 days',
+                                           'stripe', 'ref-1');
+  v_snap := public.iniciar_sessao();
+  perform public.checar((v_snap #>> '{assinatura,ativa}')::boolean,
+                        'cancelar mantém o benefício até o fim do período pago');
+
+  perform public.aplicar_evento_assinatura(v_uid, 'vencida', now() - interval '1 day',
+                                           'stripe', 'ref-1');
+  v_snap := public.estado_jogador();
+  perform public.checar((v_snap #>> '{farm,xpPendente}')::bigint = 0,
+                        'vencer zera o progresso não coletado');
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Gate de idade e apelido
+-- ---------------------------------------------------------------------------
+\echo '== cadastro, idade e apelido =='
+do $$
+declare
+  v_a uuid := '33333333-3333-3333-3333-333333333333';
+  v_b uuid := '44444444-4444-4444-4444-444444444444';
+  v_erro text;
+begin
+  insert into auth.users (id, email) values (v_a, 'a@exemplo.com'), (v_b, 'b@exemplo.com');
+  perform set_config('autohunt.uid', v_a::text, false);
+  perform public.iniciar_sessao();
+  perform set_config('autohunt.uid', v_b::text, false);
+  perform public.iniciar_sessao();
+
+  -- Menor de idade é bloqueado pelo banco, não só pelo formulário.
+  begin
+    update public.jogador set data_nascimento = current_date - interval '10 years' where id = v_a;
+    perform public.checar(false, 'menor de idade deveria ter sido bloqueado');
+  exception when others then
+    get stacked diagnostics v_erro = message_text;
+    perform public.checar(v_erro = 'IDADE_MINIMA_NAO_ATINGIDA', 'gate de 18+ bloqueia menor');
+  end;
+
+  update public.jogador set data_nascimento = current_date - interval '30 years' where id = v_a;
+  update public.jogador set data_nascimento = current_date - interval '30 years' where id = v_b;
+
+  -- Data de nascimento é imutável depois de informada.
+  begin
+    update public.jogador set data_nascimento = current_date - interval '40 years' where id = v_a;
+    perform public.checar(false, 'data de nascimento deveria ser imutável');
+  exception when others then
+    get stacked diagnostics v_erro = message_text;
+    perform public.checar(v_erro = 'DATA_NASCIMENTO_IMUTAVEL', 'data de nascimento é imutável');
+  end;
+
+  -- Apelido único, sem diferenciar maiúscula.
+  perform set_config('autohunt.uid', v_a::text, false);
+  perform public.definir_apelido('Duda');
+
+  perform set_config('autohunt.uid', v_b::text, false);
+  begin
+    perform public.definir_apelido('duda');
+    perform public.checar(false, 'apelido duplicado deveria ser recusado');
+  exception when others then
+    get stacked diagnostics v_erro = message_text;
+    perform public.checar(v_erro = 'APELIDO_EM_USO', 'apelido é único, ignorando maiúscula');
+  end;
+
+  perform public.definir_apelido('Rafa');
+  perform public.checar(
+    (public.ranking_global() #>> '{eu,posicao}') is not null,
+    'jogador aparece no ranking assim que define apelido');
+end $$;
+
+-- Conta anônima (sem e-mail e sem data de nascimento) não entra no placar.
+do $$
+declare v_c uuid := '55555555-5555-5555-5555-555555555555'; v_erro text;
+begin
+  insert into auth.users (id, email) values (v_c, null);
+  perform set_config('autohunt.uid', v_c::text, false);
+  perform public.iniciar_sessao();
+  begin
+    perform public.definir_apelido('Convidado');
+    perform public.checar(false, 'convidado não deveria entrar no placar');
+  exception when others then
+    get stacked diagnostics v_erro = message_text;
+    perform public.checar(v_erro = 'CADASTRO_NECESSARIO', 'placar exige identidade permanente');
+  end;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Loot, dungeon, síntese e fortificação
+-- ---------------------------------------------------------------------------
+\echo '== loot, dungeon, síntese e fortificação =='
+do $$
+declare
+  v_uid   uuid := '66666666-6666-6666-6666-666666666666';
+  v_snap  jsonb;
+  v_item  uuid;
+  v_antes integer;
+  v_erro  text;
+  v_i     integer;
+begin
+  insert into auth.users (id, email) values (v_uid, 'f@exemplo.com');
+  perform set_config('autohunt.uid', v_uid::text, false);
+  perform public.iniciar_sessao();
+
+  -- Ausência longa com assinatura: gera loot, chaves e resolve dungeons.
+  perform public.aplicar_evento_assinatura(v_uid, 'ativa', now() + interval '30 days',
+                                           'stripe', 'ref-2');
+  update public.farm_state set last_seen_at = now() - interval '20 hours' where player_id = v_uid;
+  v_snap := public.iniciar_sessao();
+
+  perform public.checar((v_snap #>> '{retorno,drops,miniBosses}')::integer > 0,
+                        'mini boss aparece durante a ausência');
+  perform public.checar((v_snap #>> '{retorno,dungeons,resolvidas}')::integer > 0,
+                        'dungeons acumuladas são resolvidas no servidor');
+  perform public.checar((v_snap #>> '{retorno,dungeons,resolvidas}')::integer <= 10,
+                        'teto de 10 dungeons por retorno é respeitado');
+
+  -- Loot de dungeon vencida nunca sai abaixo de raro.
+  perform public.checar(
+    not exists (select 1 from public.item_jogador
+                 where player_id = v_uid and origem = 'dungeon' and raridade < 1),
+    'todo item de dungeon tem raridade válida');
+
+  -- Síntese: 9 iguais viram 1 do tier acima, e a conta fecha.
+  insert into public.item_jogador (player_id, tipo, raridade, origem)
+  select v_uid, 'capacete', 2, 'mundo' from generate_series(1, 9);
+  v_antes := (select count(*) from public.item_jogador
+               where player_id = v_uid and tipo = 'capacete' and raridade = 2);
+  v_snap := public.sintetizar('capacete', 2::smallint);
+  perform public.checar((v_snap #>> '{sintese,consumidos}')::integer = 9, 'síntese consome 9');
+  perform public.checar((v_snap #>> '{sintese,produziuRaridade}')::integer > 2,
+                        'síntese produz raridade superior');
+  perform public.checar(
+    (select count(*) from public.item_jogador
+      where player_id = v_uid and tipo = 'capacete' and raridade = 2) = v_antes - 9,
+    'os 9 itens sumiram do inventário');
+
+  -- Síntese sem itens suficientes é recusada, sem consumir nada.
+  begin
+    perform public.sintetizar('bota', 9::smallint);
+    perform public.checar(false, 'síntese sem itens deveria falhar');
+  exception when others then
+    get stacked diagnostics v_erro = message_text;
+    perform public.checar(v_erro = 'ITENS_INSUFICIENTES', 'síntese recusa sem 9 itens');
+  end;
+
+  -- Fortificação: sucesso sobe, falha nunca rebaixa.
+  update public.jogador set moeda = 100000000 where id = v_uid;
+  insert into public.item_jogador (player_id, tipo, raridade, origem)
+  select v_uid, 'pedra_fortificacao', 1, 'mundo' from generate_series(1, 60);
+
+  select id into v_item from public.item_jogador
+   where player_id = v_uid and tipo = 'arma' limit 1;
+
+  for v_i in 1 .. 40 loop
+    v_antes := (select fortificacao from public.item_jogador where id = v_item);
+    begin
+      v_snap := public.fortificar_item(v_item);
+      perform public.checar(
+        (select fortificacao from public.item_jogador where id = v_item) >= v_antes,
+        'fortificação nunca cai');
+    exception when others then
+      get stacked diagnostics v_erro = message_text;
+      exit when v_erro in ('TETO_ATINGIDO', 'SEM_PEDRA', 'OURO_INSUFICIENTE');
+      raise;
+    end;
+  end loop;
+
+  perform public.checar(
+    (select fortificacao from public.item_jogador where id = v_item) > 0,
+    'alguma tentativa de fortificação deu certo');
+
+  -- Fortificar skin é recusado: skin não tem stat.
+  insert into public.item_jogador (player_id, tipo, raridade, origem)
+  values (v_uid, 'skin', 3, 'dungeon') returning id into v_item;
+  begin
+    perform public.fortificar_item(v_item);
+    perform public.checar(false, 'fortificar skin deveria falhar');
+  exception when others then
+    get stacked diagnostics v_erro = message_text;
+    perform public.checar(v_erro = 'ITEM_NAO_FORTIFICAVEL', 'skin não pode ser fortificada');
+  end;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Skin não altera número nenhum
+-- ---------------------------------------------------------------------------
+\echo '== skin é puramente cosmética =='
+do $$
+declare
+  v_uid   uuid := '77777777-7777-7777-7777-777777777777';
+  v_skin  uuid;
+  v_antes integer;
+begin
+  insert into auth.users (id, email) values (v_uid, 's@exemplo.com');
+  perform set_config('autohunt.uid', v_uid::text, false);
+  perform public.iniciar_sessao();
+
+  v_antes := public.poder_de_ataque(v_uid);
+
+  insert into public.item_jogador (player_id, tipo, raridade, origem)
+  values (v_uid, 'skin', 10, 'dungeon') returning id into v_skin;
+  perform public.equipar_item(v_skin);
+
+  -- A skin mais rara do jogo, equipada, não muda um único ponto de poder.
+  perform public.checar(public.poder_de_ataque(v_uid) = v_antes,
+                        'skin cósmica equipada não altera o poder de ataque');
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Slots, sinergia e conjunto
+-- ---------------------------------------------------------------------------
+\echo '== equipamento =='
+do $$
+declare
+  v_uid   uuid := '88888888-8888-8888-8888-888888888888';
+  v_arma  uuid;
+  v_cap   uuid;
+  v_arm   uuid;
+  v_base  integer;
+  v_sin   integer;
+  v_conj  integer;
+  v_erro  text;
+begin
+  insert into auth.users (id, email) values (v_uid, 'e@exemplo.com');
+  perform set_config('autohunt.uid', v_uid::text, false);
+  perform public.iniciar_sessao();
+
+  delete from public.item_jogador where player_id = v_uid;
+
+  insert into public.item_jogador (player_id, tipo, raridade, origem, tipo_dano)
+  values (v_uid, 'arma', 8, 'dungeon', 'magico') returning id into v_arma;
+  insert into public.item_jogador (player_id, tipo, raridade, origem, afinidade)
+  values (v_uid, 'capacete', 8, 'dungeon', 'fisico') returning id into v_cap;
+
+  perform public.equipar_item(v_arma);
+  perform public.equipar_item(v_cap);
+  v_base := public.poder_de_ataque(v_uid);
+
+  -- Trocar o capacete por um de afinidade mágica (a mesma da arma) precisa
+  -- render mais, com a mesma raridade.
+  delete from public.item_jogador where id = v_cap;
+  insert into public.item_jogador (player_id, tipo, raridade, origem, afinidade)
+  values (v_uid, 'capacete', 8, 'dungeon', 'magico') returning id into v_cap;
+  perform public.equipar_item(v_cap);
+  v_sin := public.poder_de_ataque(v_uid);
+
+  perform public.checar(v_sin > v_base, 'afinidade batendo com a arma rende mais');
+
+  -- Duas peças do mesmo conjunto ativam o bônus.
+  update public.item_jogador set conjunto_id = 'bruxa-caramelo' where id in (v_arma, v_cap);
+  v_conj := public.poder_de_ataque(v_uid);
+  perform public.checar(v_conj > v_sin, 'bônus de 2 peças de conjunto aplica');
+
+  -- Um item só cabe no slot do próprio tipo.
+  insert into public.item_jogador (player_id, tipo, raridade, origem)
+  values (v_uid, 'chave', 1, 'mundo') returning id into v_arm;
+  begin
+    perform public.equipar_item(v_arm);
+    perform public.checar(false, 'chave não deveria ser equipável');
+  exception when others then
+    get stacked diagnostics v_erro = message_text;
+    perform public.checar(v_erro = 'ITEM_NAO_EQUIPAVEL', 'chave não é equipável');
+  end;
+
+  -- Um item por slot: o índice único é quem garante.
+  perform public.checar(
+    (select count(*) from public.item_jogador
+      where player_id = v_uid and slot = 'arma') <= 1,
+    'no máximo uma arma equipada');
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Permissões: o jogador não alcança o que é do servidor
+-- ---------------------------------------------------------------------------
+\echo '== permissões =='
+do $$
+declare v_privilegiadas text[] := array[
+  'creditar_anuncio', 'aplicar_evento_assinatura', 'resgatar_anuncio_do_jogador',
+  'conceder_item', 'resolver_drops', 'creditar_ciclos', 'resolver_uma_dungeon',
+  'resolver_dungeons', 'poder_de_ataque', 'auto_alocar_atributos', 'recomputar_ranking'
+];
+  v_nome text;
+begin
+  foreach v_nome in array v_privilegiadas loop
+    perform public.checar(
+      not exists (
+        select 1 from pg_proc p
+          join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = v_nome
+           and has_function_privilege('authenticated', p.oid, 'execute')
+      ),
+      format('authenticated NÃO alcança %s', v_nome));
+  end loop;
+
+  -- E as que ele precisa alcançar, ele alcança.
+  foreach v_nome in array array['iniciar_sessao', 'validar_lote', 'coletar_farm_offline',
+                                'emitir_ticket_anuncio', 'redistribuir_atributos',
+                                'definir_apelido', 'ranking_global', 'iniciar_dungeon',
+                                'sintetizar', 'equipar_item', 'fortificar_item'] loop
+    perform public.checar(
+      exists (
+        select 1 from pg_proc p
+          join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = v_nome
+           and has_function_privilege('authenticated', p.oid, 'execute')
+      ),
+      format('authenticated alcança %s', v_nome));
+  end loop;
+
+  -- Progressão não é escrita pelo jogador.
+  foreach v_nome in array array['nivel', 'xp_total', 'moeda', 'vitalidade_atual', 'apelido'] loop
+    perform public.checar(
+      not has_column_privilege('authenticated', 'public.jogador', v_nome, 'UPDATE'),
+      format('authenticated não escreve jogador.%s', v_nome));
+  end loop;
+
+  -- RLS ativa em todas as tabelas.
+  perform public.checar(
+    not exists (select 1 from pg_tables t
+                 join pg_class c on c.relname = t.tablename
+                where t.schemaname = 'public' and not c.relrowsecurity),
+    'RLS ativa em toda tabela do schema public');
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Reconexão rápida não credita duas vezes
+-- ---------------------------------------------------------------------------
+\echo '== crédito duplo =='
+do $$
+declare
+  v_uid uuid := '99999999-9999-9999-9999-999999999999';
+  v_a   bigint;
+  v_b   bigint;
+begin
+  insert into auth.users (id, email) values (v_uid, null);
+  perform set_config('autohunt.uid', v_uid::text, false);
+  perform public.iniciar_sessao();
+
+  update public.farm_state
+     set minutos_anuncio_saldo = 120, last_seen_at = now() - interval '2 hours'
+   where player_id = v_uid;
+
+  perform public.iniciar_sessao();
+  v_a := (select xp_pendente from public.farm_state where player_id = v_uid);
+
+  -- Segunda chamada imediata: o intervalo já foi consumido.
+  perform public.iniciar_sessao();
+  v_b := (select xp_pendente from public.farm_state where player_id = v_uid);
+
+  perform public.checar(v_a = v_b, 'reconexão imediata não credita o mesmo intervalo de novo');
+end $$;
+
+\echo ''
+\echo '========================================'
+\echo '  TODAS AS VERIFICAÇÕES PASSARAM'
+\echo '========================================'

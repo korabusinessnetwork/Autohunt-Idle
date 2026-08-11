@@ -64,7 +64,7 @@ bloqueiam o *lançamento*.
 
 | # | Item | Detalhe |
 |---|---|---|
-| D1 | **Migrations nunca executadas** | O SQL foi escrito e auditado *estruturalmente* por teste (`src/lib/contratoRpc.test.ts`), mas não rodou contra um Postgres. Antes de qualquer deploy: aplicar as duas migrations num projeto Supabase e repetir os testes manuais da seção "aprovado sem ressalvas" de `specs/build-fase-1-mvp.md`. |
+| ~~D1~~ | ~~**Migrations nunca executadas**~~ — **resolvido em 2026-08-11** | As 10 migrations agora aplicam contra um Postgres 16 de verdade, e um teste de fumaça exercita a lógica do jogo ponta a ponta: `./scripts/pg-local.sh`. Continua valendo uma ressalva menor: o stub reproduz `auth.users` e `auth.uid()`, então **RLS não é exercitada por um JWT real** — isso só num projeto Supabase. |
 | D2 | **`signInAnonymously` precisa estar habilitado** | É pré-requisito do critério 17. Desabilitado, o jogo cai na tela de erro com retry (que existe e é legível), mas ninguém joga. |
 | D3 | **Arte é placeholder** | O brief foi ao Claude Design e os assets não voltaram. O jogo desenha silhuetas geométricas na paleta oficial; a camada de sprite está isolada em `src/game/sprites.ts` para troca sem tocar em motor/mundo. |
 | D4 | **Balanceamento é chute fundamentado** | Ciclo de 15s, 3 abates/ciclo, curva de XP `50·(n-1)·n`, derrota a cada ~11 ciclos. Números escolhidos para o sistema ficar observável e testável, não para ser divertido. Balancear com dado de jogador real é trabalho da Fase 2. |
