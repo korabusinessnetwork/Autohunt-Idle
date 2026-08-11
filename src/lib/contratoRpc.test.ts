@@ -165,6 +165,28 @@ describe('contrato das RPCs expostas ao jogador', () => {
     expect(corpo).not.toContain('item_jogador')
   })
 
+  it('falhar uma fortificação nunca rebaixa o item', () => {
+    // Prova central do critério 7 da spec de fortificação, e do princípio
+    // "progresso nunca é punido" que já custou o permadeath ao projeto: não
+    // existe, em migration nenhuma, um caminho que reduza `fortificacao`.
+    expect(sqlExecutavel).not.toMatch(/fortificacao\s*=\s*fortificacao\s*-/i);
+    expect(sqlExecutavel).not.toMatch(/fortificacao\s*=\s*greatest\(0,\s*fortificacao\s*-/i);
+    // O único update dela é o incremento, dentro do caminho de sucesso.
+    const incrementos = sqlExecutavel.match(/set fortificacao = fortificacao \+ 1/gi) ?? [];
+    expect(incrementos.length).toBeGreaterThan(0);
+  })
+
+  it('nenhuma rota vende pedra de fortificação', () => {
+    // Critério 3: pedra é loot, não mercadoria. Se algum dia existir uma loja,
+    // este teste é quem acusa se ela passar a vender pedra — que é o que
+    // reabriria a restrição de recompensa aleatória paga.
+    const linhas = sqlExecutavel.split('\n')
+    const suspeitas = linhas.filter(
+      (linha) => /pedra_/i.test(linha) && /(preco|comprar|loja|diamante|venda)/i.test(linha),
+    )
+    expect(suspeitas).toEqual([])
+  })
+
   it('as RPCs de sessão e farm são SECURITY DEFINER', () => {
     for (const funcao of [
       'iniciar_sessao',
@@ -184,6 +206,7 @@ describe('contrato das RPCs expostas ao jogador', () => {
       'iniciar_dungeon',
       'sintetizar',
       'equipar_item',
+      'fortificar_item',
     ]) {
       const definicao = rpcs.slice(
         rpcs.lastIndexOf(`create or replace function public.${funcao}(`),

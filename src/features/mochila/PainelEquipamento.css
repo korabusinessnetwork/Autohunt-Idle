@@ -142,3 +142,41 @@
 .equip__tier--cosmico {
   background: color-mix(in srgb, var(--cor-primaria) 60%, var(--cor-secundaria));
 }
+
+/* Bloco de fortificação — chance e custo sempre visíveis antes da tentativa. */
+.equip__fort {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  padding: var(--espaco-3);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+  background: color-mix(in srgb, var(--cor-recompensa) 18%, transparent);
+}
+
+.equip__fort-titulo {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.equip__fort-linha {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.equip__fort-linha--calmo {
+  opacity: 0.8;
+}
+
+.equip__fort-opcao {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.equip__fort-opcao input:disabled + span {
+  opacity: 0.5;
+}

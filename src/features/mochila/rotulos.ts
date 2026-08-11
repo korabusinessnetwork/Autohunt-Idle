@@ -28,6 +28,9 @@ export const ROTULO_TIPO: Record<TipoItem, ChaveI18n> = {
   acessorio: 'item.acessorio',
   skin: 'item.skin',
   chave: 'item.chave',
+  pedra_fortificacao: 'item.pedra_fortificacao',
+  pedra_sorte: 'item.pedra_sorte',
+  pedra_garantia: 'item.pedra_garantia',
 }
 
 export const ROTULO_SLOT: Record<SlotEquipamento, ChaveI18n> = {

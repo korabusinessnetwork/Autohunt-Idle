@@ -9,6 +9,7 @@
 // "skin nunca tem stat" deixa de ser promessa e vira propriedade estrutural.
 
 import type { Atributos } from './regrasAtributos'
+import { bonusDeFortificacao } from './regrasFortificacao'
 
 export type TipoDano = 'fisico' | 'magico'
 
@@ -31,6 +32,8 @@ export type SlotDePoder = (typeof SLOTS_DE_PODER)[number]
 
 export interface ItemEquipado {
   raridade: number
+  /** Nível de fortificação, de 0 a 15 (`specs/fortificacao-de-item.md`). */
+  fortificacao?: number
   /** Só a arma carrega tipo de dano. */
   tipoDano?: TipoDano | null
   /** Qualquer peça que não seja a arma pode ter afinidade. */
@@ -41,11 +44,18 @@ export interface ItemEquipado {
 
 export type Loadout = Partial<Record<SlotDePoder, ItemEquipado | null>>
 
-/** Quanto stat um item rende, em função da raridade. */
-export function poderDoItem(raridade: number): number {
+/**
+ * Quanto stat um item rende, em função da raridade e da fortificação.
+ *
+ * A fortificação entra como **percentual** e não como valor fixo: assim
+ * fortificar um item cósmico vale mais que fortificar um comum, que é o
+ * incentivo certo (decisão D2 de `specs/build-fase-3e-fortificacao.md`).
+ */
+export function poderDoItem(raridade: number, fortificacao = 0): number {
   const tier = Math.min(10, Math.max(0, Math.trunc(raridade)))
   // Cresce mais que linear: cósmico precisa parecer cósmico.
-  return tier * tier + tier * 3
+  const base = tier * tier + tier * 3
+  return Math.floor(base * bonusDeFortificacao(fortificacao))
 }
 
 /** Bônus que uma peça ganha quando a afinidade dela bate com a arma. */
@@ -134,7 +144,7 @@ export function calcularPoderDeAtaque(loadout: Loadout, atributos: Atributos): D
   const principal = tipoDano === 'fisico' ? atributos.forca : atributos.inteligencia
   const secundario = tipoDano === 'fisico' ? atributos.inteligencia : atributos.forca
 
-  const poderArma = arma ? poderDoItem(arma.raridade) : 0
+  const poderArma = arma ? poderDoItem(arma.raridade, arma.fortificacao) : 0
 
   let poderPecas = 0
   let emSinergia = 0
@@ -143,7 +153,7 @@ export function calcularPoderDeAtaque(loadout: Loadout, atributos: Atributos): D
     const peca = loadout[slot]
     if (!peca) continue
 
-    const base = poderDoItem(peca.raridade)
+    const base = poderDoItem(peca.raridade, peca.fortificacao)
     if (peca.afinidade && peca.afinidade === tipoDano) {
       poderPecas += base * (1 + BONUS_DE_SINERGIA)
       emSinergia += 1

@@ -54,3 +54,26 @@ export async function equiparItem(itemId: string): Promise<Envelope<Snapshot>> {
   if (error) return deErroSupabase<Snapshot>(error, 'EQUIPAR_FALHOU')
   return ok(data as Snapshot)
 }
+
+/**
+ * Fortifica um item equipável.
+ *
+ * Os parâmetros são escolhas do jogador — qual item, e se quer gastar as pedras
+ * opcionais. A chance, o custo e o resultado são todos decididos pelo servidor:
+ * o client nem sabe o número do sorteio.
+ *
+ * Falhar consome ouro e pedras e **não mexe no item** — não existe caminho no
+ * SQL que reduza a fortificação.
+ */
+export async function fortificarItem(
+  itemId: string,
+  opcoes: { usarSorte?: boolean; usarGarantia?: boolean } = {},
+): Promise<Envelope<Snapshot>> {
+  const { data, error } = await obterSupabase().rpc('fortificar_item', {
+    p_item_id: itemId,
+    p_usar_sorte: opcoes.usarSorte ?? false,
+    p_usar_garantia: opcoes.usarGarantia ?? false,
+  })
+  if (error) return deErroSupabase<Snapshot>(error, 'FORTIFICACAO_FALHOU')
+  return ok(data as Snapshot)
+}

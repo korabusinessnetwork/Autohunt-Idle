@@ -111,6 +111,9 @@ export type TipoItem =
   | 'acessorio'
   | 'skin'
   | 'chave'
+  | 'pedra_fortificacao'
+  | 'pedra_sorte'
+  | 'pedra_garantia'
 
 export interface GrupoInventario {
   tipo: TipoItem
@@ -120,13 +123,18 @@ export interface GrupoInventario {
 }
 
 /** O slot é sempre igual ao tipo do item — por isso equipar não informa slot. */
-export type SlotEquipamento = Exclude<TipoItem, 'chave'>
+export type SlotEquipamento = Exclude<
+  TipoItem,
+  'chave' | 'pedra_fortificacao' | 'pedra_sorte' | 'pedra_garantia'
+>
 export type TipoDano = 'fisico' | 'magico'
 
 export interface ItemPossuido {
   id: string
   tipo: TipoItem
   raridade: number
+  /** Nível de fortificação, de +0 a +15. Nunca decresce. */
+  fortificacao: number
   /** Slot ocupado, ou `null` quando está guardado. */
   slot: SlotEquipamento | null
   tipoDano: TipoDano | null
@@ -134,8 +142,23 @@ export interface ItemPossuido {
   conjuntoId: string | null
 }
 
+export interface EstadoPedras {
+  fortificacao: number
+  sorte: number
+  garantia: number
+}
+
+export interface ResultadoFortificacao {
+  sucesso: boolean
+  nivelFinal: number
+  custoPago: number
+  chanceUsada: number
+}
+
 export interface EstadoInventario {
   chaves: number
+  /** Pedras de fortificação — só caem jogando, nunca são vendidas. */
+  pedras: EstadoPedras
   /** Poder final do loadout, já com sinergia e conjunto — calculado no servidor. */
   poderDeAtaque: number
   loadout: Partial<Record<SlotEquipamento, ItemPossuido>>
@@ -156,6 +179,7 @@ export interface Snapshot {
   inventario: EstadoInventario
   dungeon?: ResultadoDungeon
   sintese?: { consumidos: number; produziuRaridade: number }
+  fortificacao?: ResultadoFortificacao
   farm: EstadoFarm
   assinatura: EstadoAssinatura
   retorno?: RetornoOffline
