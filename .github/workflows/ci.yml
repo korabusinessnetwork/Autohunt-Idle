@@ -1,0 +1,67 @@
+# CI — os controles que o checklist de release exige, rodando sozinhos.
+#
+# Por que este arquivo existe: `docs/11_SEGURANCA/` listava "secret scanning
+# ativo" e "`npm audit` sem vulnerabilidade crítica" como controles
+# obrigatórios, e não havia `.github/` no repositório. Controle que ninguém
+# roda não é controle — é intenção.
+#
+# Tudo aqui roda em tier gratuito (GitHub Actions em repositório privado tem
+# cota mensal grátis; gitleaks é open source). Restrição de custo do
+# `CLAUDE.md`: nada nesta pipeline exige contratar serviço.
+
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    name: testes, build e auditoria
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # gitleaks precisa do histórico para varrer commits antigos, não só
+          # a árvore atual: segredo vazado e "removido" depois continua lá.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: testes
+        run: npm test
+
+      - name: build e orçamento de portal
+        run: npm run build
+
+      # Falha só em vulnerabilidade CRÍTICA. Alta e abaixo viram ruído que
+      # ninguém lê — e checklist que grita sempre é checklist que ninguém
+      # obedece.
+      - name: npm audit (crítico)
+        run: npm audit --audit-level=critical
+
+      - name: varredura de segredo
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  postgres:
+    name: migrations contra Postgres de verdade
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # O runner do GitHub já traz binários do Postgres instalados; o script
+      # sobe uma instância descartável, aplica as 12 migrations em ordem e roda
+      # o teste de fumaça.
+      - name: pg-local
+        run: PGBIN=/usr/lib/postgresql/16/bin ./scripts/pg-local.sh

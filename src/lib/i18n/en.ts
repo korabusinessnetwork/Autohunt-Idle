@@ -269,6 +269,23 @@ export const en: Record<ChaveI18n, string> = {
   'config.idioma.en': 'English',
   'config.fechar': 'Close',
 
+  // --- Personal data (LGPD) -------------------------------------------------
+  'dados.titulo': 'Your data',
+  'dados.explicacao': 'Everything the game keeps about you is yours. Download it or wipe it whenever.',
+  'dados.exportar': 'Download my data',
+  'dados.exportando': 'Preparing…',
+  'dados.exportado': 'Done, the file has been downloaded.',
+  'dados.excluir': 'Delete my account',
+  'dados.excluir.confirmacao':
+    'This wipes everything: character, items, gold, gems and progress. It cannot be undone.',
+  'dados.excluir.avisoAssinatura':
+    'If you subscribe, cancel the subscription first — deleting the account here does not stop the billing.',
+  'dados.excluir.confirmar': 'Delete anyway',
+  'dados.excluir.cancelar': 'Never mind',
+  'dados.excluindo': 'Deleting…',
+  'dados.erro.EXPORTACAO_FALHOU': "Couldn't prepare the file right now. Try again?",
+  'dados.erro.EXCLUSAO_FALHOU': "Couldn't delete the account right now. Try again?",
+
   // --- Time -----------------------------------------------------------------
   'tempo.minutos': '{valor} min',
   'tempo.horas': '{valor}h',

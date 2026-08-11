@@ -259,8 +259,15 @@ grant insert (id, data_nascimento, idioma) on public.jogador to authenticated;
 grant update (data_nascimento, idioma)     on public.jogador to authenticated;
 
 grant select on public.farm_state     to authenticated;
-grant select on public.assinatura     to authenticated;
 grant select on public.ticket_anuncio to authenticated;
+
+-- `assinatura` sai com lista explícita de colunas, e não a tabela inteira:
+-- `referencia_externa` e `provedor` identificam o jogador dentro do gateway de
+-- pagamento, e o client nunca precisou deles — recebe o estado da assinatura
+-- pronto, por `montar_snapshot` (CLAUDE.md: nunca `select *` em tabela
+-- sensível).
+grant select (player_id, status, expira_em, atualizada_em)
+  on public.assinatura to authenticated;
 
 grant select                     on public.evento_jogo to authenticated;
 grant insert (player_id, tipo, dados) on public.evento_jogo to authenticated;

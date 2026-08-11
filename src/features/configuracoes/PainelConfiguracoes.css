@@ -45,3 +45,25 @@
   gap: var(--espaco-2);
   cursor: pointer;
 }
+
+.config__nota {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+
+/*
+ * A confirmação de exclusão precisa parar o olho — é a única ação
+ * irreversível do jogo inteiro.
+ */
+.config__alerta {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.45;
+  padding: var(--espaco-2);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+  background: color-mix(in srgb, var(--cor-recompensa) 35%, var(--cor-fundo));
+}

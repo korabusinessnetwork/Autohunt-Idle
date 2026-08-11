@@ -342,6 +342,58 @@ describe('isolamento e segurança do schema', () => {
     expect(corpo).toContain('APELIDO_EM_USO')
   })
 
+  it('nenhum sorteio do jogo usa random() do Postgres', () => {
+    // Todo sorteio sai de `md5(player_id || contador)`: mesma semente, mesmo
+    // resultado. É o que torna o loot auditável e impossível de re-rolar — e
+    // um `random()` solto numa migration futura desfaria isso em silêncio.
+    // `gen_random_uuid()` é outra função e continua valendo para chave primária.
+    expect(sqlExecutavel).not.toMatch(/(?<!gen_)random\s*\(\s*\)/i)
+    expect(sqlExecutavel).toContain('md5(')
+  })
+
+  it('nenhuma tabela guarda dado de cartão', () => {
+    // O processamento é 100% do gateway. Uma coluna de cartão no nosso schema
+    // mudaria a classificação do produto inteiro para PCI-DSS.
+    expect(sqlExecutavel).not.toMatch(/\b(cartao|card_number|numero_cartao|cvv|cvc)\b/i)
+  })
+
+  it('as RPCs de LGPD não alcançam a conta de outro jogador', () => {
+    // A garantia é a AUSÊNCIA do parâmetro, não uma checagem dentro do corpo:
+    // sem `player_id` na assinatura, não existe chamada capaz de exportar ou
+    // apagar conta alheia — não há o que esquecer de validar.
+    for (const funcao of ['exportar_meus_dados', 'excluir_minha_conta']) {
+      expect(rpcs, funcao).toMatch(
+        new RegExp(`grant execute on function public\\.${funcao}\\(\\)\\s+to authenticated`, 'i'),
+      )
+
+      const inicio = sqlExecutavel.lastIndexOf(`create or replace function public.${funcao}(`)
+      expect(inicio, funcao).toBeGreaterThan(-1)
+      const corpo = sqlExecutavel.slice(inicio, sqlExecutavel.indexOf('$$;', inicio))
+
+      // Só `auth.uid()` decide de quem é o dado.
+      expect(corpo, `${funcao} precisa usar auth.uid()`).toContain('auth.uid()')
+      expect(corpo, `${funcao} não pode receber player_id`).not.toMatch(/\bp_player_id\b/)
+    }
+  })
+
+  it('a referência do gateway nunca é concedida ao jogador', () => {
+    // `CLAUDE.md`: nunca `select *` em tabela sensível. `assinatura` é a tabela
+    // que a regra nomeia, e `referencia_externa` é o identificador do jogador
+    // dentro do gateway de pagamento.
+    const grants = [
+      ...sqlExecutavel.matchAll(/grant select\s*(\(([^)]*)\))?\s*\n?\s*on public\.assinatura/gi),
+    ]
+    expect(grants.length).toBeGreaterThan(0)
+
+    for (const [, , colunas] of grants) {
+      // Grant sem lista de colunas é a tabela inteira — o que a regra proíbe.
+      expect(colunas, 'grant de assinatura precisa listar colunas').toBeDefined()
+      const lista = colunas!.split(',').map((c) => c.trim())
+      expect(lista).not.toContain('referencia_externa')
+      expect(lista).not.toContain('provedor')
+    }
+  })
+
   it('a data de nascimento não pode ser reescrita depois de informada', () => {
     // Sem isto o jogador teria UPDATE na própria coluna e o gate de idade
     // viraria uma formalidade reversível a qualquer momento.

@@ -559,6 +559,115 @@ begin
   end if;
 end $$;
 
+-- ---------------------------------------------------------------------------
+-- LGPD: exportar e excluir os próprios dados
+-- ---------------------------------------------------------------------------
+\echo '== dados pessoais (LGPD) =='
+do $$
+declare
+  v_eu     uuid := 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  v_outro  uuid := 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+  v_anon   uuid := 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+  v_json   jsonb;
+  v_erro   text;
+  v_tabela text;
+  v_sobrou bigint;
+begin
+  insert into auth.users (id, email) values
+    (v_eu, 'eu@exemplo.com'), (v_outro, 'outro@exemplo.com'), (v_anon, null);
+
+  -- Dois jogadores com progresso visivelmente diferente, para a exportação não
+  -- poder "acertar por coincidência".
+  perform set_config('autohunt.uid', v_outro::text, false);
+  perform public.iniciar_sessao();
+  update public.jogador set nivel = 99, moeda = 777 where id = v_outro;
+
+  perform set_config('autohunt.uid', v_eu::text, false);
+  perform public.iniciar_sessao();
+  update public.jogador set nivel = 7, moeda = 42, diamante = 5 where id = v_eu;
+
+  -- --- Exportar ---
+  v_json := public.exportar_meus_dados();
+
+  perform public.checar((v_json #>> '{conta,email}') = 'eu@exemplo.com',
+                        'a exportação traz o e-mail da própria conta');
+  perform public.checar((v_json #>> '{progresso,nivel}')::bigint = 7,
+                        'a exportação traz o progresso de quem chamou');
+  perform public.checar((v_json #>> '{progresso,diamante}')::bigint = 5,
+                        'a exportação inclui o saldo de diamante');
+  -- A prova de isolamento: o dado do outro jogador não aparece em lugar nenhum
+  -- do JSON. Sem `player_id` na assinatura, não há nem como pedir.
+  perform public.checar(v_json::text not like '%777%',
+                        'a exportação não vaza dado de outro jogador');
+
+  foreach v_tabela in array array['conta', 'progresso', 'atributos', 'farm',
+                                  'assinatura', 'itens', 'eventos'] loop
+    perform public.checar(v_json ? v_tabela,
+                          format('a exportação inclui a seção %s', v_tabela));
+  end loop;
+
+  -- Exportar não pode ter efeito colateral no progresso.
+  perform public.checar(
+    (select moeda from public.jogador where id = v_eu) = 42,
+    'exportar não credita nem coleta nada');
+
+  -- Conta anônima exporta igual, só com e-mail nulo (edge case da spec).
+  perform set_config('autohunt.uid', v_anon::text, false);
+  perform public.iniciar_sessao();
+  v_json := public.exportar_meus_dados();
+  perform public.checar(v_json #>> '{conta,email}' is null,
+                        'conta anônima exporta com e-mail nulo, sem falhar');
+  perform public.checar(v_json #>> '{conta,dataNascimento}' is null,
+                        'conta anônima exporta sem data de nascimento');
+
+  -- --- Excluir ---
+  perform set_config('autohunt.uid', v_eu::text, false);
+  -- Entrar no placar exige identidade verificada (e-mail + data de
+  -- nascimento). É só assim que existe linha em `ranking_posicao` para a
+  -- exclusão ter que apagar.
+  update public.jogador set data_nascimento = date '1990-01-01' where id = v_eu;
+  perform public.definir_apelido('ApagaEu');
+  perform public.recomputar_ranking();
+  perform public.checar(
+    exists (select 1 from public.ranking_posicao where player_id = v_eu),
+    'o jogador está no placar antes de apagar');
+
+  v_json := public.excluir_minha_conta();
+  perform public.checar((v_json ->> 'excluida')::boolean, 'a exclusão confirma');
+
+  -- Nada pode sobrar, em tabela nenhuma — inclusive a única com dado visível
+  -- para terceiros.
+  foreach v_tabela in array array['jogador', 'farm_state', 'assinatura',
+                                  'atributo_jogador', 'item_jogador',
+                                  'evento_jogo', 'ticket_anuncio',
+                                  'ranking_posicao'] loop
+    execute format('select count(*) from public.%I where %I = $1',
+                   v_tabela,
+                   case when v_tabela = 'jogador' then 'id' else 'player_id' end)
+       into v_sobrou using v_eu;
+    perform public.checar(v_sobrou = 0, format('a exclusão não deixa órfão em %s', v_tabela));
+  end loop;
+
+  perform public.checar(
+    not exists (select 1 from auth.users where id = v_eu),
+    'a exclusão apaga a própria linha de auth.users');
+
+  -- E o vizinho continua intacto: apagar a própria conta não toca em ninguém.
+  perform public.checar(
+    (select nivel from public.jogador where id = v_outro) = 99,
+    'apagar a própria conta não afeta outro jogador');
+
+  -- Chamar de novo, já apagado, é recusado sem estourar nada.
+  begin
+    perform public.excluir_minha_conta();
+    perform public.checar(false, 'excluir conta inexistente deveria falhar');
+  exception when others then
+    get stacked diagnostics v_erro = message_text;
+    perform public.checar(v_erro = 'JOGADOR_INEXISTENTE',
+                          'excluir conta já apagada é recusado');
+  end;
+end $$;
+
 \echo '== permissões =='
 do $$
 declare v_privilegiadas text[] := array[
@@ -585,7 +694,8 @@ begin
                                 'emitir_ticket_anuncio', 'redistribuir_atributos',
                                 'definir_apelido', 'ranking_global', 'iniciar_dungeon',
                                 'sintetizar', 'equipar_item', 'fortificar_item',
-                                'comprar_ouro'] loop
+                                'comprar_ouro', 'exportar_meus_dados',
+                                'excluir_minha_conta'] loop
     perform public.checar(
       exists (
         select 1 from pg_proc p

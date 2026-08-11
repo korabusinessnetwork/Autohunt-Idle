@@ -261,6 +261,25 @@ export const pt = {
   'config.idioma.en': 'Inglês',
   'config.fechar': 'Fechar',
 
+  // --- Dados pessoais (LGPD) ----------------------------------------------
+  // O tom continua o da casa: nada de juridiquês. O jogador precisa entender o
+  // que cada botão faz sem abrir o termo de uso.
+  'dados.titulo': 'Seus dados',
+  'dados.explicacao': 'Tudo que o jogo guarda sobre você é seu. Dá pra baixar ou apagar quando quiser.',
+  'dados.exportar': 'Baixar meus dados',
+  'dados.exportando': 'Preparando…',
+  'dados.exportado': 'Pronto, o arquivo foi baixado.',
+  'dados.excluir': 'Apagar minha conta',
+  'dados.excluir.confirmacao':
+    'Isso apaga tudo: personagem, itens, ouro, diamante e progresso. Não dá pra desfazer.',
+  'dados.excluir.avisoAssinatura':
+    'Se você assina, cancele a assinatura antes — apagar a conta aqui não interrompe a cobrança.',
+  'dados.excluir.confirmar': 'Apagar mesmo assim',
+  'dados.excluir.cancelar': 'Deixa quieto',
+  'dados.excluindo': 'Apagando…',
+  'dados.erro.EXPORTACAO_FALHOU': 'Não deu pra preparar o arquivo agora. Tenta de novo?',
+  'dados.erro.EXCLUSAO_FALHOU': 'Não deu pra apagar a conta agora. Tenta de novo?',
+
   // --- Tempo --------------------------------------------------------------
   'tempo.minutos': '{valor} min',
   'tempo.horas': '{valor}h',
