@@ -1,7 +1,7 @@
 # Modelo de ameaças — Autohunt Idle
 
 > Reconciliado com o código em **2026-08-11**, contra 13 migrations e 45+ funções.
-> Superfície 10 (passe) acrescentada na 9ª rodada.
+> Superfície 10 (passe) acrescentada na 9ª rodada; ameaça 9.8 (bioma) na 10ª.
 > Ver `docs/11_SEGURANCA/README.md` para os princípios, e `checklist-de-release.md` para o que
 > rodar antes de publicar.
 
@@ -128,6 +128,7 @@ Superfície nova, criada na 7ª rodada, e a que mais depende de invariante e men
 | 9.5 | Dado sensível em log do client | **FECHADA** | `não existe console.* no código de produção` |
 | 9.6 | SDK de terceiro injetando código | **MITIGADA** | O build nunca busca script externo; nos portais o SDK é injetado pela página hospedeira (`VITE_CANAL`). Ver `docs/01_ARQUITETURA/publicacao-portais.md` |
 | 9.7 | Dependência vulnerável | **FECHADA** *(nesta rodada)* | `npm audit --audit-level=critical` no CI |
+| 9.8 | Cenário do client virar entrada de cálculo de recompensa | **FECHADA** | `nenhuma migration menciona bioma` + `nenhum módulo de regra importa biomas`. O mundo aberto é simulação **visual**; no instante em que "estar no bioma 7" mudasse um número creditado, a regra central passaria a depender de um cálculo que roda no navegador do jogador |
 
 ## 10. Superfície: passe de recompensas
 

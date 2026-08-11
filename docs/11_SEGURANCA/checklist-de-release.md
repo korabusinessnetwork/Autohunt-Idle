@@ -15,7 +15,7 @@
 
 | Comando | O que garante |
 |---|---|
-| `npm test` | 179 testes, dos quais 29 auditam o contrato do schema e 5 auditam a superfície do client. É aqui que moram as provas do `modelo-de-ameacas.md` |
+| `npm test` | 192 testes, dos quais 29 auditam o contrato do schema e 5 auditam a superfície do client. É aqui que moram as provas do `modelo-de-ameacas.md` |
 | `npm run build` | Tipo, compilação e o orçamento de peso do portal |
 | `npm audit --audit-level=critical` | Nenhuma dependência com vulnerabilidade crítica aberta |
 | `gitleaks` (com `fetch-depth: 0`) | Nenhum segredo no repositório — **inclusive no histórico**, porque segredo "removido num commit seguinte" continua lá |
@@ -57,6 +57,7 @@ que remover a proteção quebre um teste com nome legível em vez de passar desp
 - **Nada na trilha expira** → `nada na trilha do passe expira`
 - **Recompensa destravada não é retirada** → `recompensa de passe já destravada nunca é retirada`
 - **Skin do passe é exclusiva de verdade** → `só a trilha do passe concede item exclusivo`
+- **Cenário não vira recompensa** → `nenhuma migration menciona bioma` + `nenhum módulo de regra importa biomas`
 
 ## 3. Manual — configuração do projeto Supabase
 

@@ -9,11 +9,15 @@
 // (core, 1). Não existe listener de teclado nem de clique no jogo.
 
 import type { ChaveI18n } from '../lib/i18n'
+import { biomaDoNivel, intensidadeDoBloco, poolDoBioma, type FormaAssinatura } from './biomas'
 
 export const LARGURA_MUNDO = 640
 export const ALTURA_MUNDO = 360
 
-export type FormaInimigo = 'casquinha' | 'minhoca' | 'rosquinha' | 'pirulito' | 'pudim'
+/** As 5 formas que aparecem em todos os biomas (critério 6: o pool base). */
+export type FormaBase = 'casquinha' | 'minhoca' | 'rosquinha' | 'pirulito' | 'pudim'
+/** Base mais o assinatura de cada bioma — 13 silhuetas no total, não 40. */
+export type FormaInimigo = FormaBase | FormaAssinatura
 
 export interface EspecieInimigo {
   forma: FormaInimigo
@@ -24,8 +28,9 @@ export interface EspecieInimigo {
 }
 
 /**
- * Pool de inimigos do bioma inicial. Os nomes são chaves de tradução, nunca
- * texto solto — inclusive os nomes de inimigo nascem bilíngues (core, 13/14).
+ * Pool BASE — os 5 inimigos que aparecem em todo bioma, recoloridos pelo tema
+ * da zona. Os nomes são chaves de tradução, nunca texto solto: nome de inimigo
+ * nasce bilíngue como qualquer outro texto (core, 13/14).
  */
 export const POOL_INIMIGOS: readonly EspecieInimigo[] = [
   { forma: 'casquinha', nome: 'inimigo.casquinha', raio: 13, vida: 30, velocidade: 26 },
@@ -66,6 +71,12 @@ export interface EstadoMundo {
   reinicioCiclo: number
   proximoId: number
   semente: number
+  /**
+   * Nível do jogador, usado SÓ para escolher o cenário e o pool de inimigos.
+   * Nada calculado a partir dele sai deste arquivo: bioma é cenário, e o
+   * servidor continua sendo a única fonte de recompensa (core, 15).
+   */
+  nivel: number
 }
 
 const VELOCIDADE_HEROI = 70
@@ -84,7 +95,7 @@ function proximoAleatorio(estado: EstadoMundo): number {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296
 }
 
-export function criarMundo(semente = 1): EstadoMundo {
+export function criarMundo(semente = 1, nivel = 1): EstadoMundo {
   const estado: EstadoMundo = {
     heroiX: LARGURA_MUNDO / 2,
     heroiY: ALTURA_MUNDO / 2,
@@ -96,14 +107,43 @@ export function criarMundo(semente = 1): EstadoMundo {
     reinicioCiclo: 0,
     proximoId: 1,
     semente,
+    nivel,
   }
-  for (let i = 0; i < MAX_INIMIGOS; i++) surgirInimigo(estado)
+  for (let i = 0; i < quantosInimigos(estado); i++) surgirInimigo(estado)
   return estado
 }
 
+/**
+ * Troca a zona sem recriar o mundo.
+ *
+ * Subir de nível no meio da sessão não pode piscar a cena inteira: os inimigos
+ * vivos terminam a vida deles, e os próximos já nascem do pool novo. Recriar o
+ * motor descartaria tudo num quadro, o que é pior que a transição gradual.
+ */
+export function definirNivel(estado: EstadoMundo, nivel: number): void {
+  estado.nivel = nivel
+}
+
+/**
+ * Densidade de inimigo cresce com o bloco — é uma das três alavancas que fazem
+ * os 5 blocos de um bioma parecerem diferentes sem arte nova (critério 2).
+ */
+function quantosInimigos(estado: EstadoMundo): number {
+  return MAX_INIMIGOS + Math.round(intensidadeDoBloco(estado.nivel) * 3)
+}
+
 function surgirInimigo(estado: EstadoMundo): void {
-  const especie = POOL_INIMIGOS[Math.floor(proximoAleatorio(estado) * POOL_INIMIGOS.length)]
-  if (!especie) return
+  // O pool da zona: os 5 base MAIS o assinatura do bioma — soma, não troca.
+  const pool = poolDoBioma(POOL_INIMIGOS, estado.nivel)
+  const base = pool[Math.floor(proximoAleatorio(estado) * pool.length)]
+  if (!base) return
+
+  // Inimigo cresce com o bloco, dentro do mesmo tema. Segunda alavanca da
+  // escalada visual; a terceira é a saturação do cenário, no renderizador.
+  const especie: EspecieInimigo = {
+    ...base,
+    raio: Math.round(base.raio * (1 + intensidadeDoBloco(estado.nivel) * 0.35)),
+  }
 
   // Nasce longe do herói, para não aparecer em cima dele.
   const angulo = proximoAleatorio(estado) * Math.PI * 2
@@ -198,10 +238,10 @@ export function avancarMundo(estado: EstadoMundo, dt: number): void {
   )
 
   const sobreviventes = estado.inimigos.filter((i) => i.vida > 0)
-  const abatidos = estado.inimigos.length - sobreviventes.length
   estado.inimigos = sobreviventes
-  for (let i = 0; i < abatidos; i++) surgirInimigo(estado)
-  while (estado.inimigos.length < MAX_INIMIGOS) surgirInimigo(estado)
+  // Repõe até a densidade da zona atual. Ao subir de bloco a cena vai ficando
+  // mais cheia sozinha, sem nenhum corte.
+  while (estado.inimigos.length < quantosInimigos(estado)) surgirInimigo(estado)
 }
 
 /**
@@ -212,4 +252,9 @@ export function avancarMundo(estado: EstadoMundo, dt: number): void {
  */
 export function sinalizarReinicioDeCiclo(estado: EstadoMundo): void {
   estado.reinicioCiclo = 0.9
+}
+
+/** Bioma que o cenário deve desenhar agora. */
+export function biomaAtual(estado: EstadoMundo) {
+  return biomaDoNivel(estado.nivel)
 }

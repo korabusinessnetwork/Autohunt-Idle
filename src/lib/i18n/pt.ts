@@ -307,9 +307,26 @@ export const pt = {
   // Os nomes em inglês NÃO são tradução literal (core, critério 14) — cada um
   // ganhou um trocadilho próprio que funciona no idioma. Ver `en.ts`.
   'mundo.bioma1': 'Floresta de Algodão-Doce',
+  'mundo.bioma2': 'Vale das Geleias',
+  'mundo.bioma3': 'Deserto de Açúcar Queimado',
+  'mundo.bioma4': 'Recife de Pirulito',
+  'mundo.bioma5': 'Montanhas de Chocolate',
+  'mundo.bioma6': 'Geleira de Menta',
+  'mundo.bioma7': 'Vulcão de Goma',
+  'mundo.bioma8': 'Céu de Confete Cósmico',
   'inimigo.casquinha': 'Casquinha',
   'inimigo.minhoca': 'Minhoca Azeda',
   'inimigo.rosquinha': 'Rosquinha Brutamontes',
   'inimigo.pirulito': 'Pirulito Valentão',
   'inimigo.pudim': 'Pudim Conformado',
+
+  // Um inimigo assinatura por bioma — soma ao pool base, nunca substitui.
+  'inimigo.algodao': 'Algodão Fofo',
+  'inimigo.geleia': 'Gelatinho Mole',
+  'inimigo.toffee': 'Caco de Caramelo',
+  'inimigo.concha': 'Concha Chiclete',
+  'inimigo.trufa': 'Trufa Pesada',
+  'inimigo.floco': 'Floco Afiado',
+  'inimigo.brasa': 'Brasa de Goma',
+  'inimigo.confete': 'Confete Cósmico',
 } as const

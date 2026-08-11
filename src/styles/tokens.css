@@ -21,6 +21,50 @@
      para que nenhum componente precise escrever um hex solto. */
   --cor-campo: #ffffff;
 
+  /*
+   * Biomas — 8 temas de cenário, 125 níveis cada (specs/mapa-mundo-e-dungeon.md).
+   *
+   * Ficam aqui, e não em TypeScript, pelo mesmo motivo das 7 cores da marca: o
+   * canvas lê estes custom properties em runtime, então trocar a cor de um
+   * bioma é editar uma linha deste arquivo. Um teste varre `src/` e reprova
+   * qualquer hex solto.
+   *
+   * Cada bioma tem três papéis: `fundo` (a base do cenário), `detalhe` (o
+   * elemento repetido que dá textura) e `assinatura` (a cor do inimigo
+   * exclusivo daquela zona).
+   */
+  --bioma-1-fundo: #fff1f7;      /* Floresta de Algodão-Doce — pastel acolhedor */
+  --bioma-1-detalhe: #ffc2dd;
+  --bioma-1-assinatura: #ff8fc0;
+
+  --bioma-2-fundo: #eafff4;      /* Vale das Geleias — viscoso, translúcido */
+  --bioma-2-detalhe: #7fe6b0;
+  --bioma-2-assinatura: #35c98a;
+
+  --bioma-3-fundo: #fff2dd;      /* Deserto de Açúcar Queimado — caramelo quente */
+  --bioma-3-detalhe: #e8a854;
+  --bioma-3-assinatura: #c9762b;
+
+  --bioma-4-fundo: #e6f9ff;      /* Recife de Pirulito — aquático vibrante */
+  --bioma-4-detalhe: #58cfe8;
+  --bioma-4-assinatura: #ff6fae;
+
+  --bioma-5-fundo: #f4e9e2;      /* Montanhas de Chocolate — denso, mais sério */
+  --bioma-5-detalhe: #a3714f;
+  --bioma-5-assinatura: #6b4230;
+
+  --bioma-6-fundo: #edfbfb;      /* Geleira de Menta — frio, o contraste do jogo */
+  --bioma-6-detalhe: #9fe8e0;
+  --bioma-6-assinatura: #4fb8c9;
+
+  --bioma-7-fundo: #ffece6;      /* Vulcão de Goma — molten, escala de ameaça */
+  --bioma-7-detalhe: #ff8a5c;
+  --bioma-7-assinatura: #e33b2e;
+
+  --bioma-8-fundo: #f0ebff;      /* Céu de Confete Cósmico — endgame */
+  --bioma-8-detalhe: #b39cf5;
+  --bioma-8-assinatura: #7a4ddb;
+
   --espaco-1: 0.25rem;
   --espaco-2: 0.5rem;
   --espaco-3: 1rem;

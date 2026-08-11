@@ -13,6 +13,7 @@ import { PainelEquipamento } from '../features/mochila/PainelEquipamento'
 import { PainelMochila } from '../features/mochila/PainelMochila'
 import { PainelPasse } from '../features/passe/PainelPasse'
 import { TelaRanking } from '../features/ranking/TelaRanking'
+import { biomaDoNivel } from '../game/biomas'
 import { useMotorDeJogo } from '../hooks/useMotorDeJogo'
 import { sinalizarJogo } from '../lib/portal'
 import { formatarNumero } from '../utils/formato'
@@ -140,7 +141,7 @@ export function Jogo() {
           ref={canvasRef}
           className="jogo__canvas"
           role="img"
-          aria-label={t('mundo.bioma1')}
+          aria-label={t(biomaDoNivel(jogador?.nivel ?? 1).nome)}
         />
         <span className="jogo__aovivo">{t('hud.aoVivo')}</span>
       </div>

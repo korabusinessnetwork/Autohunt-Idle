@@ -14,8 +14,18 @@ export const TOKENS_PALETA = [
   '--cor-texto',
 ] as const
 
+/**
+ * Os três papéis de cor de cada um dos 8 biomas. Gerados a partir do índice em
+ * vez de escritos à mão: uma lista literal de 24 nomes daria margem a um token
+ * existir no CSS e faltar aqui, ou o contrário.
+ */
+export const TOKENS_BIOMA = Array.from({ length: 8 }, (_, i) => i + 1).flatMap(
+  (n) => [`--bioma-${n}-fundo`, `--bioma-${n}-detalhe`, `--bioma-${n}-assinatura`] as const,
+)
+
 export type TokenPaleta = (typeof TOKENS_PALETA)[number]
-export type Paleta = Record<TokenPaleta, string>
+export type TokenBioma = string
+export type Paleta = Record<TokenPaleta, string> & Record<TokenBioma, string>
 
 export class PaletaAusenteError extends Error {
   readonly codigo = 'PALETA_AUSENTE'
@@ -33,6 +43,14 @@ export function lerPaleta(elemento: Element): Paleta {
     const valor = estilo.getPropertyValue(token).trim()
     if (!valor) throw new PaletaAusenteError(token)
     paleta[token] = valor
+  }
+
+  // Token de bioma ausente não derruba o jogo: cai para a cor de marca
+  // equivalente. Um cenário com a cor errada é infinitamente melhor que a tela
+  // de erro — e a ausência aparece no teste, não para o jogador.
+  for (const token of TOKENS_BIOMA) {
+    const valor = estilo.getPropertyValue(token).trim()
+    paleta[token] = valor || paleta['--cor-secundaria']
   }
 
   return paleta

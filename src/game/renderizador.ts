@@ -6,7 +6,8 @@
 // se o conteúdo crescer, entra um `RenderizadorPixi` implementando o mesmo
 // contrato e nem `motor.ts` nem `mundo.ts` mudam.
 
-import { ALTURA_MUNDO, LARGURA_MUNDO, type EstadoMundo } from './mundo'
+import { intensidadeDoBloco } from './biomas'
+import { ALTURA_MUNDO, LARGURA_MUNDO, biomaAtual, type EstadoMundo } from './mundo'
 import { lerPaleta, type Paleta } from './paleta'
 import { desenharCenario, desenharHeroi, desenharInimigo, desenharProjetil } from './sprites'
 
@@ -60,15 +61,22 @@ export function criarRenderizadorCanvas(
 
   return {
     desenhar(estado) {
+      // O bioma sai do nível, e o nível veio do servidor pelo snapshot: nada
+      // aqui é calculado para valer, só para desenhar.
+      const bioma = biomaAtual(estado).token
+      const intensidade = intensidadeDoBloco(estado.nivel)
+      const corAssinatura = paleta[`--bioma-${bioma}-assinatura`] ?? paleta['--cor-primaria']
+
       // Pinta a moldura (o que sobra do 16:9) antes de entrar nas coordenadas
-      // do mundo, para a área extra não ficar transparente.
+      // do mundo, para a área extra não ficar transparente. Usa o fundo do
+      // bioma, senão a moldura denuncia a troca de zona com uma faixa creme.
       ctx.save()
       ctx.setTransform(1, 0, 0, 1, 0, 0)
-      ctx.fillStyle = paleta['--cor-fundo']
+      ctx.fillStyle = paleta[`--bioma-${bioma}-fundo`] ?? paleta['--cor-fundo']
       ctx.fillRect(0, 0, canvas.width, canvas.height)
       ctx.restore()
 
-      desenharCenario(ctx, LARGURA_MUNDO, ALTURA_MUNDO, paleta)
+      desenharCenario(ctx, LARGURA_MUNDO, ALTURA_MUNDO, paleta, bioma, intensidade)
 
       for (const inimigo of estado.inimigos) {
         desenharInimigo(
@@ -79,6 +87,7 @@ export function criarRenderizadorCanvas(
           inimigo.especie.raio,
           inimigo.flash,
           paleta,
+          corAssinatura,
         )
       }
 

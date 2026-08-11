@@ -9,7 +9,7 @@
 //      recompensa — é só um "pergunta pro servidor agora".
 
 import { INTERVALO_LOTE_MS } from './regrasFarm'
-import { avancarMundo, criarMundo, type EstadoMundo } from './mundo'
+import { avancarMundo, criarMundo, definirNivel, type EstadoMundo } from './mundo'
 import type { Renderizador } from './renderizador'
 
 export interface OpcoesMotor {
@@ -17,19 +17,28 @@ export interface OpcoesMotor {
   /** Disparado a cada ciclo de lote. Não transporta valor: só pede validação. */
   aoValidarLote: () => void
   semente?: number
+  /** Nível inicial. Só escolhe o cenário — ver `src/game/biomas.ts`. */
+  nivel?: number
 }
 
 export interface Motor {
   estado: EstadoMundo
   iniciar(): void
   parar(): void
+  /** Troca a zona sem recriar a cena — o jogador subiu de nível jogando. */
+  definirNivel(nivel: number): void
 }
 
 /** Passo máximo por quadro — evita a aba voltar do background e "teleportar". */
 const DT_MAXIMO = 0.05
 
-export function criarMotor({ renderizador, aoValidarLote, semente = 1 }: OpcoesMotor): Motor {
-  const estado = criarMundo(semente)
+export function criarMotor({
+  renderizador,
+  aoValidarLote,
+  semente = 1,
+  nivel = 1,
+}: OpcoesMotor): Motor {
+  const estado = criarMundo(semente, nivel)
 
   let quadro = 0
   let ultimoInstante = 0
@@ -67,6 +76,9 @@ export function criarMotor({ renderizador, aoValidarLote, semente = 1 }: OpcoesM
       rodando = false
       if (quadro) cancelAnimationFrame(quadro)
       quadro = 0
+    },
+    definirNivel(novo) {
+      definirNivel(estado, novo)
     },
   }
 }

@@ -308,9 +308,30 @@ export const en: Record<ChaveI18n, string> = {
 
   // --- World and enemies ----------------------------------------------------
   'mundo.bioma1': 'The Fluffwoods',
+  'mundo.bioma2': 'Wobble Hollow',
+  'mundo.bioma3': 'The Brittle Wastes',
+  'mundo.bioma4': 'Sucker Reef',
+  'mundo.bioma5': 'The Cocoa Crags',
+  'mundo.bioma6': 'Mint Condition',
+  'mundo.bioma7': 'Mount Chewmore',
+  'mundo.bioma8': 'The Sprinkleverse',
   'inimigo.casquinha': 'Cone Head',
   'inimigo.minhoca': 'Glum Worm',
   'inimigo.rosquinha': 'Sir Glazealot',
   'inimigo.pirulito': 'Sucker Punch',
   'inimigo.pudim': 'Flanpathy',
+
+  // Signature enemies — own jokes, not literal passes (core, criterion 14):
+  //   Gelatinho Mole  → "Wobblecube"        (a cube that will not stop wobbling)
+  //   Floco Afiado    → "Special Snowflake" (sharp, and thinks it is unique)
+  //   Trufa Pesada    → "Truffle Shuffle"   (it is heavy, and it shuffles)
+  //   Confete Cósmico → "Party Popper"      (confetti, and it ends the party)
+  'inimigo.algodao': 'Cloud Nine',
+  'inimigo.geleia': 'Wobblecube',
+  'inimigo.toffee': 'Shard Candy',
+  'inimigo.concha': 'Shell Shocked',
+  'inimigo.trufa': 'Truffle Shuffle',
+  'inimigo.floco': 'Special Snowflake',
+  'inimigo.brasa': 'Molten Chew',
+  'inimigo.confete': 'Party Popper',
 }

@@ -14,7 +14,13 @@ import { criarRenderizadorCanvas } from '../game/renderizador'
 export function useMotorDeJogo(ativo: boolean) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const motorRef = useRef<Motor | null>(null)
-  const { pedirValidacaoDeLote, ciclosPerdidosNoLote, t } = useSessao()
+  const { pedirValidacaoDeLote, ciclosPerdidosNoLote, snapshot, t } = useSessao()
+
+  // O nível decide o bioma, e só isso: cenário e pool de inimigo. Vive num ref
+  // porque o motor é criado uma vez e não pode ser recriado a cada nível novo.
+  const nivel = snapshot?.jogador.nivel ?? 1
+  const nivelRef = useRef(nivel)
+  nivelRef.current = nivel
 
   // O motor não pode ser recriado a cada troca de idioma — o `t` corrente vive
   // num ref, e o canvas passa a desenhar o nome novo já no quadro seguinte.
@@ -26,7 +32,11 @@ export function useMotorDeJogo(ativo: boolean) {
     if (!ativo || !canvas) return
 
     const renderizador = criarRenderizadorCanvas(canvas, (chave) => tradutor.current(chave))
-    const motor = criarMotor({ renderizador, aoValidarLote: pedirValidacaoDeLote })
+    const motor = criarMotor({
+      renderizador,
+      aoValidarLote: pedirValidacaoDeLote,
+      nivel: nivelRef.current,
+    })
     motorRef.current = motor
     motor.iniciar()
 
@@ -48,6 +58,13 @@ export function useMotorDeJogo(ativo: boolean) {
       motorRef.current = null
     }
   }, [ativo, pedirValidacaoDeLote])
+
+  // Subir de nível troca a zona sem recriar o motor: os inimigos vivos
+  // terminam a vida deles e os próximos já nascem do pool novo. Recriar
+  // descartaria a cena inteira num quadro.
+  useEffect(() => {
+    motorRef.current?.definirNivel(nivel)
+  }, [nivel])
 
   // O servidor é quem sabe se um ciclo foi perdido; a cena só reage ao aviso.
   useEffect(() => {

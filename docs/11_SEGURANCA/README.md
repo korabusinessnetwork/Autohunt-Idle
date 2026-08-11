@@ -37,8 +37,8 @@ Na prática:
 
 | | |
 |---|---|
-| Ameaças mapeadas | **63**, em 11 superfícies |
-| **FECHADAS** — com teste que reprova o build | **52** |
+| Ameaças mapeadas | **64**, em 11 superfícies |
+| **FECHADAS** — com teste que reprova o build | **53** |
 | **MITIGADAS** — protegidas, mas nada trava se alguém desfizer | **5** |
 | **ABERTAS** | **5** |
 | **ACEITA por proporcionalidade** | **1** — data de nascimento falsa; verificação por documento é paga e desproporcional ao risco deste produto |
