@@ -341,7 +341,9 @@ export function precarregar(relativos: Iterable<string>): void {
  */
 export function precarregarBioma(bioma: number, assinatura: FormaInimigo): void {
   precarregar([
-    arteDoCenario(bioma),
+    // `arteDoCenario` saiu do pré-carregamento junto com o uso: desde o mundo
+    // aberto o chão é procedural, e o PNG de cenário era um fundo de tela fixa
+    // (608×352, com horizonte) que não ladrilha num jogo visto de cima.
     arteDoProp(bioma),
     arteDoInimigo(assinatura),
     ...Object.values(ARTE_INIMIGO),

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sandbox do mundo — Autohunt Idle</title>
+    <style>
+      /*
+        Estilo mínimo e local: o sandbox não é produto, e não deve herdar nem
+        poluir o design system. Só as cores vêm de `tokens.css`, para o mundo
+        ser desenhado com a paleta de verdade.
+      */
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background: #14101c;
+        color: #f4ecff;
+        display: flex;
+        flex-direction: column;
+        height: 100dvh;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.6rem 1rem;
+        border-bottom: 1px solid #3a3050;
+      }
+      h1 { margin: 0; font-size: 0.95rem; font-weight: 700; }
+      #placar { font-size: 0.78rem; opacity: 0.8; font-variant-numeric: tabular-nums; }
+      button {
+        margin-inline-start: auto;
+        padding: 0.4rem 0.9rem;
+        font: inherit;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: inherit;
+        background: #2a2140;
+        border: 1px solid #574a7a;
+        border-radius: 0.5rem;
+        cursor: pointer;
+      }
+      main { flex: 1; min-height: 0; }
+      canvas { display: block; width: 100%; height: 100%; }
+      footer {
+        padding: 0.5rem 1rem;
+        font-size: 0.75rem;
+        opacity: 0.65;
+        border-top: 1px solid #3a3050;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Sandbox do mundo</h1>
+      <span id="placar">…</span>
+      <button id="modo" type="button">Você no comando</button>
+    </header>
+
+    <main><canvas id="mundo"></canvas></main>
+
+    <footer>
+      WASD ou setas para andar · mouse para mirar · o mapa tem 5120×1440, com 8 regiões
+    </footer>
+
+    <script type="module" src="/src/dev/sandbox.ts"></script>
+  </body>
+</html>

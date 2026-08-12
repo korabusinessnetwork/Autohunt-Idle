@@ -9,7 +9,6 @@
 // mudaram uma linha por causa da arte.
 
 import {
-  arteDoCenario,
   arteDoDanoDoInimigo,
   arteDoHeroi,
   arteDoInimigo,
@@ -471,7 +470,7 @@ export function desenharProjetil(
  *
  * Só os ladrilhos que tocam a área visível são desenhados.
  */
-const LADO_LADRILHO = 640
+const LADO_LADRILHO = 320
 
 export function desenharCenario(
   ctx: CanvasRenderingContext2D,
@@ -486,42 +485,22 @@ export function desenharCenario(
   ctx.fillStyle = paleta[`--bioma-${bioma}-fundo`] ?? paleta['--cor-fundo']
   ctx.fillRect(origemX, origemY, largura, altura)
 
-  const primeiroX = Math.floor(origemX / LADO_LADRILHO)
-  const ultimoX = Math.floor((origemX + largura) / LADO_LADRILHO)
-  const primeiroY = Math.floor(origemY / LADO_LADRILHO)
-  const ultimoY = Math.floor((origemY + altura) / LADO_LADRILHO)
-
-  const cena = imagem(arteDoCenario(bioma))
-  if (cena) {
-    ctx.save()
-    ctx.imageSmoothingEnabled = false
-    for (let ty = primeiroY; ty <= ultimoY; ty++) {
-      for (let tx = primeiroX; tx <= ultimoX; tx++) {
-        ctx.drawImage(
-          cena,
-          tx * LADO_LADRILHO,
-          ty * LADO_LADRILHO,
-          LADO_LADRILHO,
-          LADO_LADRILHO,
-        )
-      }
-    }
-    ctx.restore()
-
-    for (let ty = primeiroY; ty <= ultimoY; ty++) {
-      for (let tx = primeiroX; tx <= ultimoX; tx++) {
-        desenharProps(ctx, tx, ty, bioma, intensidade)
-      }
-    }
-    return
-  }
-
-  // Silhueta: o que aparece enquanto o PNG carrega, e o que continua
-  // aparecendo se ele nunca carregar (Princípio nº1).
+  // O CHÃO É PROCEDURAL, e não o PNG do bioma. Não é economia: `sc-*.png` tem
+  // 608×352 e é um CENÁRIO DE FUNDO — tem horizonte, profundidade e um chão na
+  // parte de baixo. Foi desenhado para a arena de tela fixa que existia antes
+  // de `specs/mundo-aberto-e-modo-manual.md`.
+  //
+  // Ladrilhar um cenário de fundo num mundo top-down produz faixa de horizonte
+  // repetida e árvore cortada em grade — vira papel de parede, não lugar. O
+  // chão de um jogo visto de cima precisa ser TEXTURA, e textura é o que esta
+  // função desenha, na paleta do bioma.
+  //
+  // Os PNGs de prop continuam entrando: eles são objetos, e objeto visto de
+  // cima funciona. Quem some é só o fundo.
   ctx.fillStyle = paleta[`--bioma-${bioma}-detalhe`] ?? paleta['--cor-secundaria']
-  ctx.globalAlpha = 0.22 + intensidade * 0.3
-  const passo = 44 - Math.round(intensidade * 14)
-  const raio = 6 + intensidade * 3
+  ctx.globalAlpha = 0.16 + intensidade * 0.16
+  const passo = 34 - Math.round(intensidade * 8)
+  const raio = 4 + intensidade * 2.5
 
   const inicioY = Math.floor(origemY / passo) * passo
   const inicioX = Math.floor(origemX / passo) * passo
@@ -534,6 +513,17 @@ export function desenharCenario(
     }
   }
   ctx.globalAlpha = 1
+
+  const primeiroX = Math.floor(origemX / LADO_LADRILHO)
+  const ultimoX = Math.floor((origemX + largura) / LADO_LADRILHO)
+  const primeiroY = Math.floor(origemY / LADO_LADRILHO)
+  const ultimoY = Math.floor((origemY + altura) / LADO_LADRILHO)
+
+  for (let ty = primeiroY; ty <= ultimoY; ty++) {
+    for (let tx = primeiroX; tx <= ultimoX; tx++) {
+      desenharProps(ctx, tx, ty, bioma, intensidade)
+    }
+  }
 }
 
 /**
@@ -554,20 +544,28 @@ function desenharProps(
   const prop = imagem(arteDoProp(bioma))
   if (!prop) return
 
-  const quantos = 3 + Math.round(intensidade * 3)
   const alturaProp = (prop.naturalHeight / ESCALA_EXPORTACAO) * ESCALA_PROP
   const baseX = ladrilhoX * LADO_LADRILHO
   const baseY = ladrilhoY * LADO_LADRILHO
-  // Semente do ladrilho: dois ladrilhos vizinhos não repetem o mesmo arranjo.
-  const semente = ladrilhoX * 73 + ladrilhoY * 151 + bioma
+  // Hash do ladrilho: determinístico, então o mesmo pedaço do mapa tem sempre
+  // os mesmos props. Prop que muda de lugar quando o jogador volta destrói a
+  // sensação de lugar, que é o ponto da rodada.
+  const hash = Math.abs(Math.sin(ladrilhoX * 12.9898 + ladrilhoY * 78.233 + bioma) * 43758.5453)
+  const sorteio = hash - Math.floor(hash)
+
+  // Nem todo ladrilho tem prop: densidade uniforme vira grade, e grade denuncia
+  // que o mundo é gerado. A intensidade da região decide quantos aparecem.
+  if (sorteio > 0.35 + intensidade * 0.3) return
+
+  const desloca = (n: number) => {
+    const h = Math.abs(Math.sin(ladrilhoX * 3.7 + ladrilhoY * 9.1 + n) * 1234.5678)
+    return h - Math.floor(h)
+  }
 
   ctx.save()
   ctx.imageSmoothingEnabled = false
-  for (let i = 0; i < quantos; i++) {
-    const passo = (i + 0.5) / quantos
-    const x = baseX + LADO_LADRILHO * passo + Math.sin((i + semente) * 2.4) * (LADO_LADRILHO / (quantos * 3))
-    const y = baseY + LADO_LADRILHO * (0.18 + ((i * 7 + semente * 3) % 10) / 14)
-    desenharSprite(ctx, prop, x, y, alturaProp, (i + semente) % 2 === 1)
-  }
+  const x = baseX + LADO_LADRILHO * (0.2 + desloca(1) * 0.6)
+  const y = baseY + LADO_LADRILHO * (0.2 + desloca(2) * 0.6)
+  desenharSprite(ctx, prop, x, y, alturaProp, desloca(3) > 0.5)
   ctx.restore()
 }
