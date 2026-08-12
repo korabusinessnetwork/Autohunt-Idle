@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { Botao } from '../../components/shared/Botao'
+import { IconeItem, IconeSlotVazio } from '../../components/shared/IconeItem'
 import { useSessao } from '../../context/SessaoContext'
 import { SLOTS_DE_PODER } from '../../game/regrasEquipamento'
 import { nomeDaRaridade } from '../../game/regrasLoot'
@@ -167,6 +168,16 @@ export function PainelEquipamento({ aoFechar }: { aoFechar: () => void }) {
                 className={`equip__slot ${slot === slotAberto ? 'equip__slot--ativo' : ''}`}
                 onClick={() => setSlotAberto(slot)}
               >
+                {item ? (
+                  <IconeItem
+                    tipo={item.tipo}
+                    raridade={item.raridade}
+                    id={item.id}
+                    tipoDano={item.tipoDano}
+                  />
+                ) : (
+                  <IconeSlotVazio slot={slot} />
+                )}
                 <span className="equip__slot-nome">{t(ROTULO_SLOT[slot])}</span>
                 <span className="equip__slot-item">
                   {item

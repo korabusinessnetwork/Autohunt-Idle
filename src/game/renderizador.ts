@@ -6,8 +6,9 @@
 // se o conteúdo crescer, entra um `RenderizadorPixi` implementando o mesmo
 // contrato e nem `motor.ts` nem `mundo.ts` mudam.
 
+import { precarregarBioma } from './atlas'
 import { intensidadeDoBloco } from './biomas'
-import { ALTURA_MUNDO, LARGURA_MUNDO, biomaAtual, type EstadoMundo } from './mundo'
+import { ALTURA_MUNDO, LARGURA_MUNDO, biomaAtual, poseDoHeroi, type EstadoMundo } from './mundo'
 import { lerPaleta, type Paleta } from './paleta'
 import { desenharCenario, desenharHeroi, desenharInimigo, desenharProjetil } from './sprites'
 
@@ -24,14 +25,26 @@ export interface Renderizador {
  */
 export type NomeDeInimigo = (chave: EstadoMundo['inimigos'][number]['especie']['nome']) => string
 
+/**
+ * Raridade da skin equipada, ou `null` para nenhuma.
+ *
+ * É função, e não valor, pelo mesmo motivo do tradutor: o renderizador é criado
+ * uma vez, e equipar uma skin não pode exigir remontar o canvas — o quadro
+ * seguinte já desenha o sprite novo.
+ */
+export type RaridadeDaSkin = () => number | null
+
 export function criarRenderizadorCanvas(
   canvas: HTMLCanvasElement,
   nomeDeInimigo: NomeDeInimigo,
+  raridadeDaSkin: RaridadeDaSkin = () => null,
 ): Renderizador {
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('CANVAS_2D_INDISPONIVEL')
 
   let paleta: Paleta = lerPaleta(document.documentElement)
+  /** Última zona cujo pacote de arte foi pedido. Evita repedir todo quadro. */
+  let biomaAquecido = 0
 
   function redimensionar(): void {
     const largura = canvas.clientWidth
@@ -63,8 +76,17 @@ export function criarRenderizadorCanvas(
     desenhar(estado) {
       // O bioma sai do nível, e o nível veio do servidor pelo snapshot: nada
       // aqui é calculado para valer, só para desenhar.
-      const bioma = biomaAtual(estado).token
+      const zona = biomaAtual(estado)
+      const bioma = zona.token
       const intensidade = intensidadeDoBloco(estado.nivel)
+
+      // Aquece a arte da zona na primeira vez que ela aparece. Sem isto, subir
+      // de bioma mostraria o cenário novo em silhueta justamente no quadro em
+      // que o jogador está olhando para a mudança.
+      if (bioma !== biomaAquecido) {
+        biomaAquecido = bioma
+        precarregarBioma(bioma, zona.assinatura.forma)
+      }
       const corAssinatura = paleta[`--bioma-${bioma}-assinatura`] ?? paleta['--cor-primaria']
 
       // Pinta a moldura (o que sobra do 16:9) antes de entrar nas coordenadas
@@ -102,7 +124,7 @@ export function criarRenderizadorCanvas(
         ctx.font = '700 11px system-ui, sans-serif'
         ctx.textAlign = 'center'
         ctx.lineWidth = 3
-        ctx.strokeStyle = paleta['--cor-fundo']
+        ctx.strokeStyle = paleta['--cor-contorno']
         ctx.fillStyle = paleta['--cor-texto']
         const rotulo = nomeDeInimigo(alvo.especie.nome)
         const y = alvo.y + alvo.especie.raio + 15
@@ -113,7 +135,16 @@ export function criarRenderizadorCanvas(
       // Pisca no reinício de ciclo — sinal visual de que o servidor reportou
       // Vitalidade zerada. Sem tela de morte, sem interrupção.
       const piscando = estado.reinicioCiclo > 0 && Math.floor(estado.reinicioCiclo * 10) % 2 === 0
-      desenharHeroi(ctx, estado.heroiX, estado.heroiY, estado.heroiOlhandoX, piscando, paleta)
+      desenharHeroi(
+        ctx,
+        estado.heroiX,
+        estado.heroiY,
+        estado.heroiOlhandoX,
+        piscando,
+        paleta,
+        poseDoHeroi(estado),
+        raridadeDaSkin(),
+      )
     },
     redimensionar,
     destruir() {

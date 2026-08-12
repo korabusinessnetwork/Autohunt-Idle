@@ -1,4 +1,5 @@
 import { Botao } from '../../components/shared/Botao'
+import { IconeItem } from '../../components/shared/IconeItem'
 import { useSessao } from '../../context/SessaoContext'
 import { nomeDaRaridade } from '../../game/regrasLoot'
 import { checkoutDisponivel } from '../../lib/services/subscriptionService'
@@ -78,6 +79,12 @@ export function PainelPasse({ aoFechar }: { aoFechar: () => void }) {
                 className={`passe__degrau ${destravado ? 'passe__degrau--destravado' : ''}`}
               >
                 <span className="passe__tier">{t('passe.tier', { tier: degrau.tier })}</span>
+                {/* O prêmio de cada degrau em imagem: é o que permite ver o que
+                    se está comprando antes de pagar, que é a diferença entre
+                    este passe e uma caixa de recompensa aleatória. */}
+                <span className="passe__icone">
+                  <IconeItem tipo={degrau.tipo} raridade={degrau.raridade} tamanho={32} />
+                </span>
                 <span
                   className={`passe__raridade passe__raridade--${nomeDaRaridade(degrau.raridade)}`}
                 >

@@ -66,9 +66,16 @@
   list-style: none;
 }
 
+/* Célula fixa: sem ela, um degrau sem arte (pedra) escorrega as colunas. */
+.passe__icone {
+  display: flex;
+  width: 32px;
+  height: 32px;
+}
+
 .passe__degrau {
   display: grid;
-  grid-template-columns: auto auto 1fr auto;
+  grid-template-columns: auto auto auto 1fr auto;
   gap: var(--espaco-1) var(--espaco-2);
   align-items: center;
   padding: var(--espaco-2);
@@ -98,34 +105,34 @@
 }
 
 .passe__raridade--comum {
-  background: color-mix(in srgb, var(--cor-texto) 12%, transparent);
+  background: var(--raridade-comum);
 }
 .passe__raridade--incomum {
-  background: var(--cor-positivo);
+  background: var(--raridade-incomum);
 }
 .passe__raridade--raro {
-  background: var(--cor-secundaria);
+  background: var(--raridade-raro);
 }
 .passe__raridade--epico {
-  background: var(--cor-primaria);
+  background: var(--raridade-epico);
 }
 .passe__raridade--lendario {
-  background: var(--cor-recompensa);
+  background: var(--raridade-lendario);
 }
 .passe__raridade--caramelizado {
-  background: color-mix(in srgb, var(--cor-recompensa) 70%, var(--cor-bloqueado));
+  background: var(--raridade-caramelizado);
 }
 .passe__raridade--glaceado {
-  background: color-mix(in srgb, var(--cor-secundaria) 55%, var(--cor-fundo));
+  background: var(--raridade-glaceado);
 }
 .passe__raridade--dourado {
-  background: color-mix(in srgb, var(--cor-recompensa) 85%, var(--cor-texto));
+  background: var(--raridade-dourado);
 }
 .passe__raridade--cristalizado {
-  background: color-mix(in srgb, var(--cor-secundaria) 65%, var(--cor-primaria));
+  background: var(--raridade-cristalizado);
 }
 .passe__raridade--cosmico {
-  background: color-mix(in srgb, var(--cor-primaria) 60%, var(--cor-secundaria));
+  background: var(--raridade-cosmico);
 }
 
 .passe__premio {

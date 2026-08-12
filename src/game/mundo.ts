@@ -9,6 +9,7 @@
 // (core, 1). Não existe listener de teclado nem de clique no jogo.
 
 import type { ChaveI18n } from '../lib/i18n'
+import type { PoseHeroi } from './atlas'
 import { biomaDoNivel, intensidadeDoBloco, poolDoBioma, type FormaAssinatura } from './biomas'
 
 export const LARGURA_MUNDO = 640
@@ -67,6 +68,16 @@ export interface EstadoMundo {
   projeteis: Projetil[]
   /** Segundos até o próximo disparo. */
   recargaTiro: number
+  /**
+   * Segundos restantes da pose de ataque e da de comemoração.
+   *
+   * São só temporizadores de DESENHO: a arte veio com três poses (parado,
+   * atacando, comemorando) e sem isto o herói ficaria parado enquanto atira,
+   * que é o oposto de um jogo de auto-attack. Nada aqui é enviado ao servidor
+   * nem entra em cálculo — como todo o resto deste arquivo.
+   */
+  poseAtaque: number
+  poseComemoracao: number
   /** > 0 enquanto a animação de "recomeçou o ciclo" está tocando. */
   reinicioCiclo: number
   proximoId: number
@@ -78,6 +89,16 @@ export interface EstadoMundo {
    */
   nivel: number
 }
+
+/**
+ * Quanto cada pose dura.
+ *
+ * O ataque é curto de propósito: se passasse da recarga (0,45s), o herói
+ * emendaria uma pose de ataque na outra e nunca voltaria para "parado". A
+ * comemoração é maior porque é a que dá o tom do jogo — pastelão, não heroico.
+ */
+const DURACAO_POSE_ATAQUE = 0.18
+const DURACAO_POSE_COMEMORACAO = 0.5
 
 const VELOCIDADE_HEROI = 70
 const ALCANCE_TIRO = 150
@@ -104,6 +125,8 @@ export function criarMundo(semente = 1, nivel = 1): EstadoMundo {
     inimigos: [],
     projeteis: [],
     recargaTiro: 0,
+    poseAtaque: 0,
+    poseComemoracao: 0,
     reinicioCiclo: 0,
     proximoId: 1,
     semente,
@@ -180,6 +203,8 @@ function inimigoMaisProximo(estado: EstadoMundo): Inimigo | null {
 /** Avança a cena em `dt` segundos. */
 export function avancarMundo(estado: EstadoMundo, dt: number): void {
   if (estado.reinicioCiclo > 0) estado.reinicioCiclo = Math.max(0, estado.reinicioCiclo - dt)
+  if (estado.poseAtaque > 0) estado.poseAtaque = Math.max(0, estado.poseAtaque - dt)
+  if (estado.poseComemoracao > 0) estado.poseComemoracao = Math.max(0, estado.poseComemoracao - dt)
 
   const alvo = inimigoMaisProximo(estado)
   estado.alvoId = alvo?.id ?? null
@@ -199,6 +224,7 @@ export function avancarMundo(estado: EstadoMundo, dt: number): void {
     estado.recargaTiro -= dt
     if (estado.recargaTiro <= 0 && distancia <= ALCANCE_TIRO) {
       estado.recargaTiro = RECARGA_TIRO
+      estado.poseAtaque = DURACAO_POSE_ATAQUE
       estado.projeteis.push({
         x: estado.heroiX,
         y: estado.heroiY,
@@ -238,6 +264,11 @@ export function avancarMundo(estado: EstadoMundo, dt: number): void {
   )
 
   const sobreviventes = estado.inimigos.filter((i) => i.vida > 0)
+  // Abateu alguém: comemora. É a pose que o jogador mais vê, porque abate é o
+  // que o loop produz o tempo todo.
+  if (sobreviventes.length < estado.inimigos.length) {
+    estado.poseComemoracao = DURACAO_POSE_COMEMORACAO
+  }
   estado.inimigos = sobreviventes
   // Repõe até a densidade da zona atual. Ao subir de bloco a cena vai ficando
   // mais cheia sozinha, sem nenhum corte.
@@ -257,4 +288,17 @@ export function sinalizarReinicioDeCiclo(estado: EstadoMundo): void {
 /** Bioma que o cenário deve desenhar agora. */
 export function biomaAtual(estado: EstadoMundo) {
   return biomaDoNivel(estado.nivel)
+}
+
+/**
+ * Qual das três poses desenhar agora.
+ *
+ * O ataque tem prioridade sobre a comemoração porque é a ação em curso — e
+ * porque a recarga (0,45s) deixa folga suficiente para a comemoração aparecer
+ * entre um tiro e outro em vez de ser engolida por ela.
+ */
+export function poseDoHeroi(estado: EstadoMundo): PoseHeroi {
+  if (estado.poseAtaque > 0) return 'atacando'
+  if (estado.poseComemoracao > 0) return 'comemorando'
+  return 'parado'
 }

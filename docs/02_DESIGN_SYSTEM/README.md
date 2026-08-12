@@ -37,25 +37,47 @@
 
 > Autohunt Idle é single-tenant (ver ADR-002) — **sem** parametrização por tenant/white-label. Os tokens abaixo são fixos, não variáveis por cliente.
 
-## Paleta — direção "chiclete" (ver `brief-arte-claude-design.md` nesta pasta para o prompt completo enviado ao Claude Design)
+## Paleta — direção "doce endurecido" (vigente desde 2026-08-12)
 
-Fugindo deliberadamente da estética medieval-sombria do gênero de origem (RotMG) — candy/bubblegum, saturado, "4fun".
+Universo de doce, mas **em clima escuro** — não pastel claro. A direção mudou na
+rodada 2 do brief (`brief-arte-correcao.md`), e a arte final foi entregue nesta
+paleta; a interface a acompanhou quando os assets entraram. Cada hex abaixo foi
+**amostrado dos PNGs entregues**, não escolhido a olho, e é o que garante que
+canvas e interface sejam a mesma paleta em vez de duas parecidas.
 
 | Token | Hex | Uso |
 |---|---|---|
-| `cor-primaria` | `#FF5FA2` | Rosa chiclete — cor principal, personagem/destaque |
-| `cor-secundaria` | `#3FE0D0` | Ciano — cenário, elementos secundários |
-| `cor-recompensa` | `#FFC93C` | Amarelo-sol — moeda, XP, recompensa |
-| `cor-positivo` | `#8CE05A` | Verde-limão — ganho positivo ("rendeu enquanto você tava fora") |
-| `cor-bloqueado` | `#FF6B6B` | Coral — bloqueado, precisa assinar |
-| `cor-fundo` | `#FFF8ED` | Creme claro — fundo/base (nunca escuro/dungeon) |
-| `cor-texto` | `#4A2E3D` | Ameixa escura — texto e contornos, no lugar de preto puro |
+| `cor-primaria` | `#C93A6E` | Rosa escuro — cor principal, personagem/destaque |
+| `cor-secundaria` | `#3FBFB0` | Verde-azulado — cenário, elementos secundários |
+| `cor-recompensa` | `#E0A32E` | Âmbar — moeda, XP, recompensa |
+| `cor-positivo` | `#6BA83F` | Verde musgo — ganho positivo ("rendeu enquanto você tava fora") |
+| `cor-bloqueado` | `#C1453F` | Vermelho-tijolo — bloqueado, precisa assinar |
+| `cor-fundo` | `#2E2733` | Ameixa escura — fundo/base |
+| `cor-texto` | `#F0E6D8` | Creme — texto |
+| `cor-contorno` | `#1A1620` | Contorno do pixel art, mais escuro que qualquer superfície |
+
+Além das 8 da marca, `tokens.css` define **10 cores de raridade**
+(`--raridade-comum` … `--raridade-cosmico`) e **24 de bioma**
+(`--bioma-N-fundo|detalhe|assinatura`, também amostrados dos cenários).
+
+> **A paleta anterior** era a "chiclete" pastel clara (`#FF5FA2`, `#FFF8ED`…) e
+> está descrita em `brief-arte-claude-design.md`, que continua valendo como
+> registro do pedido original. Ela **não é mais a paleta do produto**.
 
 Direção de personagens/inimigos: criaturas tipo doce/geleia, silhuetas simples e redondas, cores chapadas — não fantasia medieval clássica (esqueleto/goblin/dragão). Detalhe completo no brief de arte.
+
+### O que verifica que isto continua verdade
+
+`src/styles/tokens.test.ts` reprova o build se: um token que o canvas lê não
+existir no CSS, um `var(--…)` apontar para token inexistente, um hex solto
+aparecer fora de `tokens.css`, ou a cor de tema do `index.html` divergir de
+`--cor-fundo`.
 
 ## Ligações
 
 - `06_COMPONENTES/` — implementação dos componentes em React
 - `memory/identity.md` — identidade visual e posicionamento (seção "Identidade Visual")
-- `brief-arte-claude-design.md` (nesta pasta) — prompt completo usado para encomendar os assets ao Claude Design
+- `brief-arte-claude-design.md` (nesta pasta) — prompt da rodada 1, enviado ao Claude Design
+- `brief-arte-correcao.md` (nesta pasta) — prompt da rodada 2: escala 8, cenário de bioma, telas
+- `inventario-de-arte.md` (nesta pasta) — o que a arte entregue cobre, o que descartamos e o que falta
 - CLAUDE.md — regra de separar CSS do JSX

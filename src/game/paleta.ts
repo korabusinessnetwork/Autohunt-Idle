@@ -12,6 +12,7 @@ export const TOKENS_PALETA = [
   '--cor-bloqueado',
   '--cor-fundo',
   '--cor-texto',
+  '--cor-contorno',
 ] as const
 
 /**

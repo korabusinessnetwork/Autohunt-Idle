@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- O <html lang> é ajustado em runtime pelo módulo de i18n (pt | en). -->
     <title>Autohunt Idle</title>
+
+    <!--
+      Ícone da marca. Caminhos relativos, como todo o resto do artefato: o
+      portal serve o jogo de um subdiretório, e `/arte/...` procuraria na raiz
+      do domínio dele (ver `base: './'` em vite.config.ts).
+
+      A cor de tema é a mesma `--cor-fundo` de tokens.css. Repetida aqui porque
+      o navegador lê o `<meta>` antes de qualquer CSS — um teste confere que as
+      duas não divergem.
+    -->
+    <link rel="icon" type="image/png" sizes="32x32" href="./arte/marca/ic-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="./arte/marca/ic-16.png" />
+    <link rel="apple-touch-icon" sizes="128x128" href="./arte/marca/ic-128.png" />
+    <meta name="theme-color" content="#2e2733" />
   </head>
   <body>
     <div id="root"></div>

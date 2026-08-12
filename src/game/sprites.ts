@@ -1,19 +1,114 @@
-// Sprites placeholder.
+// Sprites — a arte real, com as silhuetas como rede de segurança.
 //
-// A arte final foi encomendada ao Claude Design (pixel art, ver
-// `docs/02_DESIGN_SYSTEM/brief-arte-claude-design.md`) e ainda não voltou. Até
-// lá, cada criatura é desenhada com a silhueta que o brief descreve — é
-// justamente o que ele pede que carregue a leitura ("baixa resolução força
-// design guiado por silhueta"), então trocar por sprite depois é substituir
-// este arquivo, sem tocar em mundo/motor/renderizador.
+// A arte voltou do Claude Design em 2026-08-12 e entrou pelo `atlas.ts`. As
+// silhuetas geométricas que este arquivo desenhava continuam aqui, e NÃO são
+// código morto: são o que aparece enquanto o PNG carrega, e o que continua
+// aparecendo se ele nunca carregar. O jogo nunca fica sem cena.
+//
+// Foi essa separação que tornou a troca barata: `mundo.ts` e `motor.ts` não
+// mudaram uma linha por causa da arte.
 
+import {
+  arteDoCenario,
+  arteDoDanoDoInimigo,
+  arteDoHeroi,
+  arteDoInimigo,
+  arteDoProp,
+  imagem,
+  type PoseHeroi,
+} from './atlas'
 import type { FormaInimigo } from './mundo'
 import type { Paleta } from './paleta'
 
 function contornar(ctx: CanvasRenderingContext2D, paleta: Paleta): void {
-  ctx.strokeStyle = paleta['--cor-texto']
+  ctx.strokeStyle = paleta['--cor-contorno']
   ctx.lineWidth = 3
   ctx.stroke()
+}
+
+// ---------------------------------------------------------------------------
+// Desenho de pixel art
+// ---------------------------------------------------------------------------
+
+/**
+ * Quantos pixels de mundo vale um pixel lógico da arte.
+ *
+ * Os PNGs vieram em "escala 8" (cada pixel do desenho é um bloco 8×8 no
+ * arquivo), padronizada na rodada 2 do brief justamente para tudo dividir pela
+ * mesma grade — ver `docs/02_DESIGN_SYSTEM/brief-arte-correcao.md`.
+ */
+const ESCALA_EXPORTACAO = 8
+
+/**
+ * Props são desenhados maiores que qualquer ator, de propósito.
+ *
+ * Na escala 2 eles saíam com 16–44px de altura e os inimigos com 34–47px — ou
+ * seja, cenário e criatura do mesmo tamanho, e o olho passava a confundir os
+ * dois. Ficar atrás não bastava para separar; tamanho separa.
+ */
+const ESCALA_PROP = 3
+
+/** Sprite carregado ou silhueta gerada — `drawImage` aceita os dois. */
+type Desenhavel = HTMLImageElement | HTMLCanvasElement
+
+function proporcao(img: Desenhavel): number {
+  return img instanceof HTMLCanvasElement
+    ? img.width / img.height
+    : img.naturalWidth / img.naturalHeight
+}
+
+/**
+ * Desenha um sprite centrado, com a grade de pixel preservada.
+ *
+ * `imageSmoothingEnabled = false` é o que separa pixel art de borrão: sem isso
+ * o navegador interpola na ampliação e devolve exatamente o anti-aliasing que
+ * o brief proíbe.
+ */
+function desenharSprite(
+  ctx: CanvasRenderingContext2D,
+  img: Desenhavel,
+  x: number,
+  y: number,
+  altura: number,
+  espelhar = false,
+): void {
+  const largura = altura * proporcao(img)
+  ctx.save()
+  ctx.imageSmoothingEnabled = false
+  ctx.translate(x, y)
+  if (espelhar) ctx.scale(-1, 1)
+  ctx.drawImage(img, -largura / 2, -altura / 2, largura, altura)
+  ctx.restore()
+}
+
+/**
+ * Silhueta chapada de um sprite, gerada uma vez e guardada.
+ *
+ * Os 5 inimigos base vieram com a silhueta desenhada à mão (`-sil`); os 8
+ * assinatura, não. Em vez de deixar o lampejo de dano inconsistente entre eles,
+ * a silhueta que falta é gerada do próprio sprite: `source-atop` pinta só onde
+ * já existe pixel, que é a definição de silhueta.
+ */
+const silhuetas = new Map<string, HTMLCanvasElement>()
+
+function silhuetaDe(chave: string, img: HTMLImageElement, cor: string): HTMLCanvasElement | null {
+  const guardada = silhuetas.get(chave)
+  if (guardada) return guardada
+  if (typeof document === 'undefined') return null
+
+  const tela = document.createElement('canvas')
+  tela.width = img.naturalWidth
+  tela.height = img.naturalHeight
+  const ctx = tela.getContext('2d')
+  if (!ctx) return null
+
+  ctx.drawImage(img, 0, 0)
+  ctx.globalCompositeOperation = 'source-atop'
+  ctx.fillStyle = cor
+  ctx.fillRect(0, 0, tela.width, tela.height)
+
+  silhuetas.set(chave, tela)
+  return tela
 }
 
 /** Casquinha — triângulo, o capanga básico. */
@@ -237,6 +332,28 @@ const DESENHOS: Record<
   confete: desenharConfete,
 }
 
+/**
+ * Altura do sprite em pixels de mundo.
+ *
+ * Derivada do raio — que é o número que `mundo.ts` já usa para colisão e que a
+ * intensidade do bloco faz crescer. Amarrar o desenho a ele é o que mantém
+ * sprite e hitbox no mesmo tamanho sem um segundo número para desencontrar.
+ */
+function alturaDoSprite(raio: number): number {
+  return raio * 2.6
+}
+
+/**
+ * O herói não tem raio — não colide com nada, porque o mundo aberto é
+ * simulação visual e a derrota vem do servidor. Então a altura é fixa, acima do
+ * inimigo médio (40px), que é o que faz ele ler como protagonista.
+ *
+ * Fica abaixo do tanque nos blocos altos, e isso é deliberado: o inimigo cresce
+ * com o bloco (`mundo.ts`), e é essa diferença que faz a zona avançada parecer
+ * mais perigosa sem nenhuma arte nova.
+ */
+const ALTURA_HEROI = 48
+
 export function desenharInimigo(
   ctx: CanvasRenderingContext2D,
   forma: FormaInimigo,
@@ -247,6 +364,26 @@ export function desenharInimigo(
   paleta: Paleta,
   corAssinatura: string,
 ): void {
+  const caminho = arteDoInimigo(forma)
+  const img = imagem(caminho)
+
+  if (img) {
+    const altura = alturaDoSprite(raio)
+    if (flash > 0) {
+      // Silhueta desenhada à mão quando o pacote trouxe uma; gerada quando não.
+      const desenhada = arteDoDanoDoInimigo(forma)
+      const sil = (desenhada && imagem(desenhada)) || silhuetaDe(caminho, img, paleta['--cor-texto'])
+      if (sil) {
+        desenharSprite(ctx, sil, x, y, altura)
+        return
+      }
+    }
+    desenharSprite(ctx, img, x, y, altura)
+    return
+  }
+
+  // Sem PNG pronto: a silhueta geométrica, que é o estado inicial de todo
+  // primeiro quadro e o permanente se a arte não carregar.
   ctx.save()
   ctx.translate(x, y)
   if (flash > 0) ctx.globalAlpha = 0.45
@@ -265,7 +402,20 @@ export function desenharHeroi(
   olhandoX: number,
   piscando: boolean,
   paleta: Paleta,
+  pose: PoseHeroi = 'parado',
+  raridadeDaSkin: number | null = null,
 ): void {
+  const img = imagem(arteDoHeroi(pose, raridadeDaSkin))
+  if (img) {
+    // O sprite olha para a direita; espelhar é o que dá as duas direções sem
+    // um segundo desenho.
+    ctx.save()
+    if (piscando) ctx.globalAlpha = 0.5
+    desenharSprite(ctx, img, x, y, ALTURA_HEROI, olhandoX < 0)
+    ctx.restore()
+    return
+  }
+
   ctx.save()
   ctx.translate(x, y)
   ctx.scale(olhandoX >= 0 ? 1 : -1, 1)
@@ -330,6 +480,16 @@ export function desenharCenario(
   ctx.fillStyle = paleta[`--bioma-${bioma}-fundo`] ?? paleta['--cor-fundo']
   ctx.fillRect(0, 0, largura, altura)
 
+  const cena = imagem(arteDoCenario(bioma))
+  if (cena) {
+    ctx.save()
+    ctx.imageSmoothingEnabled = false
+    ctx.drawImage(cena, 0, 0, largura, altura)
+    ctx.restore()
+    desenharProps(ctx, largura, altura, bioma, intensidade)
+    return
+  }
+
   ctx.fillStyle = paleta[`--bioma-${bioma}-detalhe`] ?? paleta['--cor-secundaria']
   // Mais saturado e mais denso conforme o bloco avança: o 5º bloco de um bioma
   // é visivelmente mais carregado que o 1º, com o mesmo tema.
@@ -345,4 +505,39 @@ export function desenharCenario(
     }
   }
   ctx.globalAlpha = 1
+}
+
+/**
+ * Os elementos de mundo do bioma, espalhados sobre o cenário.
+ *
+ * São a segunda alavanca da escalada visual dentro de um bioma (critério 2 da
+ * spec de mapa): o 5º bloco tem o dobro de props do 1º, com o mesmo desenho.
+ *
+ * A posição é derivada do índice, nunca sorteada — prop que muda de lugar a
+ * cada quadro vira ruído, e o mundo precisa parecer o mesmo lugar.
+ */
+function desenharProps(
+  ctx: CanvasRenderingContext2D,
+  largura: number,
+  altura: number,
+  bioma: number,
+  intensidade: number,
+): void {
+  const prop = imagem(arteDoProp(bioma))
+  if (!prop) return
+
+  const quantos = 3 + Math.round(intensidade * 3)
+  const alturaProp = (prop.naturalHeight / ESCALA_EXPORTACAO) * ESCALA_PROP
+
+  ctx.save()
+  ctx.imageSmoothingEnabled = false
+  for (let i = 0; i < quantos; i++) {
+    // Espaçamento irregular a partir do índice: distribuído sem enfileirar.
+    const passo = (i + 0.5) / quantos
+    const x = largura * passo + Math.sin((i + bioma) * 2.4) * (largura / (quantos * 3))
+    // Metade de baixo da tela — é onde o prop lê como primeiro plano.
+    const y = altura * (0.58 + ((i * 7 + bioma * 3) % 10) / 28)
+    desenharSprite(ctx, prop, x, y, alturaProp, i % 2 === 1)
+  }
+  ctx.restore()
 }

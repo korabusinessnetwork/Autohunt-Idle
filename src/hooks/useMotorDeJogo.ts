@@ -27,11 +27,22 @@ export function useMotorDeJogo(ativo: boolean) {
   const tradutor = useRef(t)
   tradutor.current = t
 
+  // A skin equipada troca o sprite do herói. Mesmo tratamento do idioma: vive
+  // num ref para equipar surtir efeito no quadro seguinte, sem remontar o
+  // canvas. `null` = nenhuma skin, e aí valem as três poses do personagem base.
+  const skin = snapshot?.inventario.loadout.skin?.raridade ?? null
+  const skinRef = useRef(skin)
+  skinRef.current = skin
+
   useEffect(() => {
     const canvas = canvasRef.current
     if (!ativo || !canvas) return
 
-    const renderizador = criarRenderizadorCanvas(canvas, (chave) => tradutor.current(chave))
+    const renderizador = criarRenderizadorCanvas(
+      canvas,
+      (chave) => tradutor.current(chave),
+      () => skinRef.current,
+    )
     const motor = criarMotor({
       renderizador,
       aoValidarLote: pedirValidacaoDeLote,

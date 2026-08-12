@@ -1,0 +1,54 @@
+/*
+ * Ícone de item.
+ *
+ * `image-rendering: pixelated` é obrigatório, não estético: os PNGs vêm em
+ * escala 8 e qualquer redimensionamento suave devolve o anti-aliasing que o
+ * brief de arte proíbe — a grade de pixel some e o ícone vira borrão.
+ */
+.icone-item {
+  display: block;
+  flex-shrink: 0;
+  image-rendering: pixelated;
+  border: 2px solid var(--cor-contorno);
+  border-radius: var(--espaco-1);
+  /* A cor da raridade entra por baixo do sprite, que é transparente. É o que
+     faz o tier ser reconhecível em miniatura, como o brief pede. */
+  background: var(--raridade-comum);
+}
+
+.icone-item--comum {
+  background: var(--raridade-comum);
+}
+.icone-item--incomum {
+  background: var(--raridade-incomum);
+}
+.icone-item--raro {
+  background: var(--raridade-raro);
+}
+.icone-item--epico {
+  background: var(--raridade-epico);
+}
+.icone-item--lendario {
+  background: var(--raridade-lendario);
+}
+.icone-item--caramelizado {
+  background: var(--raridade-caramelizado);
+}
+.icone-item--glaceado {
+  background: var(--raridade-glaceado);
+}
+.icone-item--dourado {
+  background: var(--raridade-dourado);
+}
+.icone-item--cristalizado {
+  background: var(--raridade-cristalizado);
+}
+.icone-item--cosmico {
+  background: var(--raridade-cosmico);
+}
+
+.icone-item--vazio {
+  background: transparent;
+  border-style: dashed;
+  opacity: 0.4;
+}

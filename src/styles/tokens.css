@@ -8,18 +8,38 @@
  * Autohunt Idle é single-tenant (ADR-002) — os tokens são fixos, sem
  * parametrização por cliente.
  */
+/*
+ * PALETA ENDURECIDA (2026-08-12) — substituiu a "chiclete" pastel clara.
+ *
+ * Não é troca de gosto: a arte final chegou nesta paleta, por instrução do
+ * próprio dono em `brief-arte-correcao.md` ("mantenha o clima escuro que já
+ * está funcionando; não volte pro pastel claro"). Manter o creme aqui deixaria
+ * pixel art escura sobre painel claro — o pior dos dois mundos.
+ *
+ * Cada hex abaixo foi AMOSTRADO dos PNGs entregues, não escolhido a olho. É o
+ * que garante que a interface e o canvas sejam a mesma paleta, e não duas
+ * paletas parecidas.
+ */
 :root {
-  --cor-primaria: #ff5fa2;    /* rosa chiclete — personagem, destaque   */
-  --cor-secundaria: #3fe0d0;  /* ciano — cenário, elementos secundários */
-  --cor-recompensa: #ffc93c;  /* amarelo-sol — moeda, XP                */
-  --cor-positivo: #8ce05a;    /* verde-limão — ganho positivo           */
-  --cor-bloqueado: #ff6b6b;   /* coral — bloqueado, precisa assinar     */
-  --cor-fundo: #fff8ed;       /* creme claro — fundo/base               */
-  --cor-texto: #4a2e3d;       /* ameixa escura — texto e contornos      */
+  --cor-primaria: #c93a6e;    /* rosa escuro — personagem, destaque     */
+  --cor-secundaria: #3fbfb0;  /* verde-azulado — elementos secundários  */
+  --cor-recompensa: #e0a32e;  /* âmbar — moeda, XP                      */
+  --cor-positivo: #6ba83f;    /* verde musgo — ganho positivo           */
+  --cor-bloqueado: #c1453f;   /* vermelho-tijolo — bloqueado            */
+  --cor-fundo: #2e2733;       /* ameixa escura — fundo/base             */
+  --cor-texto: #f0e6d8;       /* creme — texto                          */
 
-  /* Superfície de campo editável. Não faz parte das 7 cores da marca — existe
+  /*
+   * Contorno. Nasceu com a arte: o pixel art usa uma cor de borda própria, mais
+   * escura que qualquer superfície, e antes disso o canvas contornava com
+   * `--cor-texto` — o que na paleta clara era quase a mesma coisa e na escura
+   * seria um contorno creme, ou seja, o contrário de contorno.
+   */
+  --cor-contorno: #1a1620;
+
+  /* Superfície de campo editável. Não faz parte das cores da marca — existe
      para que nenhum componente precise escrever um hex solto. */
-  --cor-campo: #ffffff;
+  --cor-campo: #211c26;
 
   /*
    * Biomas — 8 temas de cenário, 125 níveis cada (specs/mapa-mundo-e-dungeon.md).
@@ -33,37 +53,60 @@
    * elemento repetido que dá textura) e `assinatura` (a cor do inimigo
    * exclusivo daquela zona).
    */
-  --bioma-1-fundo: #fff1f7;      /* Floresta de Algodão-Doce — pastel acolhedor */
-  --bioma-1-detalhe: #ffc2dd;
-  --bioma-1-assinatura: #ff8fc0;
+  --bioma-1-fundo: #0e0b14;      /* Floresta de Algodão-Doce — névoa suja */
+  --bioma-1-detalhe: #c93a6e;
+  --bioma-1-assinatura: #6ba83f;
 
-  --bioma-2-fundo: #eafff4;      /* Vale das Geleias — viscoso, translúcido */
-  --bioma-2-detalhe: #7fe6b0;
-  --bioma-2-assinatura: #35c98a;
+  --bioma-2-fundo: #0e0b14;      /* Vale das Geleias — superfície instável */
+  --bioma-2-detalhe: #6ba83f;
+  --bioma-2-assinatura: #8ce05a;
 
-  --bioma-3-fundo: #fff2dd;      /* Deserto de Açúcar Queimado — caramelo quente */
-  --bioma-3-detalhe: #e8a854;
-  --bioma-3-assinatura: #c9762b;
+  --bioma-3-fundo: #0e0b14;      /* Deserto de Açúcar Queimado — caramelo endurecido */
+  --bioma-3-detalhe: #7e5626;
+  --bioma-3-assinatura: #b57f3f;
 
-  --bioma-4-fundo: #e6f9ff;      /* Recife de Pirulito — aquático vibrante */
-  --bioma-4-detalhe: #58cfe8;
-  --bioma-4-assinatura: #ff6fae;
+  --bioma-4-fundo: #35485a;      /* Recife de Pirulito — o único bioma submerso */
+  --bioma-4-detalhe: #c93a6e;
+  --bioma-4-assinatura: #3fbfb0;
 
-  --bioma-5-fundo: #f4e9e2;      /* Montanhas de Chocolate — denso, mais sério */
-  --bioma-5-detalhe: #a3714f;
-  --bioma-5-assinatura: #6b4230;
+  --bioma-5-fundo: #0e0b14;      /* Montanhas de Chocolate — rocha densa */
+  --bioma-5-detalhe: #5a4a3a;
+  --bioma-5-assinatura: #9a6636;
 
-  --bioma-6-fundo: #edfbfb;      /* Geleira de Menta — frio, o contraste do jogo */
-  --bioma-6-detalhe: #9fe8e0;
-  --bioma-6-assinatura: #4fb8c9;
+  --bioma-6-fundo: #0e0b14;      /* Geleira de Menta — o frio do jogo */
+  --bioma-6-detalhe: #3fbfb0;
+  --bioma-6-assinatura: #c9cfd6;
 
-  --bioma-7-fundo: #ffece6;      /* Vulcão de Goma — molten, escala de ameaça */
-  --bioma-7-detalhe: #ff8a5c;
-  --bioma-7-assinatura: #e33b2e;
+  --bioma-7-fundo: #0e0b14;      /* Vulcão de Goma — fissuras brilhantes */
+  --bioma-7-detalhe: #e0a32e;
+  --bioma-7-assinatura: #c1453f;
 
-  --bioma-8-fundo: #f0ebff;      /* Céu de Confete Cósmico — endgame */
-  --bioma-8-detalhe: #b39cf5;
-  --bioma-8-assinatura: #7a4ddb;
+  --bioma-8-fundo: #0e0b14;      /* Céu de Confete Cósmico — vazio estrelado, endgame */
+  --bioma-8-detalhe: #312837;
+  --bioma-8-assinatura: #ff3fa4;
+
+  /*
+   * Raridade — os 10 tiers de `regrasLoot.ts`.
+   *
+   * Estavam escritos três vezes (mochila, equipamento, passe), o que é a
+   * receita para os painéis divergirem em silêncio. Agora a definição é única e
+   * o ícone de item usa exatamente a mesma cor da etiqueta ao lado dele.
+   *
+   * Os 5 primeiros são os tiers do brief original (cinza → verde → ciano →
+   * roxo → dourado, a linguagem já consagrada em jogo de loot). Os 5 de cima
+   * não têm cor ditada pela arte, então compõem a partir da paleta oficial em
+   * vez de inventar hex fora deste arquivo.
+   */
+  --raridade-comum: color-mix(in srgb, var(--cor-texto) 12%, transparent);
+  --raridade-incomum: var(--cor-positivo);
+  --raridade-raro: var(--cor-secundaria);
+  --raridade-epico: var(--cor-primaria);
+  --raridade-lendario: var(--cor-recompensa);
+  --raridade-caramelizado: color-mix(in srgb, var(--cor-recompensa) 70%, var(--cor-bloqueado));
+  --raridade-glaceado: color-mix(in srgb, var(--cor-secundaria) 55%, var(--cor-fundo));
+  --raridade-dourado: color-mix(in srgb, var(--cor-recompensa) 85%, var(--cor-texto));
+  --raridade-cristalizado: color-mix(in srgb, var(--cor-secundaria) 65%, var(--cor-primaria));
+  --raridade-cosmico: color-mix(in srgb, var(--cor-primaria) 60%, var(--cor-secundaria));
 
   --espaco-1: 0.25rem;
   --espaco-2: 0.5rem;

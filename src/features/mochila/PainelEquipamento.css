@@ -47,6 +47,7 @@
 .equip__slot {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: var(--espaco-1);
   padding: var(--espaco-2);
   font: inherit;
@@ -113,34 +114,34 @@
 }
 
 .equip__tier--comum {
-  background: color-mix(in srgb, var(--cor-texto) 12%, transparent);
+  background: var(--raridade-comum);
 }
 .equip__tier--incomum {
-  background: var(--cor-positivo);
+  background: var(--raridade-incomum);
 }
 .equip__tier--raro {
-  background: var(--cor-secundaria);
+  background: var(--raridade-raro);
 }
 .equip__tier--epico {
-  background: var(--cor-primaria);
+  background: var(--raridade-epico);
 }
 .equip__tier--lendario {
-  background: var(--cor-recompensa);
+  background: var(--raridade-lendario);
 }
 .equip__tier--caramelizado {
-  background: color-mix(in srgb, var(--cor-recompensa) 70%, var(--cor-bloqueado));
+  background: var(--raridade-caramelizado);
 }
 .equip__tier--glaceado {
-  background: color-mix(in srgb, var(--cor-secundaria) 55%, var(--cor-fundo));
+  background: var(--raridade-glaceado);
 }
 .equip__tier--dourado {
-  background: color-mix(in srgb, var(--cor-recompensa) 85%, var(--cor-texto));
+  background: var(--raridade-dourado);
 }
 .equip__tier--cristalizado {
-  background: color-mix(in srgb, var(--cor-secundaria) 65%, var(--cor-primaria));
+  background: var(--raridade-cristalizado);
 }
 .equip__tier--cosmico {
-  background: color-mix(in srgb, var(--cor-primaria) 60%, var(--cor-secundaria));
+  background: var(--raridade-cosmico);
 }
 
 /* Bloco de fortificação — chance e custo sempre visíveis antes da tentativa. */

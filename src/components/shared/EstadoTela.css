@@ -26,30 +26,35 @@
   word-break: break-word;
 }
 
-.estado-tela__pulso {
-  width: 3rem;
-  height: 3rem;
-  border-radius: 50%;
-  background: var(--cor-primaria);
-  border: var(--borda);
-  animation: estado-pulso 900ms ease-in-out infinite alternate;
+/*
+ * A marca da tela de carregamento. `pixelated` pelo mesmo motivo do ícone de
+ * item: o wordmark é pixel art e qualquer escala suave o borra.
+ */
+.estado-tela__marca {
+  width: 200px;
+  max-width: 60vw;
+  height: auto;
+  image-rendering: pixelated;
+  /* Respira em opacidade, não em escala: um logo que incha e murcha chama mais
+     atenção para o carregamento do que para a marca. */
+  animation: estado-respiro 1200ms ease-in-out infinite alternate;
 }
 
 .estado-tela--erro .estado-tela__titulo {
   color: var(--cor-bloqueado);
 }
 
-@keyframes estado-pulso {
+@keyframes estado-respiro {
   from {
-    transform: scale(0.75);
+    opacity: 0.55;
   }
   to {
-    transform: scale(1.05);
+    opacity: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .estado-tela__pulso {
+  .estado-tela__marca {
     animation: none;
   }
 }

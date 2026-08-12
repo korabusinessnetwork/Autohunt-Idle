@@ -58,9 +58,16 @@
   list-style: none;
 }
 
+/* Ícone, tier, tipo, quantidade — e o botão ocupando a linha de baixo. */
+.mochila__icone {
+  display: flex;
+  width: 36px;
+  height: 36px;
+}
+
 .mochila__linha {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto auto 1fr auto;
   gap: var(--espaco-1) var(--espaco-2);
   align-items: center;
   padding: var(--espaco-2);
@@ -72,12 +79,7 @@
   grid-column: 1 / -1;
 }
 
-/*
- * Cor de contorno por tier — a linguagem visual que o brief de arte descreve
- * (`docs/02_DESIGN_SYSTEM/brief-arte-claude-design.md`). Os cinco tiers do topo
- * ainda não têm cor definida pela arte; até lá reaproveitam a paleta oficial
- * com peso crescente, sem inventar hex novo fora de tokens.css.
- */
+/* Cor por tier. A definição das 10 vive em `tokens.css` — aqui só se aplica. */
 .mochila__tier {
   padding: 0.1rem var(--espaco-2);
   font-size: 0.75rem;
@@ -87,34 +89,34 @@
 }
 
 .mochila__tier--comum {
-  background: color-mix(in srgb, var(--cor-texto) 12%, transparent);
+  background: var(--raridade-comum);
 }
 .mochila__tier--incomum {
-  background: var(--cor-positivo);
+  background: var(--raridade-incomum);
 }
 .mochila__tier--raro {
-  background: var(--cor-secundaria);
+  background: var(--raridade-raro);
 }
 .mochila__tier--epico {
-  background: var(--cor-primaria);
+  background: var(--raridade-epico);
 }
 .mochila__tier--lendario {
-  background: var(--cor-recompensa);
+  background: var(--raridade-lendario);
 }
 .mochila__tier--caramelizado {
-  background: color-mix(in srgb, var(--cor-recompensa) 70%, var(--cor-bloqueado));
+  background: var(--raridade-caramelizado);
 }
 .mochila__tier--glaceado {
-  background: color-mix(in srgb, var(--cor-secundaria) 55%, var(--cor-fundo));
+  background: var(--raridade-glaceado);
 }
 .mochila__tier--dourado {
-  background: color-mix(in srgb, var(--cor-recompensa) 85%, var(--cor-texto));
+  background: var(--raridade-dourado);
 }
 .mochila__tier--cristalizado {
-  background: color-mix(in srgb, var(--cor-secundaria) 65%, var(--cor-primaria));
+  background: var(--raridade-cristalizado);
 }
 .mochila__tier--cosmico {
-  background: color-mix(in srgb, var(--cor-primaria) 60%, var(--cor-secundaria));
+  background: var(--raridade-cosmico);
 }
 
 .mochila__tipo {

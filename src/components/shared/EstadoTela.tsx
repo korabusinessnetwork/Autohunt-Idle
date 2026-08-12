@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 
+import { urlDaArte } from '../../game/atlas'
+
 import { Botao } from './Botao'
 import './EstadoTela.css'
 
@@ -10,7 +12,19 @@ import './EstadoTela.css'
 export function TelaCarregando({ mensagem }: { mensagem: string }) {
   return (
     <div className="estado-tela" role="status" aria-live="polite">
-      <div className="estado-tela__pulso" aria-hidden="true" />
+      {/*
+        A marca no lugar do círculo pulsante: esta é a primeira tela do jogo, e
+        era a única superfície em que o produto não se apresentava. O nome já
+        está no `<h1>` invisível do documento e na mensagem ao lado, então a
+        imagem é decorativa para o leitor de tela.
+      */}
+      <img
+        className="estado-tela__marca"
+        src={urlDaArte('arte/marca/wordmark-dark.png')}
+        alt=""
+        width={200}
+        height={92}
+      />
       <p className="estado-tela__mensagem">{mensagem}</p>
     </div>
   )

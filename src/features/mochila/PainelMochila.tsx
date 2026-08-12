@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { Botao } from '../../components/shared/Botao'
 import { TelaVazia } from '../../components/shared/EstadoTela'
+import { IconeItem } from '../../components/shared/IconeItem'
 import { useSessao } from '../../context/SessaoContext'
 import { ITENS_POR_SINTESE, nomeDaRaridade, TIER_MAXIMO } from '../../game/regrasLoot'
 import type { ChaveI18n } from '../../lib/i18n'
@@ -102,6 +103,11 @@ export function PainelMochila({ aoFechar }: { aoFechar: () => void }) {
 
               return (
                 <li key={`${grupo.tipo}-${grupo.raridade}`} className="mochila__linha">
+                  {/* A célula existe mesmo sem arte (as pedras), senão a
+                      linha inteira escorrega uma coluna e a lista desalinha. */}
+                  <span className="mochila__icone">
+                    <IconeItem tipo={grupo.tipo} raridade={grupo.raridade} tamanho={36} />
+                  </span>
                   <span className={`mochila__tier mochila__tier--${nomeDaRaridade(grupo.raridade)}`}>
                     {t(chaveDaRaridade(grupo.raridade))}
                   </span>
