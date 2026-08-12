@@ -797,6 +797,88 @@ begin
   end;
 end $$;
 
+-- ---------------------------------------------------------------------------
+-- A superfície de sorteio está mesmo fechada
+--
+-- Estes checks existem por causa de um furo real (ver a migration
+-- 20260823): `sorteio01` e `contador_sorteio` estavam alcançáveis pelo client,
+-- e juntos permitiam prever o loot e re-rolar queimando o contador numa ação
+-- barata.
+-- ---------------------------------------------------------------------------
+\echo '== superfície de sorteio =='
+do $$
+declare
+  v_nome text;
+  v_a numeric;
+  v_b numeric;
+begin
+  -- Nenhuma função de sorteio, de piso de raridade ou de concessão pode ser
+  -- alcançada pelo jogador. Não basta não estar no grant: o Postgres concede
+  -- EXECUTE a PUBLIC por padrão, então o que vale é a pergunta ao banco.
+  foreach v_nome in array array[
+    'public.sorteio01(text)',
+    'public.escalar_raridade(text, smallint, smallint, integer)',
+    'public.sortear_pedra(text)',
+    'public.sortear_tipo_equipamento(text)',
+    'public.conceder_item(uuid, text, smallint, smallint, text, integer)',
+    'public.conceder_recompensa_passe(uuid, integer)',
+    'public.progredir_passe(uuid, bigint)',
+    'public.montar_snapshot(uuid)',
+    'public.creditar_ciclos(uuid, integer, integer, boolean)'
+  ] loop
+    perform public.checar(
+      not has_function_privilege('authenticated', v_nome, 'execute'),
+      format('authenticated NÃO alcança %s', v_nome));
+    perform public.checar(
+      not has_function_privilege('anon', v_nome, 'execute'),
+      format('anon NÃO alcança %s', v_nome));
+  end loop;
+
+  -- E o contador, que é a outra metade da semente, saiu da vista.
+  perform public.checar(
+    not has_column_privilege('authenticated', 'public.farm_state', 'contador_sorteio', 'SELECT'),
+    'authenticated não lê farm_state.contador_sorteio');
+  -- As colunas que o client de fato usa continuam legíveis.
+  perform public.checar(
+    has_column_privilege('authenticated', 'public.farm_state', 'xp_pendente', 'SELECT'),
+    'authenticated continua lendo farm_state.xp_pendente');
+
+  -- O tempero é inalcançável, e é ele que torna a fórmula inútil sem o
+  -- servidor.
+  perform public.checar(
+    not has_table_privilege('authenticated', 'public.segredo_rng', 'SELECT'),
+    'authenticated não lê o tempero do RNG');
+
+  -- A LISTA FECHADA: o que `authenticated` alcança é exatamente o contrato
+  -- publicado em `docs/07_APIS/`. Não é "nenhuma das proibidas" — é "estas, e
+  -- só estas". Uma função nova que vaze por omissão reprova aqui.
+  perform public.checar(
+    (select array_agg(p.proname order by p.proname)
+       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.proname <> 'checar'
+        and has_function_privilege('authenticated', p.oid, 'execute'))
+    = array[
+      'coletar_farm_offline', 'comprar_ouro', 'definir_apelido',
+      'emitir_ticket_anuncio', 'encerrar_sessao', 'equipar_item',
+      'estado_jogador', 'excluir_minha_conta', 'exportar_meus_dados',
+      'fortificar_item', 'iniciar_dungeon', 'iniciar_sessao', 'ranking_global',
+      'reativar_auto_alocacao', 'redistribuir_atributos', 'sintetizar',
+      'validar_lote'
+    ]::name[],
+    'a superfície do client é exatamente a lista declarada');
+
+  -- O sorteio continua determinístico — a correção não trocou previsível por
+  -- instável, trocou previsível-por-qualquer-um por previsível-só-pelo-servidor.
+  v_a := public.sorteio01('mesma-semente');
+  v_b := public.sorteio01('mesma-semente');
+  perform public.checar(v_a = v_b, 'o sorteio continua determinístico depois do tempero');
+  perform public.checar(v_a >= 0 and v_a < 1, 'o sorteio temperado continua em [0,1)');
+  perform public.checar(
+    public.sorteio01('a') <> public.sorteio01('b'),
+    'sementes diferentes continuam divergindo');
+end $$;
+
 \echo '== permissões =='
 do $$
 declare v_privilegiadas text[] := array[

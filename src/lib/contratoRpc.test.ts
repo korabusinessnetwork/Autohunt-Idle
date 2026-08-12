@@ -67,9 +67,13 @@ describe('contrato das RPCs expostas ao jogador', () => {
 
     expect(concessoes.length).toBeGreaterThan(0)
 
-    const encontradas = concessoes
-      .map(([, nome]) => nome!)
-      .filter((nome) => RPCS_QUE_CREDITAM.includes(nome))
+    // Sem duplicata: desde a migration 20260823 a superfície do client é
+    // reconcedida em bloco, então a mesma função aparece em mais de um grant.
+    const encontradas = [
+      ...new Set(
+        concessoes.map(([, nome]) => nome!).filter((nome) => RPCS_QUE_CREDITAM.includes(nome)),
+      ),
+    ]
 
     // Se uma delas sumir da lista de grants, o teste precisa saber.
     expect(encontradas.sort()).toEqual([...RPCS_QUE_CREDITAM].sort())
@@ -430,6 +434,31 @@ describe('isolamento e segurança do schema', () => {
     const inicio = sqlExecutavel.lastIndexOf('create or replace function public.creditar_ciclos(')
     const corpo = sqlExecutavel.slice(inicio, sqlExecutavel.indexOf('$$;', inicio))
     expect(corpo).toContain('public.progredir_passe(p_player_id, p_ciclos::bigint)')
+  })
+
+  it('EXECUTE não é mais concedido por omissão', () => {
+    // A lição que custou um furo real (migration 20260823): o Postgres concede
+    // EXECUTE a PUBLIC em toda função nova. Enquanto o schema dependia de
+    // alguém lembrar de revogar, `sorteio01` ficou alcançável pelo jogador —
+    // e este arquivo não pegou, porque auditava os revokes que EXISTIAM, nunca
+    // os que faltavam.
+    //
+    // As duas instruções abaixo invertem o padrão. Quem prova o resultado é o
+    // teste de fumaça, perguntando ao banco; aqui só se garante que a inversão
+    // continua no schema.
+    expect(sqlExecutavel).toMatch(
+      /alter default privileges in schema public revoke execute on functions from public/i,
+    )
+    expect(sqlExecutavel).toMatch(
+      /revoke execute on all functions in schema public from public, anon, authenticated/i,
+    )
+  })
+
+  it('o tempero do RNG nunca é concedido a ninguém', () => {
+    // É ele que torna a fórmula do sorteio inútil sem o servidor. Um grant
+    // aqui devolveria a previsibilidade do loot ao client.
+    expect(sqlExecutavel).toMatch(/revoke all on public\.segredo_rng from public, anon, authenticated/i)
+    expect(sqlExecutavel).not.toMatch(/grant\s+\w+[^;]*on\s+(table\s+)?public\.segredo_rng/i)
   })
 
   it('nenhum sorteio do jogo usa random() do Postgres', () => {

@@ -15,11 +15,11 @@
 
 | Comando | O que garante |
 |---|---|
-| `npm test` | 192 testes, dos quais 29 auditam o contrato do schema e 5 auditam a superfície do client. É aqui que moram as provas do `modelo-de-ameacas.md` |
+| `npm test` | 194 testes, dos quais 29 auditam o contrato do schema e 5 auditam a superfície do client. É aqui que moram as provas do `modelo-de-ameacas.md` |
 | `npm run build` | Tipo, compilação e o orçamento de peso do portal |
 | `npm audit --audit-level=critical` | Nenhuma dependência com vulnerabilidade crítica aberta |
 | `gitleaks` (com `fetch-depth: 0`) | Nenhum segredo no repositório — **inclusive no histórico**, porque segredo "removido num commit seguinte" continua lá |
-| `./scripts/pg-local.sh` | As 13 migrations aplicam em ordem contra um Postgres 16 real, e o teste de fumaça executa a lógica ponta a ponta |
+| `./scripts/pg-local.sh` | As 14 migrations aplicam em ordem contra um Postgres 16 real, e o teste de fumaça executa a lógica ponta a ponta |
 
 **Para rodar tudo localmente antes de subir:**
 
@@ -58,6 +58,9 @@ que remover a proteção quebre um teste com nome legível em vez de passar desp
 - **Recompensa destravada não é retirada** → `recompensa de passe já destravada nunca é retirada`
 - **Skin do passe é exclusiva de verdade** → `só a trilha do passe concede item exclusivo`
 - **Cenário não vira recompensa** → `nenhuma migration menciona bioma` + `nenhum módulo de regra importa biomas`
+- **A superfície do client é fechada** → `a superfície do client é exatamente a lista declarada` (pergunta ao banco, não ao arquivo)
+- **O sorteio não é previsível pelo jogador** → `authenticated não lê farm_state.contador_sorteio` + `authenticated não lê o tempero do RNG`
+- **Função nova não nasce exposta** → `EXECUTE não é mais concedido por omissão`
 
 ## 3. Manual — configuração do projeto Supabase
 

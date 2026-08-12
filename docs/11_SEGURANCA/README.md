@@ -37,8 +37,8 @@ Na prática:
 
 | | |
 |---|---|
-| Ameaças mapeadas | **64**, em 11 superfícies |
-| **FECHADAS** — com teste que reprova o build | **53** |
+| Ameaças mapeadas | **65**, em 11 superfícies |
+| **FECHADAS** — com teste que reprova o build | **54** |
 | **MITIGADAS** — protegidas, mas nada trava se alguém desfizer | **5** |
 | **ABERTAS** | **5** |
 | **ACEITA por proporcionalidade** | **1** — data de nascimento falsa; verificação por documento é paga e desproporcional ao risco deste produto |
@@ -61,6 +61,28 @@ esperam decisão do dono, dado de jogador real ou serviço contratado:
 Além delas, `modelo-de-ameacas.md` §12 registra quatro coisas que o modelo **não cobre**: abuso de
 volume, disponibilidade (DDoS/WAF), segurança operacional das contas do dono, e o mercado P2P —
 que tem documento próprio.
+
+## A ameaça que estava marcada FECHADA e não estava
+
+Registrado aqui, e não escondido no histórico, porque é a lição mais cara que este plano produziu.
+
+A ameaça **5.2** ("sorteio manipulável ou re-rolável") esteve marcada FECHADA por quatro rodadas,
+citando o determinismo do RNG como prova. **A prova era insuficiente**, e a auditoria da superfície
+de RPC (11ª rodada, ao escrever `docs/07_APIS/`) mostrou por quê: `sorteio01` estava alcançável
+por `authenticated` e `farm_state.contador_sorteio` era legível pelo client. Com a fórmula, a
+função e o contador nas mãos do jogador, o loot era previsível — e queimar o contador numa ação
+barata equivalia a re-rolar.
+
+**Nenhuma dessas exposições era um GRANT.** Eram ausências de revoke: o Postgres concede EXECUTE a
+PUBLIC em toda função nova. E o teste de contrato não pegava porque auditava os revokes que
+**existiam**, nunca os que faltavam.
+
+Duas mudanças de método saíram daí, e valem mais que a correção em si:
+
+1. **Ausência não se audita lendo arquivo.** A lista de RPCs alcançáveis pelo client agora é
+   verificada perguntando ao Postgres qual é ela, e comparando com uma lista fechada.
+2. **O padrão foi invertido.** `alter default privileges … revoke execute on functions from public`
+   faz toda função nova nascer inalcançável. O que estava implícito passou a ser declarado.
 
 ## O que mudou na consolidação de 2026-08-11
 

@@ -1,7 +1,8 @@
 # Modelo de ameaças — Autohunt Idle
 
 > Reconciliado com o código em **2026-08-11**, contra 13 migrations e 45+ funções.
-> Superfície 10 (passe) acrescentada na 9ª rodada; ameaça 9.8 (bioma) na 10ª.
+> Superfície 10 (passe) acrescentada na 9ª rodada; ameaça 9.8 (bioma) na 10ª; 5.1b e a
+> correção de 5.2 na 11ª.
 > Ver `docs/11_SEGURANCA/README.md` para os princípios, e `checklist-de-release.md` para o que
 > rodar antes de publicar.
 
@@ -78,8 +79,9 @@ Superfície nova, criada na 7ª rodada, e a que mais depende de invariante e men
 
 | # | Ameaça | Estado | Prova |
 |---|---|---|---|
-| 5.1 | Client escolhe a raridade do próprio loot | **FECHADA** | `conceder_item` e `escalar_raridade` fora do alcance de `authenticated` |
-| 5.2 | Sorteio manipulável ou "re-rolável" | **FECHADA** | `nenhum sorteio do jogo usa random() do Postgres` — RNG determinístico por `md5(player_id \|\| contador)`. Mesma semente, mesmo resultado: não há o que re-rolar. `sorteio é determinístico` (fumaça) confirma executando |
+| 5.1 | Client escolhe a raridade do próprio loot | **FECHADA** | `authenticated NÃO alcança public.conceder_item(...)` e `…escalar_raridade(...)` (fumaça, perguntando ao banco — não ao texto da migration) |
+| 5.1b | Função nova nascer alcançável por esquecimento de revoke | **FECHADA** *(11ª rodada)* | `EXECUTE não é mais concedido por omissão` — `alter default privileges in schema public revoke execute on functions from public` inverte o padrão do Postgres, que concedia EXECUTE a PUBLIC em toda função nova. **Foi essa ausência de revoke, e não um grant, que abriu 5.2** |
+| 5.2 | Sorteio manipulável ou "re-rolável" | **FECHADA** *(reaberta e refechada na 11ª rodada)* | **Estava ERRADA até 2026-08-11.** O determinismo por si só não fecha nada: com `sorteio01` alcançável e `contador_sorteio` legível, a semente era inteiramente conhecida e o loot, calculável — bastava queimar o contador numa ação barata para re-rolar. Fechada agora por três provas: `a superfície do client é exatamente a lista declarada`, `authenticated não lê farm_state.contador_sorteio` e `authenticated não lê o tempero do RNG`. Ver `docs/07_APIS/` §6 |
 | 5.3 | Client declara ter vencido a dungeon | **FECHADA** | `resolver_uma_dungeon` é exclusiva do servidor; `iniciar_dungeon()` não tem parâmetro |
 | 5.4 | Consumir a mesma chave duas vezes em chamadas simultâneas | **FECHADA** | `for update skip locked` no `delete` da chave |
 | 5.5 | Skin cosmética influenciar número | **FECHADA** | `a resolução de recompensa não conhece skin` — o corpo de `resolver_ciclos` não contém `skin`, `equipado` nem `item_jogador` |
