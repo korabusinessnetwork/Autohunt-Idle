@@ -179,6 +179,23 @@ não é controle. Um jogador curioso abre a tela, preenche os campos, clica, e n
 | 12.15 | Página gigante virando varredura da tabela | **FECHADA** | `a página do log tem teto no servidor` — limite travado em 200, e paginação por cursor de tempo em vez de `offset`. Mesma família de custo da D10 |
 | 12.16 | Carregar a página inflando o log de recusas | **MITIGADA** | A tela não pede o log quando já sabe que não é admin, então abrir a URL não gera linha. Uma chamada direta e repetida à RPC ainda gera — é a mesma ausência de rate limit por jogador da §13, sem controle novo |
 
+## 12b. A herança do Supabase — achada no banco real
+
+Superfície descoberta em 2026-08-12, na primeira vez que este schema existiu fora de um Postgres de
+teste. Não é uma ameaça nova: é a constatação de que **duas proteções declaradas não existiam no
+banco que serve o jogo**.
+
+| # | Ameaça | Estado | Prova |
+|---|---|---|---|
+| 12.17 | Tabela nova nascer concedida a `anon`/`authenticated` | **FECHADA** | `toda tabela criada é revogada de anon e authenticated` varre `create table` e cobra o revoke de cada uma; `anon não tem <priv> em <tabela>` percorre `pg_tables` no banco (fumaça). A inversão (`alter default privileges … revoke all on tables`) faz objeto novo nascer fechado |
+| 12.18 | `revoke from public` não alcançar `anon` | **FECHADA** | ``nenhuma função revoga só de `public` — `anon` é um papel à parte``. `PUBLIC` é o pseudo-papel de todos; `anon` é papel nomeado. Foi o que deixou `emitir_ticket_auto()` alcançável por quem nem autenticou |
+| 12.19 | O ambiente de teste aprovar o que o Supabase reprova | **FECHADA** | `o stub local reproduz as default privileges do Supabase`. Era a causa raiz das duas acima: sem as default privileges no stub, revoke esquecido virava no-op invisível |
+| 12.20 | Reconceder grants em bloco reabrir coluna já fechada | **FECHADA** | `a referência do gateway continua fora do passe` e `o ranking continua sem expor player_id de terceiro` (fumaça). A correção quase abriu `passe_jogador.referencia_externa` ao reconceder a tabela inteira — pego antes de aplicar, e agora vigiado |
+
+**O que este episódio custou de crença:** a suíte local passou a valer menos como prova de
+segurança de grants. Ela prova a lógica; a configuração de papéis só o banco real prova. Por isso
+`scripts/conferir-supabase.sql` virou passo de release, não conveniência.
+
 ## 13. O que este modelo não cobre
 
 Registrado para não virar ponto cego por omissão:

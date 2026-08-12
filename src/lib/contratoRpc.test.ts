@@ -808,3 +808,113 @@ describe('log operacional do console', () => {
     }
   })
 })
+
+describe('a herança do Supabase é fechada em toda migration', () => {
+  // Um projeto Supabase concede TUDO a `anon` e `authenticated` em todo objeto
+  // novo do schema `public` — o oposto do Postgres puro, onde tabela nova nasce
+  // fechada. Toda migration que cria tabela precisa fechar isso na sequência.
+  //
+  // Este teste nasceu de uma falha real: `public.ajuste` foi criada em
+  // 20260825 sem o revoke, e `emitir_ticket_auto()` foi revogada só `from
+  // public` em 20260824. Nenhum teste pegou, porque `scripts/stub-supabase.sql`
+  // não reproduzia as default privileges — o local aprovava o que o Supabase
+  // reprovava. Descoberto rodando `scripts/conferir-supabase.sql` contra o
+  // projeto real, na primeira vez que este schema existiu fora de teste.
+
+  it('toda tabela criada é revogada de anon e authenticated', () => {
+    const criadas = [
+      ...sqlExecutavel.matchAll(/create table if not exists public\.(\w+)/gi),
+    ].map(([, nome]) => nome)
+    expect(criadas.length).toBeGreaterThan(10)
+
+    const revogadas = new Set(
+      // Duas frouxidões deliberadas no regex, cada uma por um falso alarme
+      // real: `\s+` porque a fundação alinha os revokes em coluna com vários
+      // espaços, e o `public,` opcional porque `segredo_rng` é revogada de
+      // `public, anon, authenticated` — mais estrito, não menos. Um teste que
+      // reprova quem foi MAIS cuidadoso é ruído, e ruído mata teste bom.
+      [
+        ...sqlExecutavel.matchAll(
+          /revoke all on public\.(\w+)\s+from\s+(?:public,\s*)?anon,\s*authenticated/gi,
+        ),
+      ].map(([, nome]) => nome),
+    )
+
+    for (const tabela of criadas) {
+      expect(
+        revogadas.has(tabela),
+        `public.${tabela} nasce com ALL para anon/authenticated no Supabase e nunca é revogada`,
+      ).toBe(true)
+    }
+  })
+
+  it('nenhuma função revoga só de `public` — `anon` é um papel à parte', () => {
+    // `revoke ... from public` NÃO alcança `anon`: no Postgres, `PUBLIC` é o
+    // pseudo-papel de todo mundo, e `anon` é um papel nomeado que o Supabase
+    // cria e alimenta por default privileges. Foi exatamente essa distinção que
+    // deixou `emitir_ticket_auto()` alcançável por quem nem autenticou.
+    // Só as migrations POSTERIORES ao revoke em bloco de 20260823. As
+    // anteriores estão cobertas por ele: `revoke execute on all functions in
+    // schema public from public, anon, authenticated` alcançou tudo o que já
+    // existia. Cobrar revoke individual delas seria exigir redundância e
+    // transformar o teste em ruído.
+    const posteriores = readdirSync(PASTA_MIGRATIONS)
+      .filter((arquivo) => arquivo.endsWith('.sql') && arquivo > '20260823_z')
+      .sort()
+      .map((arquivo) => semComentarios(lerMigration(arquivo)))
+      .join('\n')
+    expect(posteriores.length).toBeGreaterThan(1000)
+
+    const revokes = [
+      ...posteriores.matchAll(/revoke execute on function\s+([\s\S]*?)\s+from\s+([^;]+);/gi),
+    ]
+    expect(revokes.length).toBeGreaterThan(3)
+
+    for (const [, alvoBruto, papeisBruto] of revokes) {
+      const alvo = alvoBruto ?? ''
+      const papeis = papeisBruto ?? ''
+      if (!/\bpublic\b/.test(papeis)) continue
+      // Revogar de `public` sozinho só é suficiente se um outro revoke alcançar
+      // `anon` — o que na prática significa citá-lo aqui mesmo.
+      const nome = /public\.(\w+)/.exec(alvo)?.[1] ?? alvo
+      const alcancaAnon =
+        /\banon\b/.test(papeis) ||
+        new RegExp(
+          `revoke execute on function[\\s\\S]{0,120}?public\\.${nome}[\\s\\S]{0,120}?from[^;]*\\banon\\b`,
+          'i',
+        ).test(sqlExecutavel)
+      expect(alcancaAnon, `${nome} é revogada de public mas nunca de anon`).toBe(true)
+    }
+  })
+
+  it('a inversão vale para tabela, função e sequência', () => {
+    // Depois da correção, objeto novo nasce fechado para os dois papéis do
+    // client. Sem isto, a próxima migration volta a depender de memória.
+    for (const tipo of ['tables', 'functions', 'sequences']) {
+      expect(sqlExecutavel).toMatch(
+        new RegExp(
+          `alter default privileges in schema public revoke all on ${tipo} from anon, authenticated`,
+          'i',
+        ),
+      )
+    }
+  })
+
+  it('o stub local reproduz as default privileges do Supabase', () => {
+    // A causa raiz de tudo isto. Um stub que simula o Supabase pela metade é um
+    // stub que aprova o que o Supabase reprova — e a suíte inteira herda a
+    // cegueira.
+    const stub = readFileSync(new URL('../../scripts/stub-supabase.sql', import.meta.url), 'utf8')
+    for (const tipo of ['tables', 'functions', 'sequences']) {
+      expect(
+        stub,
+        `o stub precisa conceder ${tipo} por padrão, como o Supabase faz`,
+      ).toMatch(
+        new RegExp(
+          `alter default privileges in schema public\\s+grant all on ${tipo} to anon, authenticated, service_role`,
+          'i',
+        ),
+      )
+    }
+  })
+})

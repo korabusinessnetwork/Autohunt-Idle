@@ -169,6 +169,43 @@ do grant do client.
 que ela *deixou*. Por isso a lista fechada da seção 3 é verificada perguntando ao Postgres, e não
 lendo arquivo.
 
+### A mesma lição, de novo — 2026-08-12
+
+O §6 acima terminava com "auditar o texto prova o que a migration diz; só o banco prova o que ela
+deixou". No dia em que o projeto Supabase real subiu, essa frase cobrou juros.
+
+`scripts/conferir-supabase.sql` rodou contra o projeto de verdade e acusou duas coisas que **toda a
+suíte local aprovava**:
+
+- `public.ajuste` com **ALL** para `anon` e `authenticated`;
+- `emitir_ticket_auto()` com **EXECUTE** para `anon`.
+
+A causa é a mesma nas duas: um projeto Supabase nasce com
+`alter default privileges in schema public grant all ... to anon, authenticated, service_role`.
+**Objeto novo já nasce concedido** — o oposto do Postgres puro. As migrations anteriores sabiam
+disso e revogavam logo após criar; a de `ajuste` esqueceu, e `emitir_ticket_auto` foi revogada só
+`from public` — que **não alcança `anon`**, porque `PUBLIC` é o pseudo-papel de todo mundo e `anon`
+é um papel nomeado que o Supabase alimenta por default privileges.
+
+E o motivo de nenhum teste ter pego: **`scripts/stub-supabase.sql` criava os três papéis mas não
+reproduzia as default privileges.** Sem elas, o revoke esquecido era um no-op invisível. Um stub que
+simula o Supabase pela metade é um stub que aprova o que o Supabase reprova — e a suíte inteira
+herda a cegueira.
+
+O risco real era baixo, e vale ser exato em vez de dramático: a RLS segurava (`ajuste` só tem policy
+de `select`, então nenhuma escrita passava mesmo com o grant), e `emitir_ticket_auto()` levanta
+`NAO_AUTENTICADO` quando `auth.uid()` é nulo. **Mas a defesa era uma camada, não duas** — e o
+desenho do console se apoia em "não existe grant de escrita para o client".
+
+O que saiu daí, e vale mais que a correção:
+
+1. **O stub virou fiel.** Reproduz as default privileges do Supabase, e o teste de fumaça agora
+   falha antes da migration 20260827 e passa depois — verificado nos dois sentidos.
+2. **A varredura passou a ser por tabela, não por lista.** O teste percorre `pg_tables` e cobra cada
+   uma: tabela nova que vaze reprova sem ninguém lembrar de acrescentá-la.
+3. **A inversão ficou completa.** `alter default privileges ... revoke all on tables/functions/
+   sequences from anon, authenticated` — objeto novo nasce fechado para os dois papéis do client.
+
 ## 7. Envelope e erros
 
 Toda função de serviço do client devolve `{ data, error, meta }` (`docs/01_ARQUITETURA/padroes.md`).

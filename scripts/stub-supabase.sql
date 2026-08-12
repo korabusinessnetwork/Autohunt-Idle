@@ -57,3 +57,28 @@ end
 $$;
 
 grant usage on schema public to anon, authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- AS DEFAULT PRIVILEGES DO SUPABASE — o pedaço que faltava, e que custou caro
+--
+-- Um projeto Supabase de verdade nasce com isto configurado: TODO objeto novo
+-- no schema `public` já sai concedido a `anon`, `authenticated` e
+-- `service_role`. É o oposto do Postgres puro, onde tabela nova nasce fechada.
+--
+-- Sem esta linha aqui, o Postgres local mentia por omissão: uma migration que
+-- esquecesse o `revoke all on public.<tabela> from anon, authenticated` passava
+-- verde aqui e vazava lá. Foi exatamente o que aconteceu com `public.ajuste` e
+-- com `emitir_ticket_auto()` — descobertos rodando `scripts/conferir-supabase.sql`
+-- contra o projeto real, em 2026-08-12, e invisíveis para toda a suíte local.
+--
+-- É a mesma lição da migration 20260823, agora aprendida do outro lado: o texto
+-- da migration prova o que ela DIZ; só um banco fiel prova o que ela DEIXOU.
+-- Um stub que simula o Supabase pela metade é um stub que aprova o que o
+-- Supabase reprova.
+-- ---------------------------------------------------------------------------
+alter default privileges in schema public
+  grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public
+  grant all on functions to anon, authenticated, service_role;
+alter default privileges in schema public
+  grant all on sequences to anon, authenticated, service_role;

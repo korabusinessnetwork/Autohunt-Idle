@@ -79,6 +79,11 @@ Não dá para automatizar: são chaves e botões de painel, fora do repositório
       `SUPABASE_SERVICE` nem qualquer `VITE_` com valor de JWT longo.
 - [ ] **`pg_cron` agendando `recomputar_ranking()`** (D6). Sem isso o placar só se mexe quando
       alguém define apelido. Extensão gratuita, roda dentro do Postgres.
+- [ ] **Rodar `scripts/conferir-supabase.sql` no SQL Editor** e conferir 14/14. Somente leitura.
+      **Não é conveniência, é passo obrigatório:** foi ele que achou, em 2026-08-12, duas
+      concessões que a suíte local inteira aprovava — `public.ajuste` com ALL para `anon` e
+      `authenticated`, e `emitir_ticket_auto()` alcançável por `anon`. O Postgres local prova a
+      lógica; a configuração de papéis só o banco real prova.
 - [ ] **Promover o dono a admin.** É o único caminho que existe — não há autocadastro, convite nem
       botão dentro do jogo, de propósito. No SQL editor do Supabase:
       `update public.jogador set admin = true where id = '<uuid do dono>';`

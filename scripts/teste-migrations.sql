@@ -1222,6 +1222,90 @@ begin
     'anon NÃO alcança log_operacional');
 end $$;
 
+-- ---------------------------------------------------------------------------
+-- A herança do Supabase (migration 20260827)
+--
+-- Um projeto Supabase concede TUDO a `anon` e `authenticated` por padrão em
+-- todo objeto novo do schema `public`. Estes checks existem porque duas
+-- migrations esqueceram de fechar isso, e a suíte local aprovou — o stub não
+-- reproduzia as default privileges, então o revoke esquecido era um no-op
+-- invisível. Achado rodando `scripts/conferir-supabase.sql` contra o projeto
+-- real, não aqui.
+--
+-- Agora o stub é fiel, e a varredura abaixo é por TABELA, não por lista: uma
+-- tabela nova que vaze reprova sem ninguém precisar lembrar de acrescentá-la.
+-- ---------------------------------------------------------------------------
+\echo '== herança do Supabase =='
+do $$
+declare
+  v_t     record;
+  v_priv  text;
+  -- A superfície de tabela do client, por extenso. Qualquer coisa fora disto é
+  -- vazamento; qualquer coisa que falte é funcionalidade quebrada.
+  v_permitido constant text[] := array[
+    'jogador:SELECT', 'jogador:INSERT', 'jogador:UPDATE',
+    'farm_state:SELECT', 'ticket_anuncio:SELECT', 'assinatura:SELECT',
+    'evento_jogo:SELECT', 'evento_jogo:INSERT',
+    'atributo_jogador:SELECT', 'item_jogador:SELECT', 'ranking_posicao:SELECT',
+    'pacote_ouro:SELECT', 'passe_recompensa:SELECT', 'passe_jogador:SELECT',
+    'ajuste:SELECT'
+  ];
+begin
+  -- `anon` não alcança tabela nenhuma. Ele é o papel de quem nem autenticou.
+  for v_t in select tablename from pg_tables where schemaname = 'public' loop
+    foreach v_priv in array array['SELECT', 'INSERT', 'UPDATE', 'DELETE'] loop
+      perform public.checar(
+        not has_table_privilege('anon', format('public.%I', v_t.tablename), v_priv),
+        format('anon não tem %s em %s', v_priv, v_t.tablename));
+    end loop;
+  end loop;
+
+  -- `authenticated` tem exatamente o que o contrato declara, e nada além.
+  for v_t in select tablename from pg_tables where schemaname = 'public' loop
+    foreach v_priv in array array['SELECT', 'INSERT', 'UPDATE', 'DELETE'] loop
+      if not (v_t.tablename || ':' || v_priv) = any(v_permitido) then
+        perform public.checar(
+          not has_table_privilege('authenticated', format('public.%I', v_t.tablename), v_priv),
+          format('authenticated NÃO tem %s em %s', v_priv, v_t.tablename));
+      end if;
+    end loop;
+  end loop;
+
+  -- E o que ele precisa, ele continua tendo — senão "fechar tudo" quebraria o
+  -- jogo em vez de protegê-lo.
+  perform public.checar(has_table_privilege('authenticated', 'public.jogador', 'SELECT'),
+                        'authenticated continua lendo a própria linha de jogador');
+  -- Por COLUNA: `has_table_privilege` só é verdadeiro para grant de tabela
+  -- inteira, e o insert de evento sempre foi por coluna — perguntar errado aqui
+  -- daria um falso alarme a cada execução.
+  perform public.checar(
+    has_column_privilege('authenticated', 'public.evento_jogo', 'tipo', 'INSERT'),
+    'authenticated continua registrando evento');
+  perform public.checar(
+    has_column_privilege('authenticated', 'public.jogador', 'idioma', 'UPDATE'),
+    'authenticated continua escolhendo o próprio idioma');
+  perform public.checar(
+    has_column_privilege('authenticated', 'public.ajuste', 'valor', 'SELECT'),
+    'authenticated continua lendo o valor do ajuste');
+
+  -- As colunas que nunca podem voltar, agora que os grants foram reescritos.
+  perform public.checar(
+    not has_column_privilege('authenticated', 'public.passe_jogador', 'referencia_externa', 'SELECT'),
+    'a referência do gateway continua fora do passe');
+  perform public.checar(
+    not has_column_privilege('authenticated', 'public.assinatura', 'referencia_externa', 'SELECT'),
+    'a referência do gateway continua fora da assinatura');
+  perform public.checar(
+    not has_column_privilege('authenticated', 'public.ranking_posicao', 'player_id', 'SELECT'),
+    'o ranking continua sem expor player_id de terceiro');
+  perform public.checar(
+    not has_column_privilege('authenticated', 'public.farm_state', 'contador_sorteio', 'SELECT'),
+    'o contador de sorteio continua fora');
+  perform public.checar(
+    not has_column_privilege('authenticated', 'public.ajuste', 'atualizado_por', 'SELECT'),
+    'quem mexeu no ajuste só sai pelo log, não pela tabela');
+end $$;
+
 \echo ''
 \echo '========================================'
 \echo '  TODAS AS VERIFICAÇÕES PASSARAM'

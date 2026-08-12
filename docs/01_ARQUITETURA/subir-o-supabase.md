@@ -60,6 +60,16 @@ Três coisas sobre esse arquivo, todas verificadas contra um Postgres 16 de verd
 menos, a transação reverteu e a mensagem de erro está no painel — corrija e rode de novo, o banco
 está limpo.
 
+## 2b. Conferir o que o banco DEIXOU
+
+Cole `scripts/conferir-supabase.sql` no SQL Editor e rode. Somente leitura — não escreve, não cria
+conta de teste, não deixa rastro. Devolve 14 linhas, falhas no topo.
+
+**Não pule.** O passo 2 prova que as migrations *aplicam*; este pergunta ao banco o que elas
+*deixaram*, que é outra coisa. Na primeira vez que este schema existiu num Supabase real, esta
+consulta achou duas concessões que a suíte local inteira aprovava — a história está em
+`docs/07_APIS/` §6.
+
 ## 3. Ligar a conta anônima — o passo que quebra tudo se faltar
 
 **Authentication → Providers/Sign-in → habilitar `Anonymous sign-ins`.**
