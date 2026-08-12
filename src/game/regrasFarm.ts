@@ -30,15 +30,26 @@ export const MINUTOS_POR_ANUNCIO = 15
 export const TETO_ANUNCIO_DIARIO_MIN = 120
 export const TETO_ASSINANTE_MIN = 24 * 60
 
-// Constantes de balanceamento — espelham as declaradas em `resolver_ciclos`.
-const ABATES_BASE = 3
-const XP_BASE_POR_ABATE = 4
-const MOEDA_BASE_POR_ABATE = 2
-const DANO_BASE_POR_CICLO = 8
+// Constantes de balanceamento.
+//
+// MUDOU EM 2026-08-12 (`specs/console-de-ajuste.md`): no servidor elas deixaram
+// de ser `constant` e viraram linhas da tabela `ajuste`, editáveis pelo dono.
+// Os números abaixo são o PADRÃO semeado — o mesmo que `ajuste_num` usa quando
+// a linha não existe — e é isso que `espelhoDeRegra.test.ts` verifica.
+//
+// Consequência que precisa ficar escrita: depois que o dono ajustar um destes,
+// **o espelho deixa de prever o crédito**. Ele não é usado em previsão de tela
+// hoje (só nos próprios testes), e por isso a divergência não aparece para
+// ninguém — mas quem for usá-lo em UI precisa saber que os valores econômicos
+// vigentes não chegam ao client de propósito.
+export const ABATES_BASE = 3
+export const XP_BASE_POR_ABATE = 4
+export const MOEDA_BASE_POR_ABATE = 2
+export const DANO_BASE_POR_CICLO = 8
 /** Quanto cada ponto de Vitalidade acrescenta à Vitalidade máxima. */
 const VITALIDADE_POR_PONTO = 25
 /** Quantos pontos de Força + Inteligência valem um abate a mais por ciclo. */
-const ATAQUE_POR_ABATE = 8
+export const ATAQUE_POR_ABATE = 8
 
 /**
  * XP total exigido para alcançar o nível informado: `50 * (n-1) * n`.

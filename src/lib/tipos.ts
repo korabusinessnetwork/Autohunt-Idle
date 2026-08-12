@@ -33,6 +33,14 @@ export interface EstadoJogador {
   /** Se a conta anônima já ganhou e-mail/senha (core, 18). */
   temCadastro: boolean
   /**
+   * Se esta conta abre o console de ajuste (`specs/console-de-ajuste.md`).
+   *
+   * Serve só para a tela decidir o que mostrar. **Não é o que protege nada:**
+   * mentir aqui abre a tela e não escreve um número — `definir_ajuste` confere
+   * de novo, no servidor, e recusa.
+   */
+  admin: boolean
+  /**
    * Se o jogador já passou pelo cadastro e pelo gate de idade. Separado de
    * `temCadastro` porque, com confirmação de e-mail ligada, `auth.users.email`
    * só aparece depois do clique no link — e o modal não pode reaparecer para
@@ -235,6 +243,13 @@ export interface Snapshot {
   lojaOuro: PacoteOuro[]
   /** Progresso e trilha do passe. A trilha vem completa, com ou sem passe. */
   passe: EstadoPasse
+  /**
+   * Ajustes VISUAIS do console — velocidade, alcance, densidade de spawn.
+   *
+   * Só o escopo `visual` viaja: os números que decidem XP e ouro ficam no
+   * servidor e não têm representação nenhuma no client (ver `game/ajustes.ts`).
+   */
+  ajustes?: Record<string, number>
   dungeon?: ResultadoDungeon
   sintese?: { consumidos: number; produziuRaridade: number }
   fortificacao?: ResultadoFortificacao

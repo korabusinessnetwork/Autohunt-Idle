@@ -1,6 +1,6 @@
 # 04 — MODELAGEM · Autohunt Idle
 
-> As 12 tabelas do jogo: o que cada uma guarda, quem consegue ler o quê, e quais invariantes o
+> As 13 tabelas do jogo: o que cada uma guarda, quem consegue ler o quê, e quais invariantes o
 > banco enforça sozinho.
 
 > ⚠️ Auditado contra o **banco vivo**, não contra o texto das migrations. A diferença já custou um
@@ -26,7 +26,7 @@ auth.users (Supabase)
                      ├── ticket_anuncio      1:N
                      └── evento_jogo         1:N
 
-catálogos sem dono:  pacote_ouro · passe_recompensa · segredo_rng
+catálogos sem dono:  pacote_ouro · passe_recompensa · segredo_rng · ajuste
 ```
 
 ## 2. As tabelas
@@ -38,11 +38,12 @@ catálogos sem dono:  pacote_ouro · passe_recompensa · segredo_rng
 | **PK** | `id uuid` → `auth.users(id)` |
 | **Progressão** | `nivel`, `xp_total`, `moeda`, `diamante`, `vitalidade_atual` |
 | **Pessoal** | `data_nascimento`, `idioma`, `apelido` |
+| **Operação** | `admin` — abre o console de ajuste |
 | **Client lê** | tudo (é a própria linha) |
 | **Client escreve** | `data_nascimento` e `idioma`, e **só** |
 
 O grant de UPDATE é a proteção mais importante do schema: **`nivel`, `xp_total`, `moeda`,
-`diamante` e `vitalidade_atual` não estão nele**. Nem um update legítimo na própria linha os
+`diamante`, `vitalidade_atual` e `admin` não estão nele**. Nem um update legítimo na própria linha os
 alcança — quem escreve progressão é RPC `SECURITY DEFINER`.
 
 Dois triggers guardam a idade:
@@ -131,6 +132,28 @@ antes da compra.** É o que separa a loja de ouro e o passe de uma caixa de reco
 
 Nenhuma das duas tem coluna de prazo, validade ou temporada. A ausência é verificada por teste.
 
+### `ajuste` — os números do jogo, editáveis pelo dono
+
+| | |
+|---|---|
+| **PK** | `chave` |
+| **Valor** | `valor`, com `minimo` e `maximo` obrigatórios |
+| **Natureza** | `escopo`: `visual` (o client lê e desenha) ou `economico` (só o servidor lê) |
+| **Contexto** | `categoria`, `descricao`, `atualizado_em`, `atualizado_por` |
+
+Nasceu para tirar o balanceamento das minhas mãos e colocar nas do dono — quase todo número do
+jogo era chute meu (D4). **Não tem grant de INSERT, UPDATE nem DELETE para ninguém do lado do
+client**, nem para o admin: a escrita passa por `definir_ajuste`, que confere admin, valida a
+faixa e registra o de-para.
+
+A faixa é `check` de tabela, não validação de formulário — é o que impede um zero digitado errado
+em "abates por ciclo" de parar o jogo, e um `999999` em "XP por abate" de arruinar a economia num
+clique. Vale inclusive para quem escrever por fora da RPC.
+
+A política de leitura é o que mantém a separação de pé: `escopo = 'visual' or e_admin()`. O
+jogador comum recebe só o que o client precisa para desenhar; **os números que decidem XP e ouro
+nunca saem do servidor.**
+
 ### `segredo_rng` — a tabela que ninguém alcança
 
 Uma linha, sem grant nenhum, RLS ligada e **sem policy**. Só função `SECURITY DEFINER` a lê, porque
@@ -154,15 +177,19 @@ Não dependem de nenhuma linha de código de aplicação:
 | Raridade entre 1 e 10 | `check` na coluna |
 | Assinatura ativa sempre tem prazo | `check` de tabela |
 | Apagar a conta não deixa órfão | `on delete cascade` em toda FK |
+| Número de balanceamento sempre dentro da faixa | `check (valor between minimo and maximo)` |
+| Faixa de balanceamento sempre coerente | `check (minimo <= maximo)` |
 
-## 4. RLS — todas as 12 tabelas
+## 4. RLS — todas as 13 tabelas
 
 Sem exceção, e dois testes garantem: `toda tabela criada tem RLS habilitada` (contrato) e
 `RLS ativa em toda tabela do schema public` (fumaça, varrendo `pg_class`).
 
 O padrão é `using (player_id = auth.uid())`. As três exceções são deliberadas:
 
-- `ranking_posicao` e os dois catálogos: leitura pública para autenticado — nenhum dado pessoal;
+- `ranking_posicao` e os dois catálogos de compra: leitura pública para autenticado — nenhum dado
+  pessoal;
+- `ajuste`: leitura pública **só do escopo visual**; o econômico exige admin;
 - `segredo_rng`: RLS ligada e **nenhuma policy**, ou seja, ninguém passa.
 
 **Ressalva que não pode sumir:** o Postgres local reproduz `auth.uid()` a partir de uma variável de
@@ -176,6 +203,8 @@ projeto Supabase. É a ameaça 7.5, e virou passo manual no checklist de release
 - **Tabela de classe/build** — a "build" é o que emerge do que está equipado agora.
 - **Coluna de bioma** — cenário é do client, e não pode virar entrada de cálculo de recompensa.
 - **Estado "conta desativada"** — a exclusão da LGPD é eliminação, não pausa.
+- **Papéis de admin** — é um booleano, não uma hierarquia. Produto single-tenant, um dono;
+  hierarquia seria complexidade sem demanda (`specs/console-de-ajuste.md`, §6).
 
 ## Ligações
 

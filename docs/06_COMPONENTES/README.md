@@ -76,11 +76,25 @@ Um diretório por feature, com o componente, seu CSS, e a lógica pura que a fea
 | `passe` | `PainelPasse` | a trilha inteira, com ou sem passe comprado |
 | `ranking` | `TelaRanking` | o placar e a escolha de apelido |
 | `configuracoes` | `PainelConfiguracoes` | idioma, e os dois direitos de LGPD |
+| `console` | `ConsoleAjuste` | **a única tela que não é do jogador** — o dono edita os números do jogo |
 
 Todos são `role="dialog" aria-modal="true"` com `aria-labelledby` apontando para o próprio título.
 
 **Um painel por vez.** O estado `painel` em `Jogo.tsx` é uma união de strings, não um booleano por
 painel — assim dois nunca abrem juntos por descuido.
+
+`ConsoleAjuste` é a exceção, e por um motivo estrutural: ele não é painel do jogo, é ferramenta de
+operação. Vive na rota `/console`, montado por `App.tsx` **por cima** do jogo — que continua
+rodando por baixo, para fechar o console voltar à sessão em vez de recarregá-la. Três coisas nele
+não são layout, são regra:
+
+- **a tela não protege nada.** Ela vai no bundle que todo jogador baixa, de propósito: esconder
+  rota é segurança por obscuridade. Quem protege é o banco (`docs/11_SEGURANCA/` §12);
+- **quem não é admin vê a tela recusar, com o motivo escrito.** Não some e não mente — e a recusa
+  só aparece depois que o servidor disse quem é a pessoa, porque afirmar antes seria palpite
+  apresentado como fato;
+- **cada campo mostra faixa e descrição**, não só o número, senão o console vira um formulário de
+  números mágicos.
 
 ## 5. Lógica de jogo fora dos componentes
 

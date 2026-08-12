@@ -14,6 +14,7 @@
 // deste arquivo pode influenciar recompensa — nem através do modo.
 
 import type { ChaveI18n } from '../lib/i18n'
+import { ajusteVisual } from './ajustes'
 import type { PoseHeroi } from './atlas'
 import {
   ALTURA_MAPA,
@@ -119,12 +120,15 @@ export interface EstadoMundo {
 const DURACAO_POSE_ATAQUE = 0.18
 const DURACAO_POSE_COMEMORACAO = 0.5
 
-const VELOCIDADE_HEROI = 110
-const ALCANCE_TIRO = 210
-const RECARGA_TIRO = 0.45
-const VELOCIDADE_PROJETIL = 320
-const DANO_PROJETIL = 12
-const MAX_INIMIGOS = 8
+// Os números da SENSAÇÃO de jogar deixaram de ser constante e viraram ajuste
+// editável pelo dono (`specs/console-de-ajuste.md`). Continuam sem valer nada
+// economicamente — ver o cabeçalho de `ajustes.ts`.
+const velocidadeHeroi = () => ajusteVisual('heroi_velocidade')
+const alcanceTiro = () => ajusteVisual('heroi_alcance_tiro')
+const recargaTiro = () => ajusteVisual('heroi_recarga_tiro')
+const velocidadeProjetil = () => ajusteVisual('projetil_velocidade')
+const danoProjetil = () => ajusteVisual('heroi_dano_projetil')
+const maxInimigos = () => ajusteVisual('inimigos_na_tela')
 
 /**
  * Raio ao redor do herói onde inimigos existem de verdade.
@@ -190,7 +194,10 @@ export function definirIntencao(estado: EstadoMundo, intencao: Intencao): void {
  * exigir arte nova (critério 2 da spec de origem).
  */
 function quantosInimigos(estado: EstadoMundo): number {
-  return MAX_INIMIGOS + Math.round(intensidadeDaPosicao(estado.heroiX, estado.heroiY) * 4)
+  return (
+    Math.round(maxInimigos()) +
+    Math.round(intensidadeDaPosicao(estado.heroiX, estado.heroiY) * 4)
+  )
 }
 
 function surgirInimigo(estado: EstadoMundo): void {
@@ -201,9 +208,17 @@ function surgirInimigo(estado: EstadoMundo): void {
   const base = pool[Math.floor(proximoAleatorio(estado) * pool.length)]
   if (!base) return
 
+  // Os três multiplicadores de espécie do console entram aqui, uma vez, no
+  // nascimento: inimigo que já está na tela não muda de tamanho no meio da
+  // corrida quando o dono mexe no valor.
   const especie: EspecieInimigo = {
     ...base,
-    raio: Math.round(base.raio * (1 + intensidade * 0.35)),
+    raio: Math.max(
+      2,
+      Math.round(base.raio * (1 + intensidade * 0.35) * ajusteVisual('inimigo_tamanho')),
+    ),
+    vida: Math.max(1, base.vida * ajusteVisual('inimigo_vida')),
+    velocidade: base.velocidade * ajusteVisual('inimigo_velocidade'),
   }
 
   // Nasce FORA do campo de visão, dentro do raio ativo. É o que faz o mundo
@@ -260,10 +275,10 @@ export function avancarMundo(estado: EstadoMundo, dt: number): void {
       const distancia = Math.hypot(dx, dy) || 1
       if (dx !== 0) estado.heroiOlhandoX = Math.sign(dx)
 
-      if (distancia > ALCANCE_TIRO * 0.7) {
+      if (distancia > alcanceTiro() * 0.7) {
         mover(estado, dx / distancia, dy / distancia, dt)
       }
-      if (distancia <= ALCANCE_TIRO) atirar(estado, dx / distancia, dy / distancia)
+      if (distancia <= alcanceTiro()) atirar(estado, dx / distancia, dy / distancia)
     }
   } else {
     // Manual: o jogador anda para onde quer, e atira para onde mira.
@@ -311,7 +326,7 @@ export function avancarMundo(estado: EstadoMundo, dt: number): void {
     for (const inimigo of estado.inimigos) {
       if (projetil.vida <= 0) break
       if (Math.hypot(inimigo.x - projetil.x, inimigo.y - projetil.y) <= inimigo.especie.raio) {
-        inimigo.vida -= DANO_PROJETIL
+        inimigo.vida -= danoProjetil()
         inimigo.flash = 0.12
         projetil.vida = 0
       }
@@ -341,20 +356,20 @@ export function avancarMundo(estado: EstadoMundo, dt: number): void {
 
 /** Move o herói na direção dada, preso às bordas do MAPA (não da tela). */
 function mover(estado: EstadoMundo, dirX: number, dirY: number, dt: number): void {
-  estado.heroiX = limitar(estado.heroiX + dirX * VELOCIDADE_HEROI * dt, 16, LARGURA_MAPA - 16)
-  estado.heroiY = limitar(estado.heroiY + dirY * VELOCIDADE_HEROI * dt, 16, ALTURA_MAPA - 16)
+  estado.heroiX = limitar(estado.heroiX + dirX * velocidadeHeroi() * dt, 16, LARGURA_MAPA - 16)
+  estado.heroiY = limitar(estado.heroiY + dirY * velocidadeHeroi() * dt, 16, ALTURA_MAPA - 16)
 }
 
 /** Dispara, se a recarga permitir. Manual e auto passam pelo mesmo caminho. */
 function atirar(estado: EstadoMundo, dirX: number, dirY: number): void {
   if (estado.recargaTiro > 0) return
-  estado.recargaTiro = RECARGA_TIRO
+  estado.recargaTiro = recargaTiro()
   estado.poseAtaque = DURACAO_POSE_ATAQUE
   estado.projeteis.push({
     x: estado.heroiX,
     y: estado.heroiY,
-    dx: dirX * VELOCIDADE_PROJETIL,
-    dy: dirY * VELOCIDADE_PROJETIL,
+    dx: dirX * velocidadeProjetil(),
+    dy: dirY * velocidadeProjetil(),
     vida: 1.2,
   })
 }

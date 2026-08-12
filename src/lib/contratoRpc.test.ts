@@ -545,3 +545,150 @@ describe('isolamento e segurança do schema', () => {
     expect(fundacao).toMatch(/old\.data_nascimento is not null/i)
   })
 })
+
+describe('console de ajuste', () => {
+  // As duas provas centrais de `specs/console-de-ajuste.md`, do lado do texto
+  // do schema. Quem executa e prova o resultado é `scripts/teste-migrations.sql`
+  // — este arquivo garante que a FORMA não seja afrouxada numa migration
+  // futura, que é onde o furo do 20260823 nasceu.
+
+  it('o console não escreve no banco por caminho nenhum do client', () => {
+    // A frase que sustenta a tela poder estar no bundle: não existe grant de
+    // escrita em `ajuste`. Nem para o admin — ele é `authenticated` como todo
+    // mundo, e passa pela RPC.
+    const grantsDeAjuste = [
+      ...sqlExecutavel.matchAll(/grant\s+([^;]*?)\s+on\s+(table\s+)?public\.ajuste\b[^;]*;/gi),
+    ]
+    expect(grantsDeAjuste.length).toBeGreaterThan(0)
+
+    for (const [instrucao, privilegios] of grantsDeAjuste) {
+      expect(privilegios, instrucao).not.toMatch(/\b(insert|update|delete|all)\b/i)
+    }
+  })
+
+  it('a escrita de ajuste confere admin dentro do servidor', () => {
+    const definicao = /create or replace function public\.definir_ajuste\([\s\S]*?\n\$\$;/i.exec(
+      sqlExecutavel,
+    )
+    expect(definicao).not.toBeNull()
+
+    const corpo = definicao![0]
+    expect(corpo).toMatch(/security definer/i)
+    expect(corpo).toMatch(/set search_path = public, pg_temp/i)
+    // A checagem é do `auth.uid()`, não de um uuid que alguém digitou.
+    expect(corpo).toMatch(/if not public\.e_admin\(\)/i)
+    expect(corpo).toContain('NAO_AUTORIZADO')
+    // A faixa é da PRÓPRIA LINHA — um limite genérico não protegeria "duração"
+    // e "XP por abate" ao mesmo tempo.
+    expect(corpo).toMatch(/v_linha\.minimo/)
+    expect(corpo).toMatch(/v_linha\.maximo/)
+  })
+
+  it('a promoção a admin não tem caminho dentro do jogo', () => {
+    // Vira admin quem receber um `update` manual no SQL editor. Uma RPC que
+    // escrevesse `admin` seria um caminho explorável — e é isto que este teste
+    // adia.
+    const funcoes = [
+      ...sqlExecutavel.matchAll(/create or replace function public\.(\w+)\(([\s\S]*?)\n\$\$;/gi),
+    ]
+    expect(funcoes.length).toBeGreaterThan(0)
+
+    for (const [corpo, nome] of funcoes) {
+      expect(corpo, `${nome} não pode escrever jogador.admin`).not.toMatch(
+        /update\s+public\.jogador\s+set[^;]*\badmin\s*=/i,
+      )
+    }
+
+    // E a coluna fica fora do grant de UPDATE, como `nivel` e `moeda`.
+    const grantsDeUpdate = [
+      ...sqlExecutavel.matchAll(/grant update\s*\(([^)]*)\)\s*on public\.jogador/gi),
+    ]
+    expect(grantsDeUpdate.length).toBeGreaterThan(0)
+    for (const [, colunas] of grantsDeUpdate) {
+      expect(colunas).not.toMatch(/\badmin\b/)
+    }
+  })
+
+  it('nenhum número econômico do console viaja para o client', () => {
+    // A separação que mantém "o client nunca declara ganho" de pé mesmo com o
+    // balanceamento saindo de uma tabela: o snapshot publica só o escopo
+    // visual.
+    const montagem = /create or replace function public\.montar_ajustes_visuais\([\s\S]*?\$\$;/i.exec(
+      sqlExecutavel,
+    )
+    expect(montagem).not.toBeNull()
+    expect(montagem![0]).toMatch(/where\s+a\.escopo\s*=\s*'visual'/i)
+
+    // E o catálogo de fato marca os números que creditam como econômicos.
+    for (const chave of [
+      'xp_multiplicador_global',
+      'moeda_multiplicador_global',
+      'abates_base',
+      'xp_por_abate_base',
+      'moeda_por_abate_base',
+      'dano_por_ciclo_base',
+      'ataque_por_abate',
+    ]) {
+      const linha = new RegExp(`\\('${chave}',[^)]*?'(visual|economico)'`).exec(sqlExecutavel)
+      expect(linha, `${chave} não é semeada`).not.toBeNull()
+      expect(linha![1], `${chave} precisa ser econômico`).toBe('economico')
+    }
+  })
+
+  it('nenhum ajuste abre caminho para o client declarar ganho', () => {
+    // O console acrescentou UMA RPC ao contrato. Ela recebe parâmetro — e pode,
+    // porque não credita nada: `definir_ajuste` só escreve balanceamento, e a
+    // regra do core é sobre quem declara TEMPO e RECOMPENSA.
+    //
+    // O que não pode mudar é o resto: as RPCs que creditam continuam com zero
+    // parâmetro, e nenhuma delas aprendeu a receber um número de balanceamento.
+    for (const rpc of RPCS_QUE_CREDITAM) {
+      expect(sqlExecutavel).toMatch(
+        new RegExp(`create or replace function public\\.${rpc}\\(\\)`, 'i'),
+      )
+    }
+
+    // A varredura é sobre o que o JOGADOR alcança, não sobre o schema inteiro:
+    // `creditar_ciclos` recebe `p_multiplicador` e sempre recebeu — é interna,
+    // e quem calcula esse número é o servidor, olhando a assinatura. O risco
+    // nunca foi existir parâmetro, foi o client conseguir preenchê-lo.
+    const alcancaveis = new Set(
+      [
+        ...sqlExecutavel.matchAll(
+          /grant execute on function public\.(\w+)\([^)]*\)[^;]*to[^;]*authenticated/gi,
+        ),
+      ].map(([, nome]) => nome),
+    )
+    expect(alcancaveis.size).toBeGreaterThan(10)
+
+    const definicoes = [
+      ...sqlExecutavel.matchAll(/create or replace function public\.(\w+)\(([\s\S]*?)\)\s*returns/gi),
+    ]
+    for (const [, nome, assinatura] of definicoes) {
+      // `definir_ajuste` é a exceção declarada: ela recebe o número porque é o
+      // console. E não credita nada — só escreve balanceamento, com faixa, e
+      // depois de conferir que quem chamou é admin.
+      if (nome === 'definir_ajuste' || !alcancaveis.has(nome)) continue
+      expect(assinatura, `${nome} não pode receber número de balanceamento`).not.toMatch(
+        /p_(ajuste|valor|multiplicador|velocidade|dano|spawn|boost)\b/i,
+      )
+    }
+  })
+
+  it('o número de balanceamento sempre tem faixa', () => {
+    // O que impede um zero digitado errado em "abates por ciclo" de parar o
+    // jogo, e um 999999 em "XP por abate" de arruinar a economia num clique.
+    // É constraint de tabela, então vale mesmo para quem escrever por fora da
+    // RPC.
+    expect(sqlExecutavel).toMatch(/check\s*\(minimo\s*<=\s*maximo\)/i)
+    expect(sqlExecutavel).toMatch(/check\s*\(valor\s+between\s+minimo\s+and\s+maximo\)/i)
+  })
+
+  it('a tabela de ajuste tem RLS e a leitura separa visual de econômico', () => {
+    expect(sqlExecutavel).toMatch(/alter table public\.ajuste enable row level security/i)
+
+    const politica = /create policy ajuste_leitura on public\.ajuste[\s\S]*?;/i.exec(sqlExecutavel)
+    expect(politica).not.toBeNull()
+    expect(politica![0]).toMatch(/escopo\s*=\s*'visual'\s*or\s*public\.e_admin\(\)/i)
+  })
+})

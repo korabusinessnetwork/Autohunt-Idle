@@ -17,15 +17,25 @@ E o corolário que sustenta o produto inteiro: **o client nunca declara tempo ne
 
 ## 2. Ciclo e farm
 
-| Regra | Valor | Onde |
-|---|---|---|
-| Duração do ciclo | **15 s** | `c_ciclo_segundos` / `CICLO_SEGUNDOS` |
-| Abates por ciclo | **3** | `c_abates_base` / `ABATES_BASE` |
-| XP por abate | **4** | `XP_BASE_POR_ABATE` |
-| Moeda por abate | **2** | `c_moeda_base_abate` |
-| Dano recebido por ciclo | **8** | `c_dano_base_ciclo` |
-| Ataque ganho por abate | **8** | `c_ataque_por_abate` |
-| Teto de um lote | **120 s** | `c_limite_lote_segundos` |
+| Regra | Valor de partida | Onde | Editável? |
+|---|---|---|---|
+| Duração do ciclo | **15 s** | `c_ciclo_segundos` / `CICLO_SEGUNDOS` | não — é a unidade de contabilidade do `last_seen_at` |
+| Abates por ciclo | **3** | `ajuste.abates_base` / `ABATES_BASE` | **sim**, 1 a 30 |
+| XP por abate | **4** | `ajuste.xp_por_abate_base` | **sim**, 1 a 500 |
+| Moeda por abate | **2** | `ajuste.moeda_por_abate_base` | **sim**, 0 a 500 |
+| Dano recebido por ciclo | **8** | `ajuste.dano_por_ciclo_base` | **sim**, 0 a 500 |
+| Ataque ganho por abate | **8** | `ajuste.ataque_por_abate` | **sim**, 1 a 200 |
+| Boost global de XP / de ouro | **1×** | `ajuste.xp_multiplicador_global`, `…moeda…` | **sim**, 0,1 a 10 |
+| Teto de um lote | **120 s** | `c_limite_lote_segundos` | não — é trava de segurança |
+
+**Desde 2026-08-12 estes números não moram mais no código.** Vivem na tabela `ajuste`, editáveis
+pelo dono no console (`specs/console-de-ajuste.md`), cada um com faixa própria. A coluna "valor de
+partida" é o que foi semeado — e também o padrão embutido, usado se a linha sumir. Mudança vale
+**do próximo lote em diante**: nada é recalculado para trás, porque o crédito já aconteceu.
+
+Nada disso afrouxou a regra da seção 1: os números econômicos são lidos **dentro** do servidor,
+por `resolver_ciclos`, e não viajam para o client. Só os visuais (velocidade do herói, alcance do
+tiro, densidade de spawn) vão no snapshot — e nenhum deles credita nada.
 
 O lote de 120 s é uma trava de segurança, não de balanceamento: mesmo que o motor do client demore
 a pedir validação, o servidor nunca credita mais que isso de uma vez.

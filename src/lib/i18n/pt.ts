@@ -338,4 +338,35 @@ export const pt = {
   'inimigo.floco': 'Floco Afiado',
   'inimigo.brasa': 'Brasa de Goma',
   'inimigo.confete': 'Confete Cósmico',
+
+  // --- Console de ajuste (tela do dono, não do jogador) --------------------
+  // Está no bundle de todo mundo de propósito: esconder a rota seria segurança
+  // por obscuridade. Quem protege é o banco (`specs/console-de-ajuste.md`).
+  'console.titulo': 'Console de ajuste',
+  'console.fechar': 'Fechar',
+  'console.carregando': 'Buscando os números…',
+  'console.explicacao':
+    'Cada número aqui vale pro jogo inteiro, na hora. O que já foi creditado não é recalculado.',
+  'console.negado.titulo': 'Isto aqui não é pra você.',
+  'console.negado.mensagem':
+    'Só a conta do dono edita estes números. Você pode olhar, mas o servidor recusa qualquer alteração.',
+  'console.faixa': 'de {minimo} a {maximo}',
+  'console.salvar': 'Salvar',
+  'console.salvo': 'Salvo! Já vale a partir do próximo ciclo.',
+  'console.escopo.visual': 'visual',
+  'console.escopo.visual.ajuda': 'Muda o que aparece na tela. Não mexe em XP nem em ouro.',
+  'console.escopo.economico': 'economia',
+  'console.escopo.economico.ajuda': 'Muda quanto todo mundo ganha. Lido só pelo servidor.',
+  'console.categoria.heroi': 'Herói',
+  'console.categoria.inimigo': 'Inimigos',
+  'console.categoria.mundo': 'Mundo',
+  'console.categoria.economia': 'Economia',
+  'console.rodape': 'Toda alteração fica registrada com quem mexeu, quando, e de quanto pra quanto.',
+  'console.erro.NAO_AUTORIZADO': 'O servidor recusou: esta conta não é de administrador.',
+  'console.erro.FORA_DA_FAIXA': 'Valor fora da faixa permitida pra este número.',
+  'console.erro.AJUSTE_INEXISTENTE': 'Esse ajuste não existe mais no servidor.',
+  'console.erro.VALOR_INVALIDO': 'Precisa ser um número.',
+  'console.erro.AJUSTE_FALHOU': 'Não deu pra salvar agora. Tenta de novo.',
+  'console.erro.AJUSTES_NAO_CARREGARAM': 'Não deu pra carregar os ajustes.',
+  'console.erro.CONFIGURACAO_AUSENTE': 'O jogo ainda não está ligado a um servidor (ver .env.example).',
 } as const

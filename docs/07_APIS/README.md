@@ -24,10 +24,10 @@ conta.
 | Papel | Quem é | O que alcança |
 |---|---|---|
 | `anon` | ninguém autenticado | **nada**. Sem grant de tabela nem de função |
-| `authenticated` | o jogador, com JWT do Supabase Auth | os 18 RPCs da seção 3, e leitura das próprias linhas via RLS |
+| `authenticated` | o jogador, com JWT do Supabase Auth | os 20 RPCs da seção 3, e leitura das próprias linhas via RLS |
 | `service_role` | Edge Functions, com a chave secreta | os 7 RPCs da seção 4. **Nunca entra no bundle do client** |
 
-## 3. A superfície do jogador — 18 RPCs, e só elas
+## 3. A superfície do jogador — 20 RPCs, e só elas
 
 Esta lista é fechada. O teste de fumaça `a superfície do client é exatamente a lista declarada`
 pergunta ao banco quais funções `authenticated` alcança e compara com ela — uma função nova que
@@ -71,6 +71,28 @@ vaze por omissão reprova.
 | `exportar_meus_dados()` | — | LGPD. Sem `player_id`: **não existe chamada capaz de pedir conta alheia** |
 | `excluir_minha_conta()` | — | LGPD. Irreversível |
 
+### Console de ajuste
+
+As duas RPCs mais recentes, e as únicas que existem para o **dono** e não para o jogador
+(`specs/console-de-ajuste.md`). Estão no grant de `authenticated` de propósito: a tela vai no
+bundle que todo mundo baixa, porque esconder a rota seria segurança por obscuridade. Quem protege
+é o banco.
+
+| RPC | Parâmetros | Observação |
+|---|---|---|
+| `e_admin()` | — | Responde sobre `auth.uid()`, nunca sobre um uuid digitado. É o que deixa a tela recusar com o motivo escrito em vez de sumir |
+| `definir_ajuste(chave, valor)` | qual número, e quanto | **Única porta de escrita da tabela `ajuste`.** Confere admin, valida a faixa da própria linha e registra quem mudou o quê |
+
+`definir_ajuste` é a única RPC do contrato que recebe um número de balanceamento — e pode, porque
+**não credita nada**. A regra do core é sobre o client declarar *tempo* e *recompensa*; escrever
+balanceamento, depois de conferir que quem chamou é admin, é outra coisa. Um teste vigia
+exatamente essa fronteira: nenhuma outra RPC alcançável pelo jogador aprendeu a receber
+multiplicador, velocidade, dano ou boost.
+
+Quem **não** é admin chega aqui: a chamada é recusada, nada muda, e a tentativa vira evento. A
+recusa é devolvida em vez de levantada justamente para o log sobreviver — `raise` derrubaria a
+transação e apagaria o registro junto.
+
 ## 4. A superfície do servidor — 7 RPCs
 
 Chamadas por Edge Function com a `service_role`. Todas revogadas de `authenticated`, e é isso que
@@ -88,8 +110,8 @@ impede o jogador de se declarar assinante, portador de passe ou espectador de an
 
 ## 5. Tudo o mais é interno
 
-As ~37 funções restantes — `sorteio01`, `escalar_raridade`, `conceder_item`, `creditar_ciclos`,
-`montar_snapshot`, `progredir_passe`, as funções de matemática pura — **não são alcançáveis por
+As ~40 funções restantes — `sorteio01`, `escalar_raridade`, `conceder_item`, `creditar_ciclos`,
+`montar_snapshot`, `progredir_passe`, `ajuste_num`, `montar_ajustes_visuais`, as funções de matemática pura — **não são alcançáveis por
 ninguém**. Só por outras funções `SECURITY DEFINER`, que rodam como donas do schema.
 
 ## 6. O furo que este documento encontrou

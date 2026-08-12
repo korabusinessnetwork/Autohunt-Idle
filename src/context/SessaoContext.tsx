@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 
+import { aplicarAjustesVisuais } from '../game/ajustes'
 import { criarTradutor, idiomaInicial, salvarIdioma, type Idioma, type Tradutor } from '../lib/i18n'
 import type { ErroServico } from '../lib/envelope'
 import { garantirSessao, registrarIdioma } from '../lib/services/authService'
@@ -165,6 +166,16 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.setAttribute('lang', idioma)
   }, [idioma])
+
+  // Os ajustes VISUAIS do console chegam junto com o snapshot, por qualquer
+  // caminho que o atualize. Um efeito só, aqui, cobre sessão, lote, coleta e
+  // recarga — em vez de cada chamada lembrar de aplicar.
+  //
+  // Só o escopo visual viaja: os números que decidem XP e ouro ficam no
+  // servidor, e é por isso que adulterá-los no navegador não rende nada.
+  useEffect(() => {
+    aplicarAjustesVisuais(snapshot?.ajustes ?? null)
+  }, [snapshot?.ajustes])
 
   // Fim da sessão ao vivo. Best-effort de propósito: se o navegador for morto
   // antes de a requisição sair, o servidor chega no mesmo resultado porque

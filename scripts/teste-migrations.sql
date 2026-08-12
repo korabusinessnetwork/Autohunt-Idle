@@ -859,9 +859,9 @@ begin
         and p.proname <> 'checar'
         and has_function_privilege('authenticated', p.oid, 'execute'))
     = array[
-      'coletar_farm_offline', 'comprar_ouro', 'definir_apelido',
-      'emitir_ticket_anuncio', 'emitir_ticket_auto', 'encerrar_sessao', 'equipar_item',
-      'estado_jogador', 'excluir_minha_conta', 'exportar_meus_dados',
+      'coletar_farm_offline', 'comprar_ouro', 'definir_ajuste', 'definir_apelido',
+      'e_admin', 'emitir_ticket_anuncio', 'emitir_ticket_auto', 'encerrar_sessao',
+      'equipar_item', 'estado_jogador', 'excluir_minha_conta', 'exportar_meus_dados',
       'fortificar_item', 'iniciar_dungeon', 'iniciar_sessao', 'ranking_global',
       'reativar_auto_alocacao', 'redistribuir_atributos', 'sintetizar',
       'validar_lote'
@@ -959,6 +959,161 @@ begin
   v_b := (select xp_pendente from public.farm_state where player_id = v_uid);
 
   perform public.checar(v_a = v_b, 'reconexão imediata não credita o mesmo intervalo de novo');
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Console de ajuste — as duas provas centrais da spec:
+--   1. não-admin não escreve ajuste nenhum;
+--   2. nenhum ajuste abre caminho para o client declarar ganho.
+-- ---------------------------------------------------------------------------
+\echo '== console de ajuste =='
+do $$
+declare
+  v_dono   uuid := '10000001-0000-0000-0000-000000000001';
+  v_zé     uuid := '10000002-0000-0000-0000-000000000002';
+  v_r      jsonb;
+  v_valor  numeric;
+  v_xp_a   bigint;
+  v_xp_b   bigint;
+  v_eventos integer;
+begin
+  insert into auth.users (id, email) values (v_dono, 'dono@exemplo.test'), (v_zé, null);
+
+  perform set_config('autohunt.uid', v_dono::text, false);
+  perform public.iniciar_sessao();
+  perform set_config('autohunt.uid', v_zé::text, false);
+  perform public.iniciar_sessao();
+
+  -- Ninguém nasce admin.
+  perform public.checar(not public.e_admin(), 'jogador comum não é admin');
+  perform set_config('autohunt.uid', v_dono::text, false);
+  perform public.checar(not public.e_admin(), 'nem o futuro dono nasce admin');
+
+  -- Só o update manual promove — é o único caminho que existe.
+  update public.jogador set admin = true where id = v_dono;
+  perform public.checar(public.e_admin(), 'o update manual promove a admin');
+
+  -- ---- prova 1: não-admin não escreve nada -------------------------------
+  perform set_config('autohunt.uid', v_zé::text, false);
+  v_valor := (select valor from public.ajuste where chave = 'xp_por_abate_base');
+  v_r := public.definir_ajuste('xp_por_abate_base', 500);
+
+  perform public.checar((v_r ->> 'aplicado')::boolean is false,
+                        'não-admin é recusado por definir_ajuste');
+  perform public.checar(v_r ->> 'motivo' = 'NAO_AUTORIZADO', 'a recusa diz o motivo');
+  perform public.checar(
+    (select valor from public.ajuste where chave = 'xp_por_abate_base') = v_valor,
+    'a tentativa do não-admin não mudou o valor');
+
+  -- A recusa SOBREVIVE: é por isso que ela devolve em vez de levantar exceção.
+  select count(*) into v_eventos from public.evento_jogo
+   where player_id = v_zé and tipo = 'ajuste.recusado';
+  perform public.checar(v_eventos = 1, 'a recusa do não-admin ficou no log');
+
+  -- ---- faixa ----------------------------------------------------------------
+  perform set_config('autohunt.uid', v_dono::text, false);
+  v_r := public.definir_ajuste('xp_por_abate_base', 999999);
+  perform public.checar((v_r ->> 'aplicado')::boolean is false, 'acima do máximo é recusado');
+  perform public.checar(v_r ->> 'motivo' = 'FORA_DA_FAIXA', 'a recusa de faixa diz o motivo');
+
+  v_r := public.definir_ajuste('abates_base', 0);
+  perform public.checar((v_r ->> 'aplicado')::boolean is false, 'abaixo do mínimo é recusado');
+
+  v_r := public.definir_ajuste('nao_existe', 1);
+  perform public.checar(v_r ->> 'motivo' = 'AJUSTE_INEXISTENTE', 'chave inexistente é recusada');
+
+  -- O limite é inclusivo (edge case da spec).
+  v_r := public.definir_ajuste('abates_base',
+                               (select minimo from public.ajuste where chave = 'abates_base'));
+  perform public.checar((v_r ->> 'aplicado')::boolean, 'o valor no limite da faixa é aceito');
+
+  -- ---- o log diz quem, quando, de quanto para quanto -----------------------
+  v_r := public.definir_ajuste('abates_base', 3);
+  perform public.checar((v_r ->> 'aplicado')::boolean, 'o admin escreve');
+  perform public.checar(
+    exists (select 1 from public.evento_jogo
+             where player_id = v_dono and tipo = 'ajuste.aplicado'
+               and dados ->> 'chave' = 'abates_base'
+               and dados ? 'de' and dados ? 'para'),
+    'o ajuste aplicado registra de-para e autor');
+  perform public.checar(
+    (select atualizado_por from public.ajuste where chave = 'abates_base') = v_dono,
+    'a linha guarda quem mexeu');
+
+  -- ---- prova 2: o ajuste chega ao crédito, e só por dentro ------------------
+  select o_xp into v_xp_a from public.resolver_ciclos(1::bigint, 100000, 4, 1, 0, 0);
+  perform public.definir_ajuste('xp_multiplicador_global', 2);
+  select o_xp into v_xp_b from public.resolver_ciclos(1::bigint, 100000, 4, 1, 0, 0);
+  perform public.checar(v_xp_b = v_xp_a * 2, 'o boost de XP do console chega no crédito');
+  perform public.definir_ajuste('xp_multiplicador_global', 1);
+  select o_xp into v_xp_b from public.resolver_ciclos(1::bigint, 100000, 4, 1, 0, 0);
+  perform public.checar(v_xp_b = v_xp_a, 'voltar o boost para 1 restaura o comportamento anterior');
+
+  -- Nenhum número econômico viaja para o client.
+  perform public.checar(
+    not (public.montar_ajustes_visuais() ? 'xp_multiplicador_global'),
+    'o snapshot não publica o multiplicador de XP');
+  perform public.checar(
+    not (public.montar_ajustes_visuais() ? 'xp_por_abate_base'),
+    'o snapshot não publica XP por abate');
+  perform public.checar(
+    public.montar_ajustes_visuais() ? 'heroi_velocidade',
+    'o snapshot publica a velocidade do herói');
+  perform public.checar(
+    not exists (select 1 from public.ajuste
+                 where escopo = 'visual' and categoria = 'economia'),
+    'nenhum número de economia está marcado como visual');
+
+  -- E o caminho de verdade: o snapshot que o client recebe carrega o bloco, e
+  -- carrega só o visual. É por ele que a velocidade do herói chega na tela.
+  v_r := public.montar_snapshot(v_dono);
+  perform public.checar(v_r ? 'ajustes', 'o snapshot publica o bloco de ajustes');
+  perform public.checar((v_r -> 'ajustes') ? 'heroi_velocidade',
+                        'o snapshot leva a velocidade do herói');
+  perform public.checar(not ((v_r -> 'ajustes') ? 'abates_base'),
+                        'o snapshot não leva abates por ciclo');
+  perform public.checar((v_r #>> '{jogador,admin}')::boolean,
+                        'o snapshot diz que o dono é admin');
+end $$;
+
+\echo '== permissões do console =='
+do $$
+begin
+  -- A prova que sustenta "a tela pode estar no bundle": o client não escreve na
+  -- tabela por caminho nenhum. Nem o admin — ele é `authenticated` como todo
+  -- mundo, e passa pela RPC.
+  perform public.checar(
+    not has_table_privilege('authenticated', 'public.ajuste', 'UPDATE'),
+    'authenticated não escreve em ajuste');
+  perform public.checar(
+    not has_table_privilege('authenticated', 'public.ajuste', 'INSERT'),
+    'authenticated não insere em ajuste');
+  perform public.checar(
+    not has_table_privilege('authenticated', 'public.ajuste', 'DELETE'),
+    'authenticated não apaga ajuste');
+  perform public.checar(
+    not has_table_privilege('anon', 'public.ajuste', 'SELECT'),
+    'anônimo não lê ajuste');
+
+  -- Ninguém se promove: é a mesma proteção de `nivel` e `moeda`.
+  perform public.checar(
+    not has_column_privilege('authenticated', 'public.jogador', 'admin', 'UPDATE'),
+    'authenticated não escreve jogador.admin');
+
+  -- A leitura dos econômicos é do admin; a política é quem separa.
+  perform public.checar(
+    exists (select 1 from pg_policies
+             where schemaname = 'public' and tablename = 'ajuste'
+               and qual like '%escopo%' and qual like '%e_admin%'),
+    'a política de leitura separa visual de econômico');
+
+  -- As funções internas do console continuam inalcançáveis.
+  perform public.checar(
+    not has_function_privilege('authenticated', 'public.ajuste_num(text, numeric)', 'execute'),
+    'authenticated NÃO alcança ajuste_num');
+  perform public.checar(
+    not has_function_privilege('authenticated', 'public.montar_ajustes_visuais()', 'execute'),
+    'authenticated NÃO alcança montar_ajustes_visuais');
 end $$;
 
 \echo ''

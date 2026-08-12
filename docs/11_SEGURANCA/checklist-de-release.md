@@ -76,6 +76,14 @@ Não dá para automatizar: são chaves e botões de painel, fora do repositório
       `SUPABASE_SERVICE` nem qualquer `VITE_` com valor de JWT longo.
 - [ ] **`pg_cron` agendando `recomputar_ranking()`** (D6). Sem isso o placar só se mexe quando
       alguém define apelido. Extensão gratuita, roda dentro do Postgres.
+- [ ] **Promover o dono a admin.** É o único caminho que existe — não há autocadastro, convite nem
+      botão dentro do jogo, de propósito. No SQL editor do Supabase:
+      `update public.jogador set admin = true where id = '<uuid do dono>';`
+      Sem isso o console `/console` abre e recusa toda escrita, que é exatamente o comportamento de
+      quem não é admin.
+- [ ] **Conferir que ninguém mais é admin.** `select id from public.jogador where admin;` — a lista
+      precisa ter exatamente as contas que o dono reconhece. Uma linha a mais aqui vale mais que
+      qualquer outra brecha do schema (ameaça 12.9).
 - [ ] **2FA ativo** nas contas de Supabase, Vercel e GitHub do dono. Fora do código, e o vetor
       mais direto que existe contra o projeto inteiro.
 

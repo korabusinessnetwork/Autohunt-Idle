@@ -1,7 +1,16 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-import { CICLO_SEGUNDOS, LIMITE_LOTE_SEGUNDOS, MINUTOS_POR_ANUNCIO } from './regrasFarm'
+import {
+  ABATES_BASE,
+  ATAQUE_POR_ABATE,
+  CICLO_SEGUNDOS,
+  DANO_BASE_POR_CICLO,
+  LIMITE_LOTE_SEGUNDOS,
+  MINUTOS_POR_ANUNCIO,
+  MOEDA_BASE_POR_ABATE,
+  XP_BASE_POR_ABATE,
+} from './regrasFarm'
 import { CHANCE_DE_PULAR_NIVEL, ITENS_POR_SINTESE, TIER_MAXIMO } from './regrasLoot'
 import { FORTIFICACAO_MAXIMA } from './regrasFortificacao'
 import { PONTOS_POR_NIVEL } from './regrasAtributos'
@@ -42,6 +51,23 @@ function constanteDoServidor(nome: string): number {
   return Number(achados.at(-1)![1])
 }
 
+/**
+ * O valor com que uma linha de `ajuste` é semeada.
+ *
+ * Casa a tupla do `insert` do catálogo: `('chave', valor, minimo, maximo, …`.
+ */
+function semeadoNoAjuste(chave: string): number {
+  const achado = new RegExp(`\\('${chave}',\\s*([0-9.]+),\\s*([0-9.]+),\\s*([0-9.]+)`).exec(SQL)
+  expect(achado, `${chave} não é semeada em migration nenhuma`).not.toBeNull()
+
+  const [, valor, minimo, maximo] = achado!
+  // A faixa precisa fazer sentido, senão a proteção contra o zero digitado
+  // errado não existe de verdade.
+  expect(Number(minimo)).toBeLessThanOrEqual(Number(valor))
+  expect(Number(maximo)).toBeGreaterThanOrEqual(Number(valor))
+  return Number(valor)
+}
+
 describe('o espelho de regra bate com o servidor', () => {
   it('ciclo, lote e anúncio', () => {
     expect(constanteDoServidor('c_ciclo_segundos')).toBe(CICLO_SEGUNDOS)
@@ -66,6 +92,48 @@ describe('o espelho de regra bate com o servidor', () => {
     // schema tem multiplicações por 3 em outros lugares, e um teste que casa
     // com qualquer uma delas não prova nada.
     expect(SQL).toContain(`select greatest(0, p_nivel - 1) * ${PONTOS_POR_NIVEL};`)
+  })
+
+  it('o balanceamento econômico bate com o padrão semeado na tabela `ajuste`', () => {
+    // Estas cinco deixaram de ser `constant` no SQL quando o console nasceu
+    // (`specs/console-de-ajuste.md`): agora são linhas de `ajuste`, editáveis
+    // pelo dono. O espelho passou a espelhar o PADRÃO — o valor semeado, que é
+    // também o que `ajuste_num` usa se a linha sumir.
+    //
+    // Sem este teste, o espelho ficaria sem alarme nenhum: a constante do
+    // servidor que ele vigiava simplesmente deixou de existir, e um teste que
+    // não encontra o que vigiar passa em silêncio.
+    expect(semeadoNoAjuste('abates_base')).toBe(ABATES_BASE)
+    expect(semeadoNoAjuste('xp_por_abate_base')).toBe(XP_BASE_POR_ABATE)
+    expect(semeadoNoAjuste('moeda_por_abate_base')).toBe(MOEDA_BASE_POR_ABATE)
+    expect(semeadoNoAjuste('dano_por_ciclo_base')).toBe(DANO_BASE_POR_CICLO)
+    expect(semeadoNoAjuste('ataque_por_abate')).toBe(ATAQUE_POR_ABATE)
+
+    // Ligar o console não mudou o jogo: os multiplicadores globais nascem
+    // neutros. Se algum dia nascerem diferentes de 1, é decisão de produto e
+    // este teste é onde ela aparece.
+    expect(semeadoNoAjuste('xp_multiplicador_global')).toBe(1)
+    expect(semeadoNoAjuste('moeda_multiplicador_global')).toBe(1)
+  })
+
+  it('o padrão embutido em `resolver_ciclos` repete o valor semeado', () => {
+    // A rede de segurança do edge case "a linha sumiu": se o `coalesce` de
+    // `ajuste_num` cair num número diferente do semeado, apagar uma linha
+    // mudaria o jogo em silêncio — que é exatamente o que o padrão existe para
+    // impedir.
+    for (const [chave, esperado] of [
+      ['abates_base', ABATES_BASE],
+      ['xp_por_abate_base', XP_BASE_POR_ABATE],
+      ['moeda_por_abate_base', MOEDA_BASE_POR_ABATE],
+      ['dano_por_ciclo_base', DANO_BASE_POR_CICLO],
+      ['ataque_por_abate', ATAQUE_POR_ABATE],
+      ['xp_multiplicador_global', 1],
+      ['moeda_multiplicador_global', 1],
+    ] as const) {
+      const achado = new RegExp(`ajuste_num\\('${chave}',\\s*([0-9.]+)\\)`).exec(SQL)
+      expect(achado, `resolver_ciclos não lê ${chave}`).not.toBeNull()
+      expect(Number(achado![1]), `o padrão embutido de ${chave} diverge`).toBe(esperado)
+    }
   })
 
   it('a Sorte escala igual nos dois lados', () => {

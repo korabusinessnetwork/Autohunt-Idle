@@ -1,0 +1,184 @@
+/*
+  Console de ajuste — CSS separado do JSX (CLAUDE.md).
+
+  Esta é a única tela do produto que NÃO é para o jogador: é ferramenta de
+  dono. Ainda assim usa os mesmos tokens do design system, porque manter uma
+  segunda paleta só para ela seria uma paleta que envelhece sozinha.
+
+  A densidade é maior de propósito — quem abre isto quer varrer dezenas de
+  números, não ser guiado por um deles.
+*/
+
+.console {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: start center;
+  padding: var(--espaco-3);
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--cor-contorno) 80%, transparent);
+  z-index: 40;
+}
+
+.console__cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  width: min(46rem, 100%);
+  padding: var(--espaco-4);
+  background: var(--cor-fundo);
+  border: var(--borda);
+  border-radius: var(--raio);
+}
+
+.console__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-3);
+}
+
+.console__titulo {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.console__explicacao,
+.console__rodape {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+/* A recusa é visível e explicada. Some não; mente muito menos. */
+.console__negado {
+  margin: 0;
+  padding: var(--espaco-3);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--cor-texto);
+  background: color-mix(in srgb, var(--cor-bloqueado) 30%, transparent);
+  border: 2px solid var(--cor-bloqueado);
+  border-radius: var(--raio);
+}
+
+/*
+  Carregando e erro moram DENTRO do cartão, e o cartão não é a tela inteira: sem
+  isto o `min-height: 60vh` do estado padrão abre um buraco no meio do console.
+*/
+.console__estado .estado-tela {
+  min-height: 0;
+  padding: var(--espaco-3) 0;
+}
+
+.console__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  padding-top: var(--espaco-2);
+  border-top: 2px solid color-mix(in srgb, var(--cor-texto) 25%, transparent);
+}
+
+.console__grupoTitulo {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--cor-secundaria);
+}
+
+.console__linha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+}
+
+.console__rotulo {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* O selo que separa "muda a tela" de "muda quanto todo mundo ganha". É a
+   distinção mais importante do console inteiro, então tem cor própria. */
+.console__escopo {
+  padding: 0.1rem 0.4rem;
+  font-family: inherit;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+}
+
+.console__escopo--visual {
+  color: var(--cor-contorno);
+  background: var(--cor-secundaria);
+}
+
+.console__escopo--economico {
+  color: var(--cor-contorno);
+  background: var(--cor-recompensa);
+}
+
+.console__descricao {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  opacity: 0.8;
+}
+
+.console__controle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-2);
+}
+
+.console__campo {
+  width: 8rem;
+  padding: var(--espaco-2);
+  font: inherit;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--cor-texto);
+  background: var(--cor-campo);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+}
+
+.console__campo:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.console__faixa {
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+.console__aviso {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.console__aviso--ok {
+  color: var(--cor-positivo);
+}
+
+.console__aviso--erro {
+  color: var(--cor-bloqueado);
+}
+
+@media (max-width: 30rem) {
+  .console__cartao {
+    padding: var(--espaco-3);
+  }
+
+  .console__campo {
+    width: 100%;
+  }
+}

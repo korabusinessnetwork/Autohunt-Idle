@@ -343,4 +343,33 @@ export const en: Record<ChaveI18n, string> = {
   'inimigo.floco': 'Special Snowflake',
   'inimigo.brasa': 'Molten Chew',
   'inimigo.confete': 'Party Popper',
+
+  // --- Tuning console (owner tool, not a player screen) --------------------
+  'console.titulo': 'Tuning console',
+  'console.fechar': 'Close',
+  'console.carregando': 'Fetching the numbers…',
+  'console.explicacao':
+    'Every number here applies to the whole game, right away. Anything already credited is not recalculated.',
+  'console.negado.titulo': 'This one is not for you.',
+  'console.negado.mensagem':
+    'Only the owner account edits these numbers. You can look, but the server turns down any change.',
+  'console.faixa': 'from {minimo} to {maximo}',
+  'console.salvar': 'Save',
+  'console.salvo': 'Saved! It kicks in on the next cycle.',
+  'console.escopo.visual': 'visual',
+  'console.escopo.visual.ajuda': 'Changes what shows on screen. Never touches XP or gold.',
+  'console.escopo.economico': 'economy',
+  'console.escopo.economico.ajuda': 'Changes how much everyone earns. Read by the server only.',
+  'console.categoria.heroi': 'Hero',
+  'console.categoria.inimigo': 'Enemies',
+  'console.categoria.mundo': 'World',
+  'console.categoria.economia': 'Economy',
+  'console.rodape': 'Every change is logged with who did it, when, and from what to what.',
+  'console.erro.NAO_AUTORIZADO': 'The server said no: this account is not an admin.',
+  'console.erro.FORA_DA_FAIXA': 'Value is outside the allowed range for this number.',
+  'console.erro.AJUSTE_INEXISTENTE': 'That setting no longer exists on the server.',
+  'console.erro.VALOR_INVALIDO': 'It has to be a number.',
+  'console.erro.AJUSTE_FALHOU': 'Could not save right now. Give it another go.',
+  'console.erro.AJUSTES_NAO_CARREGARAM': 'Could not load the settings.',
+  'console.erro.CONFIGURACAO_AUSENTE': 'The game is not wired to a server yet (see .env.example).',
 }

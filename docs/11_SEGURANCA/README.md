@@ -58,9 +58,16 @@ esperam decisão do dono, dado de jogador real ou serviço contratado:
 4. **Webhook de gateway forjado** (3.4) — depende de P3.
 5. **Replay do callback de anúncio** (2.3) — depende de P2.
 
-Além delas, `modelo-de-ameacas.md` §12 registra quatro coisas que o modelo **não cobre**: abuso de
-volume, disponibilidade (DDoS/WAF), segurança operacional das contas do dono, e o mercado P2P —
-que tem documento próprio.
+Além delas, `modelo-de-ameacas.md` §13 registra cinco coisas que o modelo **não cobre**: abuso de
+volume, disponibilidade (DDoS/WAF), segurança operacional das contas do dono, o mercado P2P — que
+tem documento próprio — e o dano por espécie de monstro, deixado fora porque exigiria o client
+informar quais espécies apareceram.
+
+A superfície mais recente é o **console de ajuste** (§12): a mais perigosa do schema por natureza,
+já que quem a alcança muda XP, dano e drop de todo mundo de uma vez. Oito das dez ameaças estão
+fechadas por teste; as duas abertas são humanas, não técnicas — conta de admin comprometida (o log
+registra, mas nada além dele detecta) e o próprio dono desbalancear o jogo, que é o propósito da
+ferramenta e não um defeito dela.
 
 ## A ameaça que estava marcada FECHADA e não estava
 

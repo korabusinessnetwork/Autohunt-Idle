@@ -151,7 +151,29 @@ recompensa aleatória paga.
 | 11.9 | Progresso do passe não entrar na exportação de LGPD | **FECHADA** | `a exportação de dados inclui o progresso do passe` (fumaça). Tabela nova de dado do jogador entra na exportação junto — senão o direito de acesso vira promessa parcial |
 | 11.10 | Calibragem tornar a trilha inalcançável sem pagar mais | **ABERTA** | Mesma família de 4.7: os pontos por ciclo e o custo de cada tier são balanceamento (D4), e nenhum teste pode julgar se a curva é honesta. Só dado de jogador real resolve |
 
-## 12. O que este modelo não cobre
+## 12. Superfície: console de ajuste
+
+Superfície nova, criada na 11ª rodada (`specs/console-de-ajuste.md`). É a mais perigosa do schema
+por natureza: quem alcança este console muda XP, dano e drop de **todo mundo**, de uma vez.
+
+A decisão que molda a defesa inteira: **a proteção mora no banco, nunca na tela.** A rota `/console`
+vai no bundle que todo jogador baixa, e é deliberado — esconder rota é obscuridade, e obscuridade
+não é controle. Um jogador curioso abre a tela, preenche os campos, clica, e nada nele muda.
+
+| # | Ameaça | Estado | Prova |
+|---|---|---|---|
+| 12.1 | Jogador comum escrever balanceamento | **FECHADA** | `o console não escreve no banco por caminho nenhum do client` — `ajuste` não tem grant de INSERT/UPDATE/DELETE; `authenticated não escreve em ajuste` (fumaça). Nem o admin escreve direto |
+| 12.2 | Alguém se promover a admin | **FECHADA** | `a promoção a admin não tem caminho dentro do jogo` — nenhuma função do schema escreve `jogador.admin`, e a coluna está fora do grant de UPDATE; `authenticated não escreve jogador.admin` (fumaça). Vira admin só por `update` manual no SQL editor, que já exige a chave do projeto |
+| 12.3 | Chamada direta à RPC pulando a tela | **FECHADA** | `a escrita de ajuste confere admin dentro do servidor` — `definir_ajuste` é `SECURITY DEFINER`, checa `e_admin()` sobre `auth.uid()`; `não-admin é recusado por definir_ajuste` e `a tentativa do não-admin não mudou o valor` (fumaça) |
+| 12.4 | Valor absurdo quebrando o jogo ou a economia | **FECHADA** | `o número de balanceamento sempre tem faixa` — `minimo`/`maximo` são `check` de tabela, por linha; `acima do máximo é recusado` e `abaixo do mínimo é recusado` (fumaça) |
+| 12.5 | O client passar a declarar ganho por via do ajuste | **FECHADA** | `nenhum ajuste abre caminho para o client declarar ganho` — as RPCs que creditam continuam com zero parâmetro, e nenhuma outra RPC alcançável aprendeu a receber multiplicador, velocidade, dano ou boost |
+| 12.6 | Número econômico vazar para o navegador | **FECHADA** | `nenhum número econômico do console viaja para o client` — `montar_ajustes_visuais` filtra `escopo = 'visual'`; `o snapshot não publica o multiplicador de XP` (fumaça); `nenhum número que credita tem representação no client` (client) |
+| 12.7 | Alteração sem rastro de quem fez | **FECHADA** | `o ajuste aplicado registra de-para e autor` e `a recusa do não-admin ficou no log` (fumaça). A recusa é **devolvida** em vez de levantada justamente para o registro sobreviver — `raise` derrubaria a transação e apagaria o log junto |
+| 12.8 | Linha apagada mudando o jogo em silêncio | **FECHADA** | `o padrão embutido em resolver_ciclos repete o valor semeado` — o `coalesce` de `ajuste_num` cai exatamente no valor de origem. Jogo que para porque uma linha sumiu é pior que jogo mal balanceado |
+| 12.9 | Conta de admin comprometida | **ABERTA** | Nada além do log detecta uso indevido de uma sessão legítima do dono. Não há segunda pessoa para aprovar, nem 2FA no jogo — é conta única de produto single-tenant. Mitigação real é operacional: 2FA no Supabase, item do checklist de release |
+| 12.10 | O dono desbalancear o jogo sozinho | **ABERTA** | É o propósito da ferramenta, não um defeito dela. A faixa limita o estrago; o julgamento é humano. Mesma família de 4.7 e 11.10 |
+
+## 13. O que este modelo não cobre
 
 Registrado para não virar ponto cego por omissão:
 
@@ -164,3 +186,7 @@ Registrado para não virar ponto cego por omissão:
   operacional, fora do código. Vira item de release.
 - **Mercado P2P.** Superfície inteira ainda não construída, e a mais delicada do roadmap — tem
   documento próprio: `plano-mercado-p2p.md`.
+- **Dano por espécie de monstro.** Pedido do dono, deixado fora com o motivo registrado: hoje
+  inimigo não causa dano econômico (o dano por ciclo é um número só, do servidor), e fazê-lo
+  depender de quais espécies apareceram exigiria o client informar quem apareceu — a informação
+  que 13 ameaças deste documento dependem de ele nunca enviar.
