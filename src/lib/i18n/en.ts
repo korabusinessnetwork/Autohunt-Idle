@@ -372,4 +372,20 @@ export const en: Record<ChaveI18n, string> = {
   'console.erro.AJUSTE_FALHOU': 'Could not save right now. Give it another go.',
   'console.erro.AJUSTES_NAO_CARREGARAM': 'Could not load the settings.',
   'console.erro.CONFIGURACAO_AUSENTE': 'The game is not wired to a server yet (see .env.example).',
+  'console.aba.ajustes': 'Game numbers',
+  'console.aba.log': 'Log',
+  'console.log.titulo': 'Operations log',
+  'console.log.carregando': 'Fetching the trail…',
+  'console.log.explicacao':
+    'Everything that touched a number, money, or value inside the game — newest first.',
+  'console.log.filtrar': 'Filter by type',
+  'console.log.todos': 'everything',
+  'console.log.carregarMais': 'Load more',
+  'console.log.vazio.titulo': 'Nothing has happened yet',
+  'console.log.vazio.mensagem': 'The moment someone changes a number or spends something, it shows up here.',
+  'console.log.negado':
+    'The log is the trail of who changed what. Only the owner account reads it, and your attempt is on the record.',
+  'console.log.recorte':
+    'The log only shows what moves value or changes configuration. When someone played, for how long, and how they built their character are deliberately left out — that is behaviour, not operations.',
+  'console.log.erro': 'Could not load the log.',
 }

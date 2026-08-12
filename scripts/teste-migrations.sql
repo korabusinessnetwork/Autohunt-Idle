@@ -862,9 +862,9 @@ begin
       'coletar_farm_offline', 'comprar_ouro', 'definir_ajuste', 'definir_apelido',
       'e_admin', 'emitir_ticket_anuncio', 'emitir_ticket_auto', 'encerrar_sessao',
       'equipar_item', 'estado_jogador', 'excluir_minha_conta', 'exportar_meus_dados',
-      'fortificar_item', 'iniciar_dungeon', 'iniciar_sessao', 'ranking_global',
-      'reativar_auto_alocacao', 'redistribuir_atributos', 'sintetizar',
-      'validar_lote'
+      'fortificar_item', 'iniciar_dungeon', 'iniciar_sessao', 'log_operacional',
+      'ranking_global', 'reativar_auto_alocacao', 'redistribuir_atributos',
+      'sintetizar', 'validar_lote'
     ]::name[],
     'a superfície do client é exatamente a lista declarada');
 
@@ -1114,6 +1114,112 @@ begin
   perform public.checar(
     not has_function_privilege('authenticated', 'public.montar_ajustes_visuais()', 'execute'),
     'authenticated NÃO alcança montar_ajustes_visuais');
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Log operacional do console
+--
+-- O que precisa ficar provado aqui: o admin vê o rastro, o jogador comum não vê
+-- nada, e **nenhum dos dois consegue puxar evento de presença ou progressão** —
+-- que é a diferença entre auditoria e vigilância.
+-- ---------------------------------------------------------------------------
+\echo '== log operacional =='
+do $$
+declare
+  v_dono   uuid := '10000001-0000-0000-0000-000000000001';  -- já é admin (bloco anterior)
+  v_zé     uuid := '10000002-0000-0000-0000-000000000002';
+  v_r      jsonb;
+  v_tipos  text[];
+  v_antes  integer;
+begin
+  -- Jogador comum: recusado, e a tentativa fica registrada. Ler o log de
+  -- auditoria é justamente o tipo de coisa que se quer auditar.
+  perform set_config('autohunt.uid', v_zé::text, false);
+  v_r := public.log_operacional();
+  perform public.checar((v_r ->> 'permitido')::boolean is false,
+                        'jogador comum não lê o log operacional');
+  perform public.checar(v_r ->> 'motivo' = 'NAO_AUTORIZADO', 'a recusa do log diz o motivo');
+  perform public.checar(not (v_r ? 'eventos'), 'a recusa não vaza evento nenhum');
+  perform public.checar(
+    exists (select 1 from public.evento_jogo
+             where player_id = v_zé and tipo = 'console.log_recusado'),
+    'a tentativa de ler o log ficou registrada');
+
+  -- Admin: vê o rastro que o console deixou na rodada anterior.
+  perform set_config('autohunt.uid', v_dono::text, false);
+  v_r := public.log_operacional();
+  perform public.checar((v_r ->> 'permitido')::boolean, 'o admin lê o log operacional');
+  perform public.checar(jsonb_array_length(v_r -> 'eventos') > 0, 'o log traz eventos');
+  perform public.checar(
+    exists (select 1 from jsonb_array_elements(v_r -> 'eventos') e
+             where e ->> 'tipo' = 'ajuste.aplicado'
+               and e -> 'dados' ? 'de' and e -> 'dados' ? 'para'),
+    'o log mostra o de-para de um ajuste');
+  perform public.checar(
+    exists (select 1 from jsonb_array_elements(v_r -> 'eventos') e
+             where e ->> 'jogador' = v_zé::text),
+    'o log cruza jogadores — é auditoria, não a linha do próprio admin');
+
+  -- A LISTA FECHADA: nada de presença nem de progressão sai por aqui, e não
+  -- existe parâmetro que amplie isso.
+  v_tipos := array(select jsonb_array_elements_text(v_r -> 'tipos'));
+  foreach v_r in array array[
+    to_jsonb('farm.calculado'::text), to_jsonb('farm.coletado'::text),
+    to_jsonb('atributo.redistribuido'::text), to_jsonb('atributo.auto_reativado'::text),
+    to_jsonb('passe.tier'::text)
+  ] loop
+    perform public.checar(
+      not ((v_r #>> '{}') = any(v_tipos)),
+      format('%s fica fora do log — é comportamento, não operação', v_r #>> '{}'));
+  end loop;
+
+  -- Pedir um tipo de fora da lista não amplia: a interseção devolve vazio.
+  v_r := public.log_operacional(array['farm.calculado', 'atributo.redistribuido']);
+  perform public.checar(jsonb_array_length(v_r -> 'eventos') = 0,
+                        'pedir tipo de fora da lista não devolve nada');
+
+  -- Filtrar DENTRO da lista funciona, e devolve só aquilo.
+  v_r := public.log_operacional(array['ajuste.aplicado']);
+  perform public.checar(
+    not exists (select 1 from jsonb_array_elements(v_r -> 'eventos') e
+                 where e ->> 'tipo' <> 'ajuste.aplicado'),
+    'o filtro por tipo devolve só o tipo pedido');
+
+  -- Teto de página: pedir mil não devolve mil.
+  v_r := public.log_operacional(null, 100000);
+  perform public.checar((v_r ->> 'limite')::integer = 200, 'o limite é travado no teto');
+  v_r := public.log_operacional(null, -5);
+  perform public.checar((v_r ->> 'limite')::integer = 1, 'limite negativo vira o mínimo');
+
+  -- Cursor de tempo: nada depois do corte aparece.
+  v_r := public.log_operacional(null, 50, now() - interval '10 years');
+  perform public.checar(jsonb_array_length(v_r -> 'eventos') = 0,
+                        'o cursor de tempo corta o que é mais novo que ele');
+end $$;
+
+\echo '== permissões do log =='
+do $$
+begin
+  -- A policy de `evento_jogo` continua sendo "cada um lê o seu". O admin NÃO
+  -- ganhou leitura da tabela — ele ganhou uma RPC com lista fechada, porque
+  -- `dados` é jsonb livre e "admin lê a tabela" seria vigilância, não auditoria.
+  perform public.checar(
+    not exists (select 1 from pg_policies
+                 where schemaname = 'public' and tablename = 'evento_jogo'
+                   and coalesce(qual, '') like '%e_admin%'),
+    'nenhuma policy de evento_jogo abre a tabela para o admin');
+
+  perform public.checar(
+    not has_function_privilege('authenticated', 'public.tipos_do_log_operacional()', 'execute'),
+    'authenticated NÃO alcança a lista de tipos');
+  perform public.checar(
+    has_function_privilege('authenticated', 'public.log_operacional(text[], integer, timestamptz)',
+                           'execute'),
+    'authenticated alcança log_operacional — e ela confere admin por dentro');
+  perform public.checar(
+    not has_function_privilege('anon', 'public.log_operacional(text[], integer, timestamptz)',
+                               'execute'),
+    'anon NÃO alcança log_operacional');
 end $$;
 
 \echo ''

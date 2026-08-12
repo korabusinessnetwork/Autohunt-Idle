@@ -692,3 +692,119 @@ describe('console de ajuste', () => {
     expect(politica![0]).toMatch(/escopo\s*=\s*'visual'\s*or\s*public\.e_admin\(\)/i)
   })
 })
+
+describe('log operacional do console', () => {
+  // A propriedade central: **auditoria não é vigilância.** O log mostra o que
+  // move valor e o que muda configuração; presença e progressão ficam de fora.
+  //
+  // Isto não é escrúpulo: `evento_jogo.dados` é `jsonb` livre e o client tem
+  // `grant insert` (dívida D10), então "admin lê a tabela" significaria admin
+  // lendo tudo o que qualquer jogador já registrou — inclusive tipos que ainda
+  // nem foram inventados.
+
+  /** A lista fechada, extraída do próprio SQL. */
+  const listaDeTipos = () => {
+    const definicao =
+      /create or replace function public\.tipos_do_log_operacional\(\)[\s\S]*?\$\$;/i.exec(
+        sqlExecutavel,
+      )
+    expect(definicao, 'a lista fechada de tipos não existe').not.toBeNull()
+    return [...definicao![0].matchAll(/'([a-z_]+\.[a-z_]+)'/g)].map(([, tipo]) => tipo)
+  }
+
+  it('o admin não ganha leitura da tabela de eventos', () => {
+    // A tentação era uma policy `using (public.e_admin())`. Ela abriria `dados`
+    // inteiro, para sempre, para todo tipo futuro.
+    const politicas = [
+      ...sqlExecutavel.matchAll(/create policy \w+ on public\.evento_jogo[\s\S]*?;/gi),
+    ]
+    expect(politicas.length).toBeGreaterThan(0)
+    for (const [politica] of politicas) {
+      expect(politica, 'nenhuma policy de evento_jogo pode citar admin').not.toMatch(/e_admin/i)
+    }
+
+    // E nenhum grant novo de leitura ampla apareceu.
+    expect(sqlExecutavel).not.toMatch(/grant\s+all[^;]*on\s+(table\s+)?public\.evento_jogo/i)
+  })
+
+  it('o log nunca mostra presença nem progressão', () => {
+    // `farm.calculado` diria quando cada pessoa jogou e por quanto tempo;
+    // `atributo.redistribuido` diria como ela monta o personagem. Nenhum dos
+    // dois é operação — os dois são comportamento.
+    const proibidos = [
+      'farm.calculado',
+      'farm.coletado',
+      'atributo.redistribuido',
+      'atributo.auto_reativado',
+      'passe.tier',
+    ]
+    const tipos = listaDeTipos()
+    expect(tipos.length).toBeGreaterThan(5)
+
+    for (const tipo of proibidos) {
+      expect(tipos, `${tipo} é comportamento e não pode entrar no log`).not.toContain(tipo)
+    }
+  })
+
+  it('o log mostra o que move valor e o que muda o jogo', () => {
+    // O outro lado da mesma regra: se um evento de dinheiro sumir da lista, o
+    // log deixa de servir para o que ele existe.
+    const tipos = listaDeTipos()
+    for (const tipo of [
+      'ajuste.aplicado',
+      'ajuste.recusado',
+      'diamante.creditado',
+      'passe.ativado',
+      'ouro.comprado',
+      'anuncio.creditado',
+      'item.fortificado',
+    ]) {
+      expect(tipos, `${tipo} precisa estar no log`).toContain(tipo)
+    }
+  })
+
+  it('o filtro do client é intersectado, nunca somado', () => {
+    // `p_tipos` é conveniência de tela. Se ele pudesse ampliar a lista, a lista
+    // fechada não existiria — bastava pedir `farm.calculado` pelo nome.
+    const definicao = /create or replace function public\.log_operacional\([\s\S]*?\n\$\$;/i.exec(
+      sqlExecutavel,
+    )
+    expect(definicao).not.toBeNull()
+
+    const corpo = definicao![0]
+    expect(corpo).toMatch(/security definer/i)
+    expect(corpo).toMatch(/set search_path = public, pg_temp/i)
+    expect(corpo).toMatch(/if not public\.e_admin\(\)/i)
+    expect(corpo).toMatch(/intersect/i)
+    // E a consulta filtra pela lista intersectada, não pelo que veio de fora.
+    expect(corpo).toMatch(/e\.tipo\s*=\s*any\(v_filtro\)/i)
+    expect(corpo).not.toMatch(/e\.tipo\s*=\s*any\(p_tipos\)/i)
+  })
+
+  it('a página do log tem teto no servidor', () => {
+    // Sem teto, um `p_limite` grande vira uma varredura da tabela inteira por
+    // requisição — vetor de custo, que é exatamente a família de D10.
+    const definicao = /create or replace function public\.log_operacional\([\s\S]*?\n\$\$;/i.exec(
+      sqlExecutavel,
+    )!
+    expect(definicao[0]).toMatch(/c_limite_maximo\s+constant\s+integer\s*:=\s*\d+/i)
+    expect(definicao[0]).toMatch(/least\(greatest\(/i)
+  })
+
+  it('o log é somente leitura — nenhum caminho apaga evento', () => {
+    // Rastro que pode ser apagado por dentro do produto não é rastro. A única
+    // remoção que existe é a cascata da exclusão de conta (direito da LGPD).
+    const funcoes = [
+      ...sqlExecutavel.matchAll(/create or replace function public\.(\w+)\(([\s\S]*?)\n\$\$;/gi),
+    ]
+    for (const [corpo, nome] of funcoes) {
+      if (nome === 'excluir_minha_conta') continue
+      expect(corpo, `${nome} não pode apagar evento`).not.toMatch(
+        /delete\s+from\s+public\.evento_jogo/i,
+      )
+      expect(corpo, `${nome} não pode reescrever evento`).not.toMatch(
+        /update\s+public\.evento_jogo/i,
+      )
+    }
+  })
+})

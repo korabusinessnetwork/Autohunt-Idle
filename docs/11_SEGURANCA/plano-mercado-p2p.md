@@ -131,6 +131,17 @@ comprador, item, preço e taxa. Sem isso, investigar lavagem ou golpe é imposs�
 
 - *Teste:* uma compra bem-sucedida deixa exatamente um evento com os dois `player_id`.
 
+**Onde esse rastro aparece — construído em 2026-08-12, antes do mercado.** O console do dono tem
+uma aba de log (`log_operacional()`), com lista fechada de tipos. Quando o mercado nascer,
+`mercado.listado`, `mercado.comprado` e `mercado.cancelado` entram na lista e aparecem naquela
+tela **sem código novo de interface**.
+
+O que isso muda no plano de execução: **a escrita do rastro não é uma fase depois do mercado.**
+Ela nasce dentro da RPC do trade, na mesma transação que move o item — se ficar fora da transação,
+um trade pode acontecer e o log falhar, que é exatamente o caso que o rastro existe para cobrir. E
+não dá para recuperar depois: todo trade que rodar antes do log existir é um trade que ninguém
+nunca vai conseguir investigar.
+
 ### 4.7 Limite de volume
 
 O primeiro controle contra lavagem industrial e contra bot.

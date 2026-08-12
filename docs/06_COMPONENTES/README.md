@@ -77,6 +77,7 @@ Um diretório por feature, com o componente, seu CSS, e a lógica pura que a fea
 | `ranking` | `TelaRanking` | o placar e a escolha de apelido |
 | `configuracoes` | `PainelConfiguracoes` | idioma, e os dois direitos de LGPD |
 | `console` | `ConsoleAjuste` | **a única tela que não é do jogador** — o dono edita os números do jogo |
+| `console` | `LogOperacional` | a outra metade do console: quem mudou o quê, quando, e de quanto para quanto |
 
 Todos são `role="dialog" aria-modal="true"` com `aria-labelledby` apontando para o próprio título.
 
@@ -95,6 +96,11 @@ não são layout, são regra:
   apresentado como fato;
 - **cada campo mostra faixa e descrição**, não só o número, senão o console vira um formulário de
   números mágicos.
+
+São **duas abas numa rota só** — os números, e o log. O log publica na tela a lista de tipos que
+mostra, porque recorte invisível engana mais do que log nenhum. E ele **não é pedido para quem não
+é admin**: não por proteção (a RPC recusa de qualquer jeito), mas para carregar uma URL não virar
+uma linha de recusa no banco. Chamada deliberada fica registrada; abrir a página, não.
 
 ## 5. Lógica de jogo fora dos componentes
 

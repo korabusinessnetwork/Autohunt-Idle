@@ -172,6 +172,12 @@ não é controle. Um jogador curioso abre a tela, preenche os campos, clica, e n
 | 12.8 | Linha apagada mudando o jogo em silêncio | **FECHADA** | `o padrão embutido em resolver_ciclos repete o valor semeado` — o `coalesce` de `ajuste_num` cai exatamente no valor de origem. Jogo que para porque uma linha sumiu é pior que jogo mal balanceado |
 | 12.9 | Conta de admin comprometida | **ABERTA** | Nada além do log detecta uso indevido de uma sessão legítima do dono. Não há segunda pessoa para aprovar, nem 2FA no jogo — é conta única de produto single-tenant. Mitigação real é operacional: 2FA no Supabase, item do checklist de release |
 | 12.10 | O dono desbalancear o jogo sozinho | **ABERTA** | É o propósito da ferramenta, não um defeito dela. A faixa limita o estrago; o julgamento é humano. Mesma família de 4.7 e 11.10 |
+| 12.11 | Admin lendo o log virar vigilância do jogador | **FECHADA** | `o log nunca mostra presença nem progressão` — `tipos_do_log_operacional()` é lista fechada, e `farm.calculado`, `farm.coletado`, `passe.tier` e os de atributo estão proibidos por teste. A recusa do caminho fácil está registrada: nenhuma policy de `evento_jogo` cita admin (`o admin não ganha leitura da tabela de eventos`) |
+| 12.12 | Client ampliar o log pedindo um tipo de fora | **FECHADA** | `o filtro do client é intersectado, nunca somado` — `p_tipos` passa por `intersect` com a lista do servidor, e a consulta filtra por `v_filtro`; `pedir tipo de fora da lista não devolve nada` (fumaça) |
+| 12.13 | Jogador comum lendo o rastro | **FECHADA** | `jogador comum não lê o log operacional` (fumaça), e a tentativa vira `console.log_recusado` — ler o log de auditoria é justamente o que se quer auditar |
+| 12.14 | Evento apagado ou reescrito por dentro do produto | **FECHADA** | `o log é somente leitura — nenhum caminho apaga evento`: nenhuma função faz `delete`/`update` em `evento_jogo`. A única remoção é a cascata de `excluir_minha_conta`, que é direito da LGPD |
+| 12.15 | Página gigante virando varredura da tabela | **FECHADA** | `a página do log tem teto no servidor` — limite travado em 200, e paginação por cursor de tempo em vez de `offset`. Mesma família de custo da D10 |
+| 12.16 | Carregar a página inflando o log de recusas | **MITIGADA** | A tela não pede o log quando já sabe que não é admin, então abrir a URL não gera linha. Uma chamada direta e repetida à RPC ainda gera — é a mesma ausência de rate limit por jogador da §13, sem controle novo |
 
 ## 13. O que este modelo não cobre
 

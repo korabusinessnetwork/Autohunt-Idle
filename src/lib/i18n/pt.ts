@@ -369,4 +369,20 @@ export const pt = {
   'console.erro.AJUSTE_FALHOU': 'Não deu pra salvar agora. Tenta de novo.',
   'console.erro.AJUSTES_NAO_CARREGARAM': 'Não deu pra carregar os ajustes.',
   'console.erro.CONFIGURACAO_AUSENTE': 'O jogo ainda não está ligado a um servidor (ver .env.example).',
+  'console.aba.ajustes': 'Números do jogo',
+  'console.aba.log': 'Log',
+  'console.log.titulo': 'Log operacional',
+  'console.log.carregando': 'Buscando o rastro…',
+  'console.log.explicacao':
+    'Tudo que mexeu em número, em dinheiro ou em valor dentro do jogo — mais recente primeiro.',
+  'console.log.filtrar': 'Filtrar por tipo',
+  'console.log.todos': 'tudo',
+  'console.log.carregarMais': 'Carregar mais',
+  'console.log.vazio.titulo': 'Nada aconteceu ainda',
+  'console.log.vazio.mensagem': 'Assim que alguém mexer num número ou gastar alguma coisa, aparece aqui.',
+  'console.log.negado':
+    'O log é o rastro de quem mexeu no jogo. Só a conta do dono lê, e a sua tentativa fica registrada.',
+  'console.log.recorte':
+    'O log mostra só o que move valor ou muda configuração. Quando alguém jogou, por quanto tempo, e como montou o personagem ficam de fora de propósito — isso é comportamento, não operação.',
+  'console.log.erro': 'Não deu pra carregar o log.',
 } as const

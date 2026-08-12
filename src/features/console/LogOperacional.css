@@ -1,0 +1,96 @@
+/*
+  Log operacional — CSS separado do JSX (CLAUDE.md).
+
+  Densidade alta e fonte monoespaçada nos campos técnicos: isto é rastro de
+  auditoria, e quem lê está varrendo dezenas de linhas atrás de um padrão, não
+  admirando uma tela.
+*/
+
+.log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+}
+
+.log__filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-1);
+}
+
+.log__filtro {
+  padding: 0.25rem 0.6rem;
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--cor-texto);
+  background: var(--cor-campo);
+  border: 2px solid color-mix(in srgb, var(--cor-texto) 35%, transparent);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.log__filtro--ativo {
+  color: var(--cor-contorno);
+  background: var(--cor-secundaria);
+  border-color: var(--cor-secundaria);
+}
+
+.log__lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  max-height: 55dvh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.log__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: var(--espaco-2);
+  background: var(--cor-campo);
+  border-radius: var(--raio);
+  /* A borda lateral dá a âncora vertical que faz a lista ser varrida rápido. */
+  border-inline-start: 3px solid color-mix(in srgb, var(--cor-secundaria) 60%, transparent);
+}
+
+.log__cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--espaco-2);
+}
+
+.log__tipo {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--cor-secundaria);
+}
+
+.log__quando {
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+.log__quem {
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+.log__dados {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  word-break: break-word;
+  opacity: 0.8;
+}

@@ -24,10 +24,10 @@ conta.
 | Papel | Quem é | O que alcança |
 |---|---|---|
 | `anon` | ninguém autenticado | **nada**. Sem grant de tabela nem de função |
-| `authenticated` | o jogador, com JWT do Supabase Auth | os 20 RPCs da seção 3, e leitura das próprias linhas via RLS |
+| `authenticated` | o jogador, com JWT do Supabase Auth | os 21 RPCs da seção 3, e leitura das próprias linhas via RLS |
 | `service_role` | Edge Functions, com a chave secreta | os 7 RPCs da seção 4. **Nunca entra no bundle do client** |
 
-## 3. A superfície do jogador — 20 RPCs, e só elas
+## 3. A superfície do jogador — 21 RPCs, e só elas
 
 Esta lista é fechada. O teste de fumaça `a superfície do client é exatamente a lista declarada`
 pergunta ao banco quais funções `authenticated` alcança e compara com ela — uma função nova que
@@ -82,6 +82,30 @@ bundle que todo mundo baixa, porque esconder a rota seria segurança por obscuri
 |---|---|---|
 | `e_admin()` | — | Responde sobre `auth.uid()`, nunca sobre um uuid digitado. É o que deixa a tela recusar com o motivo escrito em vez de sumir |
 | `definir_ajuste(chave, valor)` | qual número, e quanto | **Única porta de escrita da tabela `ajuste`.** Confere admin, valida a faixa da própria linha e registra quem mudou o quê |
+| `log_operacional(tipos, limite, antes)` | filtro, tamanho da página e cursor de tempo | Lê o rastro. **O admin não tem grant de leitura em `evento_jogo`** — ver abaixo |
+
+### Por que o log é RPC e não uma policy de RLS
+
+O caminho curto seria `create policy … using (public.e_admin())` em `evento_jogo`. Foi recusado, e a
+razão vale mais que a economia de código: `evento_jogo.dados` é `jsonb` sem esquema e o client tem
+`grant insert` (dívida D10). "Admin lê a tabela" significaria admin lendo **tudo o que qualquer
+jogador já registrou, inclusive tipos que ainda nem foram inventados**. Isso é vigilância, não
+auditoria.
+
+A RPC tem **lista fechada de tipos**, declarada no servidor por `tipos_do_log_operacional()`, que
+`authenticated` não alcança. A linha que separa os dois lados: **entra o evento que move valor ou
+muda a configuração do jogo.** Presença (`farm.calculado`), progressão (`passe.tier`) e escolha
+pessoal (`atributo.redistribuido`) ficam de fora — um teste reprova o build se algum deles entrar.
+
+`p_tipos` é filtro de conveniência da tela e é **intersectado** com a lista: pedir um tipo de fora
+não amplia nada, só devolve menos. A página tem teto de 200 no servidor, e a paginação é por cursor
+de tempo em vez de `offset` — o log só cresce pela ponta nova, e `offset` faria a página 2 repetir
+linha toda vez que um evento entrasse no meio da leitura.
+
+Quando o mercado P2P existir, `mercado.listado` e `mercado.comprado` entram nessa lista e aparecem
+na mesma tela. **A escrita do rastro nasce dentro da RPC do trade, na mesma transação** — nunca
+depois: trade que rodou antes do log existir é trade que ninguém consegue investigar
+(`docs/11_SEGURANCA/plano-mercado-p2p.md` §4.6).
 
 `definir_ajuste` é a única RPC do contrato que recebe um número de balanceamento — e pode, porque
 **não credita nada**. A regra do core é sobre o client declarar *tempo* e *recompensa*; escrever
@@ -110,8 +134,8 @@ impede o jogador de se declarar assinante, portador de passe ou espectador de an
 
 ## 5. Tudo o mais é interno
 
-As ~40 funções restantes — `sorteio01`, `escalar_raridade`, `conceder_item`, `creditar_ciclos`,
-`montar_snapshot`, `progredir_passe`, `ajuste_num`, `montar_ajustes_visuais`, as funções de matemática pura — **não são alcançáveis por
+As ~41 funções restantes — `sorteio01`, `escalar_raridade`, `conceder_item`, `creditar_ciclos`,
+`montar_snapshot`, `progredir_passe`, `ajuste_num`, `montar_ajustes_visuais`, `tipos_do_log_operacional`, as funções de matemática pura — **não são alcançáveis por
 ninguém**. Só por outras funções `SECURITY DEFINER`, que rodam como donas do schema.
 
 ## 6. O furo que este documento encontrou

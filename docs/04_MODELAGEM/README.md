@@ -120,7 +120,12 @@ aparece ali escolheu aparecer, e aparece só com o nome que escolheu.
 client. Ele carrega a `finalidade` (`offline` ou `auto`), **decidida na emissão, pelo servidor** —
 o client nunca informa qual produto está destravando.
 
-`evento_jogo` é o log fire-and-forget. É a **única tabela em que o client pode inserir**
+`evento_jogo` é o log fire-and-forget, e desde 2026-08-12 é também o **rastro operacional** que o
+console mostra. A policy continua sendo "cada um lê o seu": **o admin não ganhou leitura da
+tabela** — ele alcança `log_operacional()`, que devolve uma lista fechada de tipos. A diferença é
+o que separa auditoria de vigilância, e está detalhada em `docs/07_APIS/`.
+
+É a **única tabela em que o client pode inserir**
 (`player_id, tipo, dados`), e isso é dívida registrada (D10): `dados` é `jsonb` sem esquema, então
 nada impede um `tipo` novo carregar dado pessoal, nem um script inflar a tabela. Não credita nada
 — não é vetor de trapaça, é vetor de custo e ruído.

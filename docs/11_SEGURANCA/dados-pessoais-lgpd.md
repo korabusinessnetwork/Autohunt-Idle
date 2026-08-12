@@ -83,6 +83,31 @@ Isso é uma **mitigação por aviso, não uma solução** — e está registrado
 cancelamento automático na exclusão depende de gateway contratado (P3 do backlog). Quando P3
 fechar, a exclusão deve chamar o cancelamento antes de apagar, e este parágrafo sai daqui.
 
+## 4b. O log operacional — o dono lendo evento de terceiro
+
+Desde 2026-08-12 o console do dono lê `evento_jogo` de **outros jogadores**, por
+`log_operacional()`. É tratamento de dado pessoal de terceiro, e por isso a decisão está escrita
+aqui e não só no código:
+
+- **Finalidade:** auditoria de operação e de economia — quem mexeu no balanceamento, e para onde
+  o valor circulou. Quando o mercado P2P existir, é o que torna investigável um caso de lavagem ou
+  de golpe (`plano-mercado-p2p.md` §4.6).
+- **Minimização:** não é a tabela inteira. `tipos_do_log_operacional()` é uma **lista fechada**, e
+  o corte é declarado: entra o que move valor ou muda configuração; **presença, progressão e
+  escolha pessoal ficam de fora**. Quando alguém jogou, por quanto tempo e como montou o
+  personagem não são visíveis para o dono por caminho nenhum do produto.
+- **Identificação:** o retorno traz `player_id` e o apelido. O identificador é necessário para a
+  finalidade — rastro sem sujeito não investiga nada — e é o mesmo dado que já vive na tabela.
+- **Retenção:** o log herda a da `evento_jogo`, e a exclusão de conta o apaga em cascata junto com
+  o resto. **Não existe cópia fora da tabela.**
+- **Transparência:** a tela publica a lista de tipos que mostra. Recorte invisível engana mais do
+  que log nenhum.
+
+Vale registrar o que **não** foi feito, porque era o caminho curto: uma policy de RLS
+`using (public.e_admin())` em `evento_jogo`. Ela daria ao dono tudo o que qualquer jogador já
+registrou — e, como `dados` é `jsonb` livre com `grant insert` para o client (item 5 da seção 6),
+também tudo o que ainda vier a ser registrado. Isso é vigilância, não auditoria.
+
 ## 5. Base legal e retenção
 
 - **Base legal:** a definir com advogado — provavelmente execução de contrato (Art. 7º, V) para a

@@ -182,3 +182,30 @@
     width: 100%;
   }
 }
+
+/*
+  As duas abas do console: os números, e o rastro de quem mexeu neles.
+  Uma rota só — o log não é outra tela, é a outra metade da mesma.
+*/
+.console__abas {
+  display: flex;
+  gap: var(--espaco-1);
+}
+
+.console__aba {
+  padding: var(--espaco-2) var(--espaco-3);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--cor-texto);
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.console__aba--ativa {
+  border-bottom-color: var(--cor-secundaria);
+  opacity: 1;
+}

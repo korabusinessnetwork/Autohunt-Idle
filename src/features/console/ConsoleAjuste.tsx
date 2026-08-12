@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Botao } from '../../components/shared/Botao'
 import { TelaCarregando, TelaErro } from '../../components/shared/EstadoTela'
 import { useSessao } from '../../context/SessaoContext'
+import { LogOperacional } from './LogOperacional'
 import type { ChaveI18n } from '../../lib/i18n'
 import {
   definirAjuste,
@@ -56,6 +57,10 @@ export function ConsoleAjuste({ aoFechar }: { aoFechar: () => void }) {
   const [rascunho, setRascunho] = useState<Record<string, string>>({})
   const [ocupada, setOcupada] = useState<string | null>(null)
   const [aviso, setAviso] = useState<{ chave: string; texto: ChaveI18n; ok: boolean } | null>(null)
+  // Duas abas, uma rota. O log é a outra metade do console: uma muda os números,
+  // a outra mostra quem mudou o quê — e, quando o mercado existir, os trades
+  // (`docs/11_SEGURANCA/plano-mercado-p2p.md` §4.6).
+  const [aba, setAba] = useState<'ajustes' | 'log'>('ajustes')
 
   const ehAdmin = snapshot?.jogador.admin ?? false
 
@@ -150,7 +155,26 @@ export function ConsoleAjuste({ aoFechar }: { aoFechar: () => void }) {
           </p>
         )}
 
-        <p className="console__explicacao">{t('console.explicacao')}</p>
+        <div className="console__abas" role="tablist" aria-label={t('console.titulo')}>
+          {(['ajustes', 'log'] as const).map((nome) => (
+            <button
+              key={nome}
+              type="button"
+              role="tab"
+              aria-selected={aba === nome}
+              className={`console__aba ${aba === nome ? 'console__aba--ativa' : ''}`.trim()}
+              onClick={() => setAba(nome)}
+            >
+              {t(nome === 'ajustes' ? 'console.aba.ajustes' : 'console.aba.log')}
+            </button>
+          ))}
+        </div>
+
+        {aba === 'log' && <LogOperacional />}
+
+        {aba === 'ajustes' && (
+          <>
+            <p className="console__explicacao">{t('console.explicacao')}</p>
 
         {erroCarga && (
           <div className="console__estado">
@@ -239,7 +263,9 @@ export function ConsoleAjuste({ aoFechar }: { aoFechar: () => void }) {
           </section>
         ))}
 
-        {ehAdmin && <p className="console__rodape">{t('console.rodape')}</p>}
+            {ehAdmin && <p className="console__rodape">{t('console.rodape')}</p>}
+          </>
+        )}
       </div>
     </div>
   )
