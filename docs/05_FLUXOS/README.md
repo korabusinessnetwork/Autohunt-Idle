@@ -16,12 +16,12 @@ abre a página
   → TelaCarregando ("Entrando no mundo…")
   → signInAnonymously (Supabase Auth)
   → iniciar_sessao()          ← cria jogador, farm_state, atributos, arma inicial
-  → o personagem já está andando e atacando
+  → o jogador já está no mundo, no comando
 ```
 
 **Não existe tela de boas-vindas, escolha de classe, nome ou tutorial** (core, 17). O jogador cai
-direto no mundo com o herói em movimento — a ação principal se explica sozinha em cinco segundos
-porque acontece sozinha.
+direto no mundo — e desde a inversão de premissa, **no comando**: andar e atirar são a primeira
+coisa que ele faz, e se explicam em cinco segundos porque são o que qualquer top-down faz.
 
 **Quando dá errado:** `TelaErro` com título legível, mensagem sem culpa e botão de tentar de novo.
 O código do erro aparece como detalhe, para suporte. Tela branca é o que o Princípio nº 1 proíbe
@@ -30,18 +30,36 @@ acima de tudo.
 **Pré-requisito operacional:** `signInAnonymously` habilitado no projeto Supabase (D2). Sem isso,
 todo mundo cai na tela de erro.
 
-## 2. Jogar — o loop de 15 segundos
+## 2. Jogar — manual, com o loop de 15 segundos por baixo
+
+**Mudou em 2026-08-12** (`specs/mundo-aberto-e-modo-manual.md`): o jogo é manual. O jogador anda
+com WASD/setas e mira com o mouse; no toque, joystick e mira automática.
 
 ```
+entrada (teclado, mouse, toque) → intenção
 motor (requestAnimationFrame, fora do React)
-  ├── avança e desenha a cena           ← puramente visual, não vale nada
-  └── a cada 15 s: aoValidarLote()      ← "servidor, valida agora"
+  ├── aplica a intenção, avança e desenha  ← puramente visual, não vale nada
+  └── a cada 15 s: aoValidarLote()         ← "servidor, valida agora"
                      → validar_lote()
                      → snapshot novo: XP, moeda, nível, drops, passe
 ```
 
-O callback **não transporta recompensa**. Ele só pede a validação; quem calcula é o servidor, com o
-`now()` do Postgres. É por isso que adiantar o relógio da máquina não muda um número na tela.
+O callback **não transporta recompensa** — e, desde a inversão de premissa, também não transporta
+**modo**. Quem calcula é o servidor, com o `now()` do Postgres e o poder de ataque. **Manual e auto
+creditam exatamente o mesmo**, e é por isso que virar um jogo de verdade não custou nada em
+segurança.
+
+### 2b. O auto, e a trava que o sustenta
+
+Auto é o produto: o personagem joga sozinho e você pode ir embora. Destrava por anúncio ou
+assinatura, e tem **saldo próprio**, separado do farm offline.
+
+**Sem auto destravado**, 2 minutos sem input encerram a sessão — pela mesma rota do fechar-aba,
+sem nenhuma regra nova no servidor. O aviso aparece no canto, sem bronca e sem contagem
+regressiva, e voltar a jogar reabre a sessão normalmente.
+
+> Isto é **anti-ocioso, não anti-cheat**: pega quem levanta e sai, não quem escreve um script. O
+> captcha, que pegaria o script, foi adiado pelo dono — e o buraco está registrado na spec.
 
 **Quando o jogador perde um ciclo:** o herói pisca e continua farmando no mesmo instante. Sem tela
 de morte, sem cooldown, sem nada retirado (core, 16).

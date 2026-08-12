@@ -60,8 +60,13 @@ mesmo nome aos olhos do jogador, e nulo não ocupa vaga.
 | **PK** | `player_id` |
 | **Tempo** | `last_seen_at`, `minutos_acumulados` |
 | **Pendente** | `xp_pendente`, `moeda_pendente` |
-| **Anúncio** | `minutos_anuncio_saldo`, `minutos_anuncio_creditados`, `janela_anuncio_iniciada_em` |
+| **Anúncio (offline)** | `minutos_anuncio_saldo`, `minutos_anuncio_creditados`, `janela_anuncio_iniciada_em` |
+| **Auto (na tela)** | `minutos_auto_saldo`, `minutos_auto_creditados`, `janela_auto_iniciada_em` |
 | **Sorteio** | `contador_sorteio`, `ciclos_desde_mini_boss` |
+
+**São dois baldes de propósito**, não um campo com dois usos: auto na tela e farm offline viraram
+produtos separados quando o jogo virou manual (`specs/mundo-aberto-e-modo-manual.md`, 3.3). Gastar
+um não pode consumir o outro, e dois campos é o que garante isso sem nenhuma regra.
 
 `last_seen_at` é a única fonte de "quanto tempo se passou". Nunca vem do client.
 
@@ -111,7 +116,8 @@ aparece ali escolheu aparecer, e aparece só com o nome que escolheu.
 ### `ticket_anuncio` e `evento_jogo`
 
 `ticket_anuncio` é de uso único: o crédito acontece contra o ticket, nunca contra um pedido do
-client.
+client. Ele carrega a `finalidade` (`offline` ou `auto`), **decidida na emissão, pelo servidor** —
+o client nunca informa qual produto está destravando.
 
 `evento_jogo` é o log fire-and-forget. É a **única tabela em que o client pode inserir**
 (`player_id, tipo, dados`), e isso é dívida registrada (D10): `dados` é `jsonb` sem esquema, então

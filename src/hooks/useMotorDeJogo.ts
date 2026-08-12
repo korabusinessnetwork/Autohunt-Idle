@@ -1,8 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useSessao } from '../context/SessaoContext'
+import type { ChaveI18n } from '../lib/i18n'
+import { criarEntrada } from '../game/entrada'
 import { criarMotor, type Motor } from '../game/motor'
-import { sinalizarReinicioDeCiclo } from '../game/mundo'
+import { biomaAtual, sinalizarReinicioDeCiclo, type ModoDeJogo } from '../game/mundo'
 import { criarRenderizadorCanvas } from '../game/renderizador'
 
 // Cola entre React e o motor.
@@ -11,16 +13,42 @@ import { criarRenderizadorCanvas } from '../game/renderizador'
 // escreve direto no canvas, sem passar por estado nem re-render (ADR-001).
 // Este hook só cuida do ciclo de vida — criar, iniciar, redimensionar, parar.
 
+/**
+ * Quanto tempo sem input encerra a sessão, quando o auto NÃO está destravado.
+ *
+ * Encerrar é a mesma rota do fechar-aba, de propósito: a partir dali valem as
+ * regras de farm offline que já existem, e nenhuma regra nova precisou nascer
+ * no servidor (`specs/mundo-aberto-e-modo-manual.md`, 3.2).
+ *
+ * Isto é ANTI-OCIOSO, não anti-cheat: pega quem levanta e sai, não quem
+ * escreve um script. O captcha, que pegaria o script, foi adiado pelo dono — e
+ * o buraco está registrado na spec.
+ */
+const TOLERANCIA_SEM_INPUT_MS = 2 * 60 * 1000
+
 export function useMotorDeJogo(ativo: boolean) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const motorRef = useRef<Motor | null>(null)
-  const { pedirValidacaoDeLote, ciclosPerdidosNoLote, snapshot, t } = useSessao()
+  const { pedirValidacaoDeLote, ciclosPerdidosNoLote, snapshot, t, conectar, encerrar } =
+    useSessao()
 
-  // O nível decide o bioma, e só isso: cenário e pool de inimigo. Vive num ref
-  // porque o motor é criado uma vez e não pode ser recriado a cada nível novo.
-  const nivel = snapshot?.jogador.nivel ?? 1
-  const nivelRef = useRef(nivel)
-  nivelRef.current = nivel
+  // Com auto destravado a sessão nunca é encerrada por inatividade: é
+  // exatamente o que a pessoa comprou.
+  const autoDestravado =
+    (snapshot?.assinatura.ativa ?? false) || (snapshot?.farm.minutosAutoSaldo ?? 0) > 0
+  const autoDestravadoRef = useRef(autoDestravado)
+  autoDestravadoRef.current = autoDestravado
+
+  // O modo vive num ref pelo mesmo motivo do idioma: o motor é criado uma vez,
+  // e alternar auto não pode recriar a cena.
+  const modoRef = useRef<ModoDeJogo>('manual')
+
+  // O bioma agora sai de ONDE o herói está, e o React precisa dele para o
+  // `aria-label`. Só re-renderiza quando a região muda de verdade — o motor
+  // não pode empurrar estado a 60fps (ADR-001).
+  const [biomaNome, setBiomaNome] = useState<ChaveI18n>('mundo.bioma1')
+  /** Ficou parado tempo demais sem ter auto — a sessão foi encerrada. */
+  const [ocioso, setOcioso] = useState(false)
 
   // O motor não pode ser recriado a cada troca de idioma — o `t` corrente vive
   // num ref, e o canvas passa a desenhar o nome novo já no quadro seguinte.
@@ -43,11 +71,26 @@ export function useMotorDeJogo(ativo: boolean) {
       (chave) => tradutor.current(chave),
       () => skinRef.current,
     )
+    const entrada = criarEntrada(canvas, (x, y) => renderizador.paraCoordenadaDoMundo(x, y))
     const motor = criarMotor({
       renderizador,
       aoValidarLote: pedirValidacaoDeLote,
-      nivel: nivelRef.current,
+      entrada,
     })
+    motor.definirModo(modoRef.current)
+
+    const observarRegiao = window.setInterval(() => {
+      const nome = biomaAtual(motor.estado).nome
+      setBiomaNome((atual) => (atual === nome ? atual : nome))
+
+      // Trava de inatividade. Roda no mesmo intervalo porque é a mesma
+      // pergunta de baixa frequência — e não precisa de precisão de quadro.
+      if (autoDestravadoRef.current || modoRef.current === 'auto') return
+      const ocioso = performance.now() - motor.ultimoInputEm()
+      if (motor.ultimoInputEm() > 0 && ocioso > TOLERANCIA_SEM_INPUT_MS) {
+        setOcioso(true)
+      }
+    }, 1000)
     motorRef.current = motor
     motor.iniciar()
 
@@ -64,18 +107,13 @@ export function useMotorDeJogo(ativo: boolean) {
     return () => {
       window.removeEventListener('resize', aoRedimensionar)
       observador?.disconnect()
+      window.clearInterval(observarRegiao)
+      entrada.destruir()
       motor.parar()
       renderizador.destruir()
       motorRef.current = null
     }
   }, [ativo, pedirValidacaoDeLote])
-
-  // Subir de nível troca a zona sem recriar o motor: os inimigos vivos
-  // terminam a vida deles e os próximos já nascem do pool novo. Recriar
-  // descartaria a cena inteira num quadro.
-  useEffect(() => {
-    motorRef.current?.definirNivel(nivel)
-  }, [nivel])
 
   // O servidor é quem sabe se um ciclo foi perdido; a cena só reage ao aviso.
   useEffect(() => {
@@ -84,5 +122,23 @@ export function useMotorDeJogo(ativo: boolean) {
     }
   }, [ciclosPerdidosNoLote])
 
-  return canvasRef
+  // Encerrar de verdade só quando o estado de ocioso liga — assim a chamada
+  // acontece uma vez, e não a cada tique do observador.
+  useEffect(() => {
+    if (ocioso) void encerrar()
+  }, [ocioso, encerrar])
+
+  /** Liga ou desliga o auto. A decisão de PODER ligar é de quem chama. */
+  const definirModo = useCallback((modo: ModoDeJogo) => {
+    modoRef.current = modo
+    motorRef.current?.definirModo(modo)
+  }, [])
+
+  /** Voltar a jogar reabre a sessão pela porta normal, com tela de retorno. */
+  const retomar = useCallback(() => {
+    setOcioso(false)
+    void conectar()
+  }, [conectar])
+
+  return { canvasRef, definirModo, biomaNome, ocioso, retomar }
 }

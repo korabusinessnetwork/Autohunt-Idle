@@ -860,7 +860,7 @@ begin
         and has_function_privilege('authenticated', p.oid, 'execute'))
     = array[
       'coletar_farm_offline', 'comprar_ouro', 'definir_apelido',
-      'emitir_ticket_anuncio', 'encerrar_sessao', 'equipar_item',
+      'emitir_ticket_anuncio', 'emitir_ticket_auto', 'encerrar_sessao', 'equipar_item',
       'estado_jogador', 'excluir_minha_conta', 'exportar_meus_dados',
       'fortificar_item', 'iniciar_dungeon', 'iniciar_sessao', 'ranking_global',
       'reativar_auto_alocacao', 'redistribuir_atributos', 'sintetizar',

@@ -48,6 +48,13 @@ export interface EstadoFarm {
   minutosAnuncioSaldo: number
   /** Quanto ainda dá para desbloquear na janela de 24h corrente. */
   minutosAnuncioRestantes: number
+  /**
+   * Minutos de AUTO na tela — produto separado do farm offline
+   * (`specs/mundo-aberto-e-modo-manual.md`, 3.3). Gastar um não consome o
+   * outro, e é por isso que são dois campos e não um.
+   */
+  minutosAutoSaldo: number
+  minutosAutoRestantes: number
   ultimoMotivo: MotivoRetorno
 }
 

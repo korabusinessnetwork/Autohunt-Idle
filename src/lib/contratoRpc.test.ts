@@ -436,6 +436,31 @@ describe('isolamento e segurança do schema', () => {
     expect(corpo).toContain('public.progredir_passe(p_player_id, p_ciclos::bigint)')
   })
 
+  it('nenhuma RPC aprendeu a receber modo, abate ou desempenho', () => {
+    // Critério 4 de `specs/mundo-aberto-e-modo-manual.md`, e a razão de a
+    // inversão de premissa não ter custado nada em segurança: o jogo virou
+    // manual, mas o servidor continua creditando por tempo × poder e não sabe
+    // quem estava no comando.
+    //
+    // No dia em que uma RPC receber "quantos você matou", manual passa a valer
+    // mais que auto e a regra central do produto cai. É esse dia que este teste
+    // adia.
+    const proibidos = /\bp_(modo|manual|auto|abates?|mortes?|kills?|acertos?|desempenho|pontuacao|score)\b/i
+    const definicoes = [
+      ...sqlExecutavel.matchAll(/create or replace function public\.(\w+)\(([\s\S]*?)\)\s*returns/gi),
+    ]
+    expect(definicoes.length).toBeGreaterThan(0)
+
+    for (const [, nome, assinatura] of definicoes) {
+      expect(assinatura, `${nome} não pode receber sinal de desempenho`).not.toMatch(proibidos)
+    }
+
+    // E `validar_lote`, que é por onde o crédito ao vivo passa, continua sem
+    // parâmetro nenhum — coberto acima, reafirmado aqui por ser o caminho que
+    // a mudança de premissa mais pressionou.
+    expect(sqlExecutavel).toMatch(/create or replace function public\.validar_lote\(\)/)
+  })
+
   it('EXECUTE não é mais concedido por omissão', () => {
     // A lição que custou um furo real (migration 20260823): o Postgres concede
     // EXECUTE a PUBLIC em toda função nova. Enquanto o schema dependia de

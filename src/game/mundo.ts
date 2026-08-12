@@ -5,15 +5,29 @@
 // sensação visual"), mas XP, moeda e nível vêm exclusivamente do servidor.
 // Nenhum valor calculado neste arquivo é enviado para lugar nenhum.
 //
-// O jogador não tem input: o herói escolhe alvo, se aproxima e ataca sozinho
-// (core, 1). Não existe listener de teclado nem de clique no jogo.
+// PREMISSA INVERTIDA EM 2026-08-12 (`specs/mundo-aberto-e-modo-manual.md`): o
+// jogo passou a ser MANUAL, e o auto virou produto vendido. Até então este
+// arquivo não conhecia input nenhum.
+//
+// O que NÃO mudou, e é o que importa: manual e auto creditam exatamente o
+// mesmo. O servidor continua olhando só tempo × poder, então nenhum caminho
+// deste arquivo pode influenciar recompensa — nem através do modo.
 
 import type { ChaveI18n } from '../lib/i18n'
 import type { PoseHeroi } from './atlas'
-import { biomaDoNivel, intensidadeDoBloco, poolDoBioma, type FormaAssinatura } from './biomas'
+import {
+  ALTURA_MAPA,
+  LARGURA_MAPA,
+  biomaDaPosicao,
+  intensidadeDaPosicao,
+  poolDaPosicao,
+  type FormaAssinatura,
+} from './biomas'
+import { intencaoParada, type Intencao } from './entrada'
 
-export const LARGURA_MUNDO = 640
-export const ALTURA_MUNDO = 360
+/** A janela que o jogador enxerga. O MAPA é muito maior — ver `biomas.ts`. */
+export const LARGURA_VIEWPORT = 640
+export const ALTURA_VIEWPORT = 360
 
 /** As 5 formas que aparecem em todos os biomas (critério 6: o pool base). */
 export type FormaBase = 'casquinha' | 'minhoca' | 'rosquinha' | 'pirulito' | 'pudim'
@@ -59,7 +73,18 @@ export interface Projetil {
   vida: number
 }
 
+export type ModoDeJogo = 'manual' | 'auto'
+
 export interface EstadoMundo {
+  /**
+   * Quem está no comando. `manual` é o padrão desde a inversão de premissa;
+   * `auto` reproduz o comportamento que o jogo tinha antes dela.
+   *
+   * NÃO influencia recompensa nenhuma, e nunca é enviado ao servidor.
+   */
+  modo: ModoDeJogo
+  /** Intenção do jogador neste quadro. Em `auto`, fica sempre parada. */
+  intencao: Intencao
   heroiX: number
   heroiY: number
   heroiOlhandoX: number
@@ -82,12 +107,6 @@ export interface EstadoMundo {
   reinicioCiclo: number
   proximoId: number
   semente: number
-  /**
-   * Nível do jogador, usado SÓ para escolher o cenário e o pool de inimigos.
-   * Nada calculado a partir dele sai deste arquivo: bioma é cenário, e o
-   * servidor continua sendo a única fonte de recompensa (core, 15).
-   */
-  nivel: number
 }
 
 /**
@@ -100,12 +119,28 @@ export interface EstadoMundo {
 const DURACAO_POSE_ATAQUE = 0.18
 const DURACAO_POSE_COMEMORACAO = 0.5
 
-const VELOCIDADE_HEROI = 70
-const ALCANCE_TIRO = 150
+const VELOCIDADE_HEROI = 110
+const ALCANCE_TIRO = 210
 const RECARGA_TIRO = 0.45
 const VELOCIDADE_PROJETIL = 320
 const DANO_PROJETIL = 12
-const MAX_INIMIGOS = 6
+const MAX_INIMIGOS = 8
+
+/**
+ * Raio ao redor do herói onde inimigos existem de verdade.
+ *
+ * O mapa tem 5120×1440 — povoá-lo inteiro seria simular centenas de criaturas
+ * que ninguém vê, a 60fps. Só a vizinhança é simulada; o resto do mapa "existe"
+ * porque a vizinhança acompanha o herói aonde ele for.
+ */
+const RAIO_ATIVO = 620
+/** Além disto o inimigo é esquecido — o jogador já foi embora daquela área. */
+const RAIO_DESCARTE = 900
+/**
+ * Nenhum inimigo nasce dentro deste raio (critério 8): aparecer no campo de
+ * visão do jogador denuncia que o mundo é cenário, e não lugar.
+ */
+const RAIO_MINIMO_DE_SURGIMENTO = 420
 
 /** PRNG determinístico (mulberry32) — o mesmo mundo dá a mesma cena. */
 function proximoAleatorio(estado: EstadoMundo): number {
@@ -116,10 +151,13 @@ function proximoAleatorio(estado: EstadoMundo): number {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296
 }
 
-export function criarMundo(semente = 1, nivel = 1): EstadoMundo {
+export function criarMundo(semente = 1): EstadoMundo {
   const estado: EstadoMundo = {
-    heroiX: LARGURA_MUNDO / 2,
-    heroiY: ALTURA_MUNDO / 2,
+    modo: 'manual',
+    intencao: intencaoParada(),
+    // Nasce no meio da primeira região — a Floresta de Algodão-Doce.
+    heroiX: LARGURA_VIEWPORT,
+    heroiY: ALTURA_VIEWPORT,
     heroiOlhandoX: 1,
     alvoId: null,
     inimigos: [],
@@ -130,53 +168,55 @@ export function criarMundo(semente = 1, nivel = 1): EstadoMundo {
     reinicioCiclo: 0,
     proximoId: 1,
     semente,
-    nivel,
   }
   for (let i = 0; i < quantosInimigos(estado); i++) surgirInimigo(estado)
   return estado
 }
 
-/**
- * Troca a zona sem recriar o mundo.
- *
- * Subir de nível no meio da sessão não pode piscar a cena inteira: os inimigos
- * vivos terminam a vida deles, e os próximos já nascem do pool novo. Recriar o
- * motor descartaria tudo num quadro, o que é pior que a transição gradual.
- */
-export function definirNivel(estado: EstadoMundo, nivel: number): void {
-  estado.nivel = nivel
+/** Liga ou desliga o auto. Quem decide se pode é a UI, não o mundo. */
+export function definirModo(estado: EstadoMundo, modo: ModoDeJogo): void {
+  estado.modo = modo
+  if (modo === 'auto') estado.intencao = intencaoParada()
+}
+
+/** Recebe a intenção do jogador. Ignorada enquanto o auto estiver ligado. */
+export function definirIntencao(estado: EstadoMundo, intencao: Intencao): void {
+  if (estado.modo === 'manual') estado.intencao = intencao
 }
 
 /**
- * Densidade de inimigo cresce com o bloco — é uma das três alavancas que fazem
- * os 5 blocos de um bioma parecerem diferentes sem arte nova (critério 2).
+ * Densidade de inimigo cresce com a intensidade da região — é uma das três
+ * alavancas que fazem uma região não parecer chapada de ponta a ponta, sem
+ * exigir arte nova (critério 2 da spec de origem).
  */
 function quantosInimigos(estado: EstadoMundo): number {
-  return MAX_INIMIGOS + Math.round(intensidadeDoBloco(estado.nivel) * 3)
+  return MAX_INIMIGOS + Math.round(intensidadeDaPosicao(estado.heroiX, estado.heroiY) * 4)
 }
 
 function surgirInimigo(estado: EstadoMundo): void {
-  // O pool da zona: os 5 base MAIS o assinatura do bioma — soma, não troca.
-  const pool = poolDoBioma(POOL_INIMIGOS, estado.nivel)
+  const intensidade = intensidadeDaPosicao(estado.heroiX, estado.heroiY)
+
+  // O pool da REGIÃO: os 5 base MAIS o assinatura do bioma — soma, não troca.
+  const pool = poolDaPosicao(POOL_INIMIGOS, estado.heroiX, estado.heroiY)
   const base = pool[Math.floor(proximoAleatorio(estado) * pool.length)]
   if (!base) return
 
-  // Inimigo cresce com o bloco, dentro do mesmo tema. Segunda alavanca da
-  // escalada visual; a terceira é a saturação do cenário, no renderizador.
   const especie: EspecieInimigo = {
     ...base,
-    raio: Math.round(base.raio * (1 + intensidadeDoBloco(estado.nivel) * 0.35)),
+    raio: Math.round(base.raio * (1 + intensidade * 0.35)),
   }
 
-  // Nasce longe do herói, para não aparecer em cima dele.
+  // Nasce FORA do campo de visão, dentro do raio ativo. É o que faz o mundo
+  // parecer habitado em vez de gerado ao redor do jogador (critério 8).
   const angulo = proximoAleatorio(estado) * Math.PI * 2
-  const distancia = 140 + proximoAleatorio(estado) * 120
+  const distancia =
+    RAIO_MINIMO_DE_SURGIMENTO + proximoAleatorio(estado) * (RAIO_ATIVO - RAIO_MINIMO_DE_SURGIMENTO)
 
   estado.inimigos.push({
     id: estado.proximoId++,
     especie,
-    x: limitar(estado.heroiX + Math.cos(angulo) * distancia, especie.raio, LARGURA_MUNDO - especie.raio),
-    y: limitar(estado.heroiY + Math.sin(angulo) * distancia, especie.raio, ALTURA_MUNDO - especie.raio),
+    x: limitar(estado.heroiX + Math.cos(angulo) * distancia, especie.raio, LARGURA_MAPA - especie.raio),
+    y: limitar(estado.heroiY + Math.sin(angulo) * distancia, especie.raio, ALTURA_MAPA - especie.raio),
     vida: especie.vida,
     flash: 0,
   })
@@ -209,29 +249,44 @@ export function avancarMundo(estado: EstadoMundo, dt: number): void {
   const alvo = inimigoMaisProximo(estado)
   estado.alvoId = alvo?.id ?? null
 
-  if (alvo) {
-    const dx = alvo.x - estado.heroiX
-    const dy = alvo.y - estado.heroiY
-    const distancia = Math.hypot(dx, dy) || 1
-    if (dx !== 0) estado.heroiOlhandoX = Math.sign(dx)
+  estado.recargaTiro -= dt
 
-    // Aproxima até ficar em alcance de tiro, e então mantém a distância.
-    if (distancia > ALCANCE_TIRO * 0.7) {
-      estado.heroiX = limitar(estado.heroiX + (dx / distancia) * VELOCIDADE_HEROI * dt, 16, LARGURA_MUNDO - 16)
-      estado.heroiY = limitar(estado.heroiY + (dy / distancia) * VELOCIDADE_HEROI * dt, 16, ALTURA_MUNDO - 16)
+  if (estado.modo === 'auto') {
+    // O comportamento que o jogo TINHA antes da inversão de premissa: caça o
+    // alvo mais próximo, aproxima até ficar em alcance e atira.
+    if (alvo) {
+      const dx = alvo.x - estado.heroiX
+      const dy = alvo.y - estado.heroiY
+      const distancia = Math.hypot(dx, dy) || 1
+      if (dx !== 0) estado.heroiOlhandoX = Math.sign(dx)
+
+      if (distancia > ALCANCE_TIRO * 0.7) {
+        mover(estado, dx / distancia, dy / distancia, dt)
+      }
+      if (distancia <= ALCANCE_TIRO) atirar(estado, dx / distancia, dy / distancia)
+    }
+  } else {
+    // Manual: o jogador anda para onde quer, e atira para onde mira.
+    const { dx, dy, miraX, miraY, atirando } = estado.intencao
+
+    if (dx !== 0 || dy !== 0) {
+      mover(estado, dx, dy, dt)
+      if (dx !== 0) estado.heroiOlhandoX = Math.sign(dx)
     }
 
-    estado.recargaTiro -= dt
-    if (estado.recargaTiro <= 0 && distancia <= ALCANCE_TIRO) {
-      estado.recargaTiro = RECARGA_TIRO
-      estado.poseAtaque = DURACAO_POSE_ATAQUE
-      estado.projeteis.push({
-        x: estado.heroiX,
-        y: estado.heroiY,
-        dx: (dx / distancia) * VELOCIDADE_PROJETIL,
-        dy: (dy / distancia) * VELOCIDADE_PROJETIL,
-        vida: 1.2,
-      })
+    if (atirando) {
+      // Mira explícita (mouse) tem precedência; no toque e no teclado puro, a
+      // mira é o alvo mais próximo — a spec fecha essa decisão em 4.2.
+      let apontaX = miraX === null ? alvo && alvo.x - estado.heroiX : miraX - estado.heroiX
+      let apontaY = miraY === null ? alvo && alvo.y - estado.heroiY : miraY - estado.heroiY
+
+      if (typeof apontaX === 'number' && typeof apontaY === 'number') {
+        const norma = Math.hypot(apontaX, apontaY) || 1
+        apontaX /= norma
+        apontaY /= norma
+        if (miraX !== null) estado.heroiOlhandoX = Math.sign(apontaX) || estado.heroiOlhandoX
+        atirar(estado, apontaX, apontaY)
+      }
     }
   }
 
@@ -239,8 +294,12 @@ export function avancarMundo(estado: EstadoMundo, dt: number): void {
     const dx = estado.heroiX - inimigo.x
     const dy = estado.heroiY - inimigo.y
     const distancia = Math.hypot(dx, dy) || 1
-    inimigo.x += (dx / distancia) * inimigo.especie.velocidade * dt
-    inimigo.y += (dy / distancia) * inimigo.especie.velocidade * dt
+    // Longe demais, o inimigo fica parado: perseguir alguém a 800px de
+    // distância é gastar quadro com o que ninguém vê.
+    if (distancia < RAIO_ATIVO) {
+      inimigo.x += (dx / distancia) * inimigo.especie.velocidade * dt
+      inimigo.y += (dy / distancia) * inimigo.especie.velocidade * dt
+    }
     if (inimigo.flash > 0) inimigo.flash = Math.max(0, inimigo.flash - dt)
   }
 
@@ -260,19 +319,57 @@ export function avancarMundo(estado: EstadoMundo, dt: number): void {
   }
 
   estado.projeteis = estado.projeteis.filter(
-    (p) => p.vida > 0 && p.x > -20 && p.x < LARGURA_MUNDO + 20 && p.y > -20 && p.y < ALTURA_MUNDO + 20,
+    (p) => p.vida > 0 && p.x > -20 && p.x < LARGURA_MAPA + 20 && p.y > -20 && p.y < ALTURA_MAPA + 20,
   )
 
-  const sobreviventes = estado.inimigos.filter((i) => i.vida > 0)
+  // Quem ficou para trás é esquecido: o jogador saiu daquela área, e o mundo
+  // adiante repovoa sozinho.
+  const sobreviventes = estado.inimigos.filter(
+    (i) =>
+      i.vida > 0 && Math.hypot(i.x - estado.heroiX, i.y - estado.heroiY) < RAIO_DESCARTE,
+  )
   // Abateu alguém: comemora. É a pose que o jogador mais vê, porque abate é o
   // que o loop produz o tempo todo.
-  if (sobreviventes.length < estado.inimigos.length) {
+  // Só comemora se alguém foi ABATIDO — sumir por distância não é vitória.
+  if (estado.inimigos.some((i) => i.vida <= 0)) {
     estado.poseComemoracao = DURACAO_POSE_COMEMORACAO
   }
   estado.inimigos = sobreviventes
-  // Repõe até a densidade da zona atual. Ao subir de bloco a cena vai ficando
-  // mais cheia sozinha, sem nenhum corte.
+  // Repõe até a densidade da região atual, sempre fora do campo de visão.
   while (estado.inimigos.length < quantosInimigos(estado)) surgirInimigo(estado)
+}
+
+/** Move o herói na direção dada, preso às bordas do MAPA (não da tela). */
+function mover(estado: EstadoMundo, dirX: number, dirY: number, dt: number): void {
+  estado.heroiX = limitar(estado.heroiX + dirX * VELOCIDADE_HEROI * dt, 16, LARGURA_MAPA - 16)
+  estado.heroiY = limitar(estado.heroiY + dirY * VELOCIDADE_HEROI * dt, 16, ALTURA_MAPA - 16)
+}
+
+/** Dispara, se a recarga permitir. Manual e auto passam pelo mesmo caminho. */
+function atirar(estado: EstadoMundo, dirX: number, dirY: number): void {
+  if (estado.recargaTiro > 0) return
+  estado.recargaTiro = RECARGA_TIRO
+  estado.poseAtaque = DURACAO_POSE_ATAQUE
+  estado.projeteis.push({
+    x: estado.heroiX,
+    y: estado.heroiY,
+    dx: dirX * VELOCIDADE_PROJETIL,
+    dy: dirY * VELOCIDADE_PROJETIL,
+    vida: 1.2,
+  })
+}
+
+/**
+ * Canto superior esquerdo da câmera, em coordenadas de mundo.
+ *
+ * Segue o herói e para nas bordas do mapa — sem isso, chegar na borda mostraria
+ * o vazio de fora do mundo.
+ */
+export function camera(estado: EstadoMundo): { x: number; y: number } {
+  return {
+    x: limitar(estado.heroiX - LARGURA_VIEWPORT / 2, 0, LARGURA_MAPA - LARGURA_VIEWPORT),
+    y: limitar(estado.heroiY - ALTURA_VIEWPORT / 2, 0, ALTURA_MAPA - ALTURA_VIEWPORT),
+  }
 }
 
 /**
@@ -285,9 +382,14 @@ export function sinalizarReinicioDeCiclo(estado: EstadoMundo): void {
   estado.reinicioCiclo = 0.9
 }
 
-/** Bioma que o cenário deve desenhar agora. */
+/** Bioma da REGIÃO onde o herói está — não mais função do nível. */
 export function biomaAtual(estado: EstadoMundo) {
-  return biomaDoNivel(estado.nivel)
+  return biomaDaPosicao(estado.heroiX, estado.heroiY)
+}
+
+/** Intensidade visual da posição atual. */
+export function intensidadeAtual(estado: EstadoMundo): number {
+  return intensidadeDaPosicao(estado.heroiX, estado.heroiY)
 }
 
 /**

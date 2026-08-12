@@ -57,42 +57,25 @@ retorno de sempre.
 > **A trava de 2 minutos é anti-ocioso, não anti-cheat.** Ela pega quem levanta e sai, não quem
 > escreve um script. É barata justamente por isso.
 
-### 3.2b Captcha a cada 2 horas — o que a trava de 2 minutos não pega
+### 3.2b Captcha — ADIADO pelo dono (2026-08-12)
 
-*(decidido pelo dono na mesma conversa)*
+Chegou a ser decidido e foi retirado no mesmo dia. Fica registrado porque o buraco que ele fechava
+**continua aberto**, e ninguém deve reencontrá-lo daqui a seis meses achando que é novidade:
 
-Um script que simula input derrota a trava de 2 minutos sem esforço. E aí está o único incentivo
-real a burlar que este jogo tem: **não é ganhar mais — é ganhar sem estar lá**, que é exatamente o
-produto vendido.
+> A trava de 2 minutos pega quem levanta e sai. **Não pega um script que simula input.** E é
+> exatamente aí que mora o único incentivo real a burlar que este jogo tem — não é ganhar mais, é
+> ganhar sem estar lá, que é o produto vendido.
 
-Por isso o captcha existe, e por isso ele tem uma regra que não pode ser negociada:
+Se um dia voltar, duas coisas precisam vir junto, e valem mais que o código:
 
-> **Quem tem auto destravado NUNCA vê captcha.** Nem assinante, nem quem assistiu anúncio,
-> enquanto o saldo durar.
+- **Quem tem auto destravado nunca vê captcha.** Sem essa regra, o captcha vira fricção cobrada de
+  quem pagou — o oposto do que se está vendendo.
+- **Provedor fora do ar libera, não bloqueia.** Derrubar jogador legítimo porque um terceiro caiu é
+  pior que deixar passar duas horas de bot.
 
-Sem essa regra o captcha vira fricção cobrada de quem pagou — e é o oposto do que se está
-vendendo. Com ela, o captcha deixa de ser incômodo e vira a **fronteira do produto**: ou você está
-jogando de verdade, ou você comprou o direito de não estar.
-
-**Como funciona:**
-
-- A cada **2 horas de sessão contínua sem auto destravado**, o jogo pede a verificação.
-- Enquanto não resolver, o crédito pausa. **Nada é perdido** — o que já foi creditado é do jogador,
-  e resolver retoma de onde parou. Progresso nunca é punido.
-- Resolver **nunca** é atestado pelo client. O token vai para uma Edge Function, que confere com o
-  provedor usando o segredo do servidor e só então chama uma RPC de `service_role` que carimba a
-  verificação. É o mesmo padrão do crédito de anúncio, e pelo mesmo motivo.
-
-**Custo, e ele não é zero:**
-
-- **Provedor de terceiro.** Cloudflare Turnstile tem tier gratuito e é o que melhor cabe na
-  restrição de custo e na de privacidade. Precisa de conta — entra como pendência do dono, junto de
-  P2 e P3.
-- **LGPD.** O provedor recebe IP e sinais do navegador do jogador. Isso **entra no inventário de
-  `docs/11_SEGURANCA/dados-pessoais-lgpd.md`** e na cláusula de compartilhamento dos termos. Não é
-  detalhe: é um terceiro novo recebendo dado pessoal.
-- **Sem provedor contratado**, o gate nasce desligado e o jogo funciona — mesma postura do anúncio
-  e do gateway.
+E o custo que existia continua existindo: provedor de terceiro (Turnstile tem tier gratuito) e um
+**terceiro novo recebendo dado pessoal** — IP e sinais do navegador —, o que entra no inventário de
+LGPD e na cláusula de compartilhamento dos termos.
 
 ### 3.3 Auto na tela e farm offline são produtos separados
 
@@ -152,10 +135,6 @@ lado a lado, com o nome do que cada uma compra — nunca dois números soltos.
    abate ou qualquer sinal de desempenho — o contrato de zero parâmetro continua valendo.
 5. **Sem saldo de auto, 2 minutos sem input encerram a sessão** pela mesma rota do fechar-aba.
    Com saldo, nunca encerra.
-5a. **A cada 2h de sessão sem auto destravado, o jogo pede captcha.** Quem tem auto destravado
-   nunca vê. O crédito pausa até resolver, e **nada do que já foi creditado se perde**.
-5b. **A verificação do captcha nunca é atestada pelo client**: Edge Function confere o token com o
-   provedor e uma RPC de `service_role` carimba. Verificação estrutural, igual à do anúncio.
 6. Os **dois saldos são independentes**: gastar auto não consome offline, e vice-versa.
 7. A UI mostra **os dois saldos com o nome do que compram**, nunca dois números soltos.
 8. Inimigos **habitam regiões** do mapa; nenhum nasce dentro do campo de visão do jogador.
@@ -173,12 +152,6 @@ lado a lado, com o nome do que cada uma compra — nunca dois números soltos.
   visível.
 - **Teclado e toque na mesma sessão** (laptop com tela sensível) — o último usado manda.
 - **Nível sobe e a região não muda** — normal agora: o cenário é lugar, não progressão.
-- **Captcha aparece e o jogador ignora** — o crédito fica pausado, sem tela bloqueante e sem
-  contagem regressiva. Ele volta quando quiser; o que já era dele continua sendo.
-- **Saldo de auto acaba exatamente na hora do captcha** — o captcha vale a partir dali, e o relógio
-  das 2h começa a contar no momento em que o auto caiu, não retroativo.
-- **Provedor de captcha fora do ar** — o gate **libera**, não bloqueia. Derrubar jogador legítimo
-  porque um terceiro caiu é pior que deixar passar duas horas de bot.
 
 ## 8. O que esta mudança custa em documentação
 
@@ -192,7 +165,7 @@ Não é detalhe: várias afirmações do projeto ficam **falsas** no dia em que 
 | `docs/03_REGRAS_DE_NEGOCIO/` | a tabela de farm offline ganha o segundo produto |
 | `docs/05_FLUXOS/` | "não existe input de jogo" deixa de ser verdade |
 | `docs/06_COMPONENTES/` | idem, e o HUD ganha os dois saldos |
-| `docs/11_SEGURANCA/` | ameaça nova: o client passa a informar inatividade; e o captcha traz um **terceiro novo recebendo dado pessoal**, que entra no inventário de LGPD e nos termos |
+| `docs/11_SEGURANCA/` | ameaça nova: o client passa a informar inatividade — e ela nasce **ABERTA**, porque sem captcha nada impede um script de simular input |
 | **ADR novo** | a inversão da premissa precisa de decisão registrada, com o custo escrito |
 
 ## 9. Definição de "aprovado sem ressalvas"

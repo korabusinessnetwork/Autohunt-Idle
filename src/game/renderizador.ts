@@ -7,14 +7,29 @@
 // contrato e nem `motor.ts` nem `mundo.ts` mudam.
 
 import { precarregarBioma } from './atlas'
-import { intensidadeDoBloco } from './biomas'
-import { ALTURA_MUNDO, LARGURA_MUNDO, biomaAtual, poseDoHeroi, type EstadoMundo } from './mundo'
+import {
+  ALTURA_VIEWPORT,
+  LARGURA_VIEWPORT,
+  biomaAtual,
+  camera,
+  intensidadeAtual,
+  poseDoHeroi,
+  type EstadoMundo,
+} from './mundo'
 import { lerPaleta, type Paleta } from './paleta'
 import { desenharCenario, desenharHeroi, desenharInimigo, desenharProjetil } from './sprites'
 
 export interface Renderizador {
   desenhar(estado: EstadoMundo): void
   redimensionar(): void
+  /**
+   * Converte um ponto da tela em ponto do MUNDO.
+   *
+   * Existe porque o mouse mira em coordenada de tela e o mundo vive em outra —
+   * e só o renderizador conhece a escala, o deslocamento da moldura 16:9 e a
+   * câmera. Deixar essa conta na entrada duplicaria os três.
+   */
+  paraCoordenadaDoMundo(clienteX: number, clienteY: number): { x: number; y: number }
   destruir(): void
 }
 
@@ -53,7 +68,7 @@ export function criarRenderizadorCanvas(
     // background). Escala zero geraria NaN no transform.
     if (largura <= 0 || altura <= 0) return
 
-    const escala = Math.min(largura / LARGURA_MUNDO, altura / ALTURA_MUNDO)
+    const escala = Math.min(largura / LARGURA_VIEWPORT, altura / ALTURA_VIEWPORT)
     const dpr = window.devicePixelRatio || 1
 
     canvas.width = Math.round(largura * dpr)
@@ -63,22 +78,28 @@ export function criarRenderizadorCanvas(
     // deslocamento, o jogo fica colado no canto superior esquerdo em qualquer
     // container que não seja exatamente 16:9 — que é a regra dentro de um
     // iframe de portal, não a exceção.
-    const deslocX = (largura - LARGURA_MUNDO * escala) / 2
-    const deslocY = (altura - ALTURA_MUNDO * escala) / 2
+    const deslocX = (largura - LARGURA_VIEWPORT * escala) / 2
+    const deslocY = (altura - ALTURA_VIEWPORT * escala) / 2
 
     ctx!.setTransform(escala * dpr, 0, 0, escala * dpr, deslocX * dpr, deslocY * dpr)
     paleta = lerPaleta(document.documentElement)
   }
 
+  let ultimaCamera = { x: 0, y: 0 }
+
   redimensionar()
 
   return {
     desenhar(estado) {
-      // O bioma sai do nível, e o nível veio do servidor pelo snapshot: nada
-      // aqui é calculado para valer, só para desenhar.
+      // O bioma sai de ONDE o herói está. Nada aqui é calculado para valer,
+      // só para desenhar.
       const zona = biomaAtual(estado)
       const bioma = zona.token
-      const intensidade = intensidadeDoBloco(estado.nivel)
+      const intensidade = intensidadeAtual(estado)
+      const vista = camera(estado)
+      // Guardada para `paraCoordenadaDoMundo`: a mira do mouse precisa da mesma
+      // câmera que acabou de ser desenhada, não da do quadro seguinte.
+      ultimaCamera = vista
 
       // Aquece a arte da zona na primeira vez que ela aparece. Sem isto, subir
       // de bioma mostraria o cenário novo em silhueta justamente no quadro em
@@ -98,9 +119,25 @@ export function criarRenderizadorCanvas(
       ctx.fillRect(0, 0, canvas.width, canvas.height)
       ctx.restore()
 
-      desenharCenario(ctx, LARGURA_MUNDO, ALTURA_MUNDO, paleta, bioma, intensidade)
+      // A partir daqui tudo é desenhado em coordenadas de MUNDO, e a câmera é
+      // só um deslocamento. Sem isto, cada sprite precisaria subtrair a câmera
+      // por conta própria — e um deles esqueceria.
+      ctx.save()
+      ctx.translate(-vista.x, -vista.y)
+
+      desenharCenario(ctx, vista.x, vista.y, LARGURA_VIEWPORT, ALTURA_VIEWPORT, paleta, bioma, intensidade)
 
       for (const inimigo of estado.inimigos) {
+        // Fora da tela não se desenha. Com o mapa grande, a lista tem inimigos
+        // que o jogador não vê.
+        if (
+          inimigo.x < vista.x - 40 ||
+          inimigo.x > vista.x + LARGURA_VIEWPORT + 40 ||
+          inimigo.y < vista.y - 40 ||
+          inimigo.y > vista.y + ALTURA_VIEWPORT + 40
+        ) {
+          continue
+        }
         desenharInimigo(
           ctx,
           inimigo.especie.forma,
@@ -145,8 +182,28 @@ export function criarRenderizadorCanvas(
         poseDoHeroi(estado),
         raridadeDaSkin(),
       )
+
+      ctx.restore()
     },
     redimensionar,
+
+    paraCoordenadaDoMundo(clienteX, clienteY) {
+      const caixa = canvas.getBoundingClientRect()
+      const escala = Math.min(
+        caixa.width / LARGURA_VIEWPORT,
+        caixa.height / ALTURA_VIEWPORT,
+      )
+      if (!Number.isFinite(escala) || escala <= 0) return { x: 0, y: 0 }
+
+      const deslocX = (caixa.width - LARGURA_VIEWPORT * escala) / 2
+      const deslocY = (caixa.height - ALTURA_VIEWPORT * escala) / 2
+
+      return {
+        x: (clienteX - caixa.left - deslocX) / escala + ultimaCamera.x,
+        y: (clienteY - caixa.top - deslocY) / escala + ultimaCamera.y,
+      }
+    },
+
     destruir() {
       ctx.setTransform(1, 0, 0, 1, 0, 0)
       ctx.clearRect(0, 0, canvas.width, canvas.height)

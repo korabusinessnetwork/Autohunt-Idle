@@ -24,10 +24,10 @@ conta.
 | Papel | Quem é | O que alcança |
 |---|---|---|
 | `anon` | ninguém autenticado | **nada**. Sem grant de tabela nem de função |
-| `authenticated` | o jogador, com JWT do Supabase Auth | os 17 RPCs da seção 3, e leitura das próprias linhas via RLS |
+| `authenticated` | o jogador, com JWT do Supabase Auth | os 18 RPCs da seção 3, e leitura das próprias linhas via RLS |
 | `service_role` | Edge Functions, com a chave secreta | os 7 RPCs da seção 4. **Nunca entra no bundle do client** |
 
-## 3. A superfície do jogador — 17 RPCs, e só elas
+## 3. A superfície do jogador — 18 RPCs, e só elas
 
 Esta lista é fechada. O teste de fumaça `a superfície do client é exatamente a lista declarada`
 pergunta ao banco quais funções `authenticated` alcança e compara com ela — uma função nova que
@@ -41,7 +41,8 @@ vaze por omissão reprova.
 | `validar_lote()` | snapshot + `lote` | Chamada a cada ciclo pelo motor. **Não transporta recompensa** — só pede a validação |
 | `encerrar_sessao()` | snapshot | Marca `last_seen_at` ao sair |
 | `coletar_farm_offline()` | snapshot + `coleta` | Move o pendente para o total |
-| `emitir_ticket_anuncio()` | `{ emitido, ticketId, minutos }` | O servidor decide os minutos |
+| `emitir_ticket_anuncio()` | `{ emitido, ticketId, minutos }` | Destrava **farm offline**. O servidor decide os minutos |
+| `emitir_ticket_auto()` | `{ emitido, ticketId, minutos }` | Destrava **auto na tela**. É uma RPC separada, e não um parâmetro, porque as RPCs que creditam valor têm zero parâmetro |
 | `estado_jogador()` | snapshot | Releitura pura, sem bloco `retorno` |
 
 ### Atributos e ranking

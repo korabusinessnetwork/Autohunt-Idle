@@ -39,6 +39,14 @@ interface ValorSessao {
   ciclosPerdidosNoLote: number
   trocarIdioma: (idioma: Idioma) => void
   conectar: (mostrarCarregando?: boolean) => Promise<void>
+  /**
+   * Encerra a sessão ao vivo sem fechar a aba.
+   *
+   * Existe para a trava de inatividade: ficar parado sem auto destravado é
+   * tratado como fechar a aba, e é assim que nenhuma regra nova precisou
+   * nascer no servidor (`specs/mundo-aberto-e-modo-manual.md`, 3.2).
+   */
+  encerrar: () => Promise<void>
   pedirValidacaoDeLote: () => void
   coletar: () => Promise<void>
   /** Relê o estado do servidor sem reabrir a sessão (ex.: após um anúncio). */
@@ -187,6 +195,11 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
     }
   }, [conectar])
 
+  const encerrar = useCallback(async () => {
+    sinalizarJogo(false)
+    await encerrarSessao()
+  }, [])
+
   const valor = useMemo<ValorSessao>(
     () => ({
       estado,
@@ -197,6 +210,7 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
       ciclosPerdidosNoLote,
       trocarIdioma,
       conectar,
+      encerrar,
       pedirValidacaoDeLote,
       coletar,
       recarregarEstado,
@@ -211,6 +225,7 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
       ciclosPerdidosNoLote,
       trocarIdioma,
       conectar,
+      encerrar,
       pedirValidacaoDeLote,
       coletar,
       recarregarEstado,

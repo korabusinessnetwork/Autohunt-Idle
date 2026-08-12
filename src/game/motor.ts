@@ -9,7 +9,15 @@
 //      recompensa — é só um "pergunta pro servidor agora".
 
 import { INTERVALO_LOTE_MS } from './regrasFarm'
-import { avancarMundo, criarMundo, definirNivel, type EstadoMundo } from './mundo'
+import {
+  avancarMundo,
+  criarMundo,
+  definirIntencao,
+  definirModo,
+  type EstadoMundo,
+  type ModoDeJogo,
+} from './mundo'
+import type { Entrada } from './entrada'
 import type { Renderizador } from './renderizador'
 
 export interface OpcoesMotor {
@@ -17,16 +25,21 @@ export interface OpcoesMotor {
   /** Disparado a cada ciclo de lote. Não transporta valor: só pede validação. */
   aoValidarLote: () => void
   semente?: number
-  /** Nível inicial. Só escolhe o cenário — ver `src/game/biomas.ts`. */
-  nivel?: number
+  /**
+   * De onde vem o input do jogador. Sem ela o motor roda igual, só que sem
+   * ninguém no comando — é o que os testes usam.
+   */
+  entrada?: Entrada
 }
 
 export interface Motor {
   estado: EstadoMundo
   iniciar(): void
   parar(): void
-  /** Troca a zona sem recriar a cena — o jogador subiu de nível jogando. */
-  definirNivel(nivel: number): void
+  /** Liga ou desliga o auto. Quem decide se PODE ligar é a UI. */
+  definirModo(modo: ModoDeJogo): void
+  /** Instante do último input do jogador, para a trava de inatividade. */
+  ultimoInputEm(): number
 }
 
 /** Passo máximo por quadro — evita a aba voltar do background e "teleportar". */
@@ -36,9 +49,9 @@ export function criarMotor({
   renderizador,
   aoValidarLote,
   semente = 1,
-  nivel = 1,
+  entrada,
 }: OpcoesMotor): Motor {
-  const estado = criarMundo(semente, nivel)
+  const estado = criarMundo(semente)
 
   let quadro = 0
   let ultimoInstante = 0
@@ -50,6 +63,10 @@ export function criarMotor({
 
     const dt = ultimoInstante === 0 ? 0 : Math.min((instante - ultimoInstante) / 1000, DT_MAXIMO)
     ultimoInstante = instante
+
+    // A intenção é lida a cada quadro, e não por evento: teclado segurado é
+    // estado contínuo, não um evento por quadro.
+    if (entrada) definirIntencao(estado, entrada.ler())
 
     avancarMundo(estado, dt)
     renderizador.desenhar(estado)
@@ -77,8 +94,11 @@ export function criarMotor({
       if (quadro) cancelAnimationFrame(quadro)
       quadro = 0
     },
-    definirNivel(novo) {
-      definirNivel(estado, novo)
+    definirModo(modo) {
+      definirModo(estado, modo)
+    },
+    ultimoInputEm() {
+      return entrada?.ultimoInputEm() ?? 0
     },
   }
 }

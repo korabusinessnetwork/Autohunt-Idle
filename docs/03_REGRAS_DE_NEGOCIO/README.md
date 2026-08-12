@@ -100,15 +100,25 @@ Três regras inegociáveis, todas verificadas por teste:
 2. **O único débito de diamante do schema é a compra de ouro** — e ela entrega ouro, não dinheiro.
 3. **A quantidade é fixa.** Nenhum sorteio no caminho da compra — é o que a separa de uma loot box.
 
-## 8. Farm offline
+## 8. Os dois produtos de tempo
 
-| Quem | Teto por ausência |
-|---|---|
-| Sem nada | **0** — o tempo não é salvo |
-| Com minutos de anúncio | até o saldo, teto de **2 h/dia**, 15 min por anúncio |
-| Assinante | **24 h**, e **2× XP** em toda atividade |
+Desde `specs/mundo-aberto-e-modo-manual.md` o jogo é **manual**, e o auto virou o que se vende. São
+**dois produtos separados**, cada um com seu saldo — gastar um não consome o outro.
 
-Cancelar a assinatura **não** corta o benefício: o período pago segue até vencer.
+| Produto | O que é | Grátis | Assinante |
+|---|---|---|---|
+| **Auto na tela** | o personagem joga sozinho com a aba aberta | até **2 h/dia** por anúncio, 15 min cada | ilimitado |
+| **Farm offline** | rende com a aba fechada | até **2 h/dia** por anúncio, 15 min cada | **24 h** por ausência |
+
+Assinante também tem **2× XP** em toda atividade. Cancelar **não** corta o benefício: o período
+pago segue até vencer.
+
+**Manual e auto rendem exatamente o mesmo.** A habilidade do jogador não muda número nenhum — o
+servidor credita por tempo × poder e não sabe quem estava no comando. É o que manteve a
+arquitetura de segurança intacta quando a premissa inverteu.
+
+**Sem auto destravado, ficar parado não rende:** 2 minutos sem input encerram a sessão, pela mesma
+rota do fechar-aba.
 
 ## 9. Passe de recompensas
 

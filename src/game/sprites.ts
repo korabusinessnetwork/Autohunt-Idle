@@ -462,15 +462,21 @@ export function desenharProjetil(
 }
 
 /**
- * Chão do bioma.
+ * Chão do bioma, em coordenadas de MUNDO.
  *
- * As três alavancas da escalada visual dentro de um bioma (critério 2 da spec
- * de origem) são: densidade e tamanho de inimigo, que vivem em `mundo.ts`, e a
- * saturação/densidade do cenário, que é esta função. Nenhuma delas exige arte
- * nova — o tileset do bioma é o mesmo nos 5 blocos.
+ * Desde `specs/mundo-aberto-e-modo-manual.md` o mapa é muito maior que a tela,
+ * então o cenário não pode mais ser desenhado "na viewport": ele é ladrilhado
+ * pelo mundo, e a câmera passa por cima. Se ficasse preso à tela, andar não
+ * moveria o chão — e o mundo pareceria uma esteira.
+ *
+ * Só os ladrilhos que tocam a área visível são desenhados.
  */
+const LADO_LADRILHO = 640
+
 export function desenharCenario(
   ctx: CanvasRenderingContext2D,
+  origemX: number,
+  origemY: number,
   largura: number,
   altura: number,
   paleta: Paleta,
@@ -478,27 +484,50 @@ export function desenharCenario(
   intensidade: number,
 ): void {
   ctx.fillStyle = paleta[`--bioma-${bioma}-fundo`] ?? paleta['--cor-fundo']
-  ctx.fillRect(0, 0, largura, altura)
+  ctx.fillRect(origemX, origemY, largura, altura)
+
+  const primeiroX = Math.floor(origemX / LADO_LADRILHO)
+  const ultimoX = Math.floor((origemX + largura) / LADO_LADRILHO)
+  const primeiroY = Math.floor(origemY / LADO_LADRILHO)
+  const ultimoY = Math.floor((origemY + altura) / LADO_LADRILHO)
 
   const cena = imagem(arteDoCenario(bioma))
   if (cena) {
     ctx.save()
     ctx.imageSmoothingEnabled = false
-    ctx.drawImage(cena, 0, 0, largura, altura)
+    for (let ty = primeiroY; ty <= ultimoY; ty++) {
+      for (let tx = primeiroX; tx <= ultimoX; tx++) {
+        ctx.drawImage(
+          cena,
+          tx * LADO_LADRILHO,
+          ty * LADO_LADRILHO,
+          LADO_LADRILHO,
+          LADO_LADRILHO,
+        )
+      }
+    }
     ctx.restore()
-    desenharProps(ctx, largura, altura, bioma, intensidade)
+
+    for (let ty = primeiroY; ty <= ultimoY; ty++) {
+      for (let tx = primeiroX; tx <= ultimoX; tx++) {
+        desenharProps(ctx, tx, ty, bioma, intensidade)
+      }
+    }
     return
   }
 
+  // Silhueta: o que aparece enquanto o PNG carrega, e o que continua
+  // aparecendo se ele nunca carregar (Princípio nº1).
   ctx.fillStyle = paleta[`--bioma-${bioma}-detalhe`] ?? paleta['--cor-secundaria']
-  // Mais saturado e mais denso conforme o bloco avança: o 5º bloco de um bioma
-  // é visivelmente mais carregado que o 1º, com o mesmo tema.
   ctx.globalAlpha = 0.22 + intensidade * 0.3
   const passo = 44 - Math.round(intensidade * 14)
   const raio = 6 + intensidade * 3
 
-  for (let y = passo; y < altura; y += passo) {
-    for (let x = ((y / passo) % 2) * (passo / 2); x < largura; x += passo) {
+  const inicioY = Math.floor(origemY / passo) * passo
+  const inicioX = Math.floor(origemX / passo) * passo
+  for (let y = inicioY; y < origemY + altura + passo; y += passo) {
+    const desloca = (Math.floor(y / passo) % 2) * (passo / 2)
+    for (let x = inicioX + desloca; x < origemX + largura + passo; x += passo) {
       ctx.beginPath()
       ctx.arc(x, y, raio, 0, Math.PI * 2)
       ctx.fill()
@@ -508,18 +537,17 @@ export function desenharCenario(
 }
 
 /**
- * Os elementos de mundo do bioma, espalhados sobre o cenário.
+ * Os elementos de mundo do bioma, ancorados no ladrilho.
  *
- * São a segunda alavanca da escalada visual dentro de um bioma (critério 2 da
- * spec de mapa): o 5º bloco tem o dobro de props do 1º, com o mesmo desenho.
- *
- * A posição é derivada do índice, nunca sorteada — prop que muda de lugar a
- * cada quadro vira ruído, e o mundo precisa parecer o mesmo lugar.
+ * A posição é derivada do índice do LADRILHO, nunca sorteada — é o que faz o
+ * mesmo pedaço do mapa ter sempre os mesmos props. Prop que muda de lugar
+ * quando o jogador volta destruiria a sensação de lugar, que é justamente o
+ * ponto desta rodada.
  */
 function desenharProps(
   ctx: CanvasRenderingContext2D,
-  largura: number,
-  altura: number,
+  ladrilhoX: number,
+  ladrilhoY: number,
   bioma: number,
   intensidade: number,
 ): void {
@@ -528,16 +556,18 @@ function desenharProps(
 
   const quantos = 3 + Math.round(intensidade * 3)
   const alturaProp = (prop.naturalHeight / ESCALA_EXPORTACAO) * ESCALA_PROP
+  const baseX = ladrilhoX * LADO_LADRILHO
+  const baseY = ladrilhoY * LADO_LADRILHO
+  // Semente do ladrilho: dois ladrilhos vizinhos não repetem o mesmo arranjo.
+  const semente = ladrilhoX * 73 + ladrilhoY * 151 + bioma
 
   ctx.save()
   ctx.imageSmoothingEnabled = false
   for (let i = 0; i < quantos; i++) {
-    // Espaçamento irregular a partir do índice: distribuído sem enfileirar.
     const passo = (i + 0.5) / quantos
-    const x = largura * passo + Math.sin((i + bioma) * 2.4) * (largura / (quantos * 3))
-    // Metade de baixo da tela — é onde o prop lê como primeiro plano.
-    const y = altura * (0.58 + ((i * 7 + bioma * 3) % 10) / 28)
-    desenharSprite(ctx, prop, x, y, alturaProp, i % 2 === 1)
+    const x = baseX + LADO_LADRILHO * passo + Math.sin((i + semente) * 2.4) * (LADO_LADRILHO / (quantos * 3))
+    const y = baseY + LADO_LADRILHO * (0.18 + ((i * 7 + semente * 3) % 10) / 14)
+    desenharSprite(ctx, prop, x, y, alturaProp, (i + semente) % 2 === 1)
   }
   ctx.restore()
 }

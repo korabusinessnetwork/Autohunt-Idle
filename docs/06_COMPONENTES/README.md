@@ -52,9 +52,13 @@ que uma delas esqueceria.
 O canvas tem `role="img"` e `aria-label` com o **nome do bioma corrente** — o mundo é decorativo
 para leitor de tela, mas nomeado.
 
-**Nenhum listener de teclado ou clique alimenta o combate.** Não existe input de jogo: o herói
-escolhe alvo, se aproxima e ataca sozinho. É o core, critério 1, e é o que faz a ação principal se
-explicar em cinco segundos.
+**O jogo é manual desde 2026-08-12** (`specs/mundo-aberto-e-modo-manual.md`). `src/game/entrada.ts`
+traduz teclado, mouse e toque em **intenção** — nunca em movimento direto —, e o mundo decide o
+resto. A separação é o que permite o modo auto preencher a mesma estrutura sem nenhum teclado
+envolvido.
+
+O HUD mostra o **estado do auto sempre visível**, nunca escondido atrás de menu: é o produto que se
+vende, e quem não tem precisa saber que existe sem procurar.
 
 ## 4. Os painéis — `src/features/`
 
@@ -120,10 +124,11 @@ Cada ausência aqui é decisão registrada, não esquecimento:
 
 | Não existe | Por quê |
 |---|---|
-| Tela de boas-vindas / tutorial | core, 17 — a ação principal se explica sozinha |
+| Tela de boas-vindas / tutorial | core, 17 — o jogo abre direto no mundo |
 | Tela de morte | core, 16 — o herói pisca e continua |
 | Botão de resgatar recompensa do passe | fila de prêmio não coletado é cobrança disfarçada |
 | Contagem regressiva ou "última chance" | restrição contra dark pattern de urgência |
+| Tela bloqueante ao ficar ocioso | encerrar por inatividade não é erro do jogador; o aviso fica no canto |
 | Cadeado em degrau não alcançado | o tom da casa não cobra |
 | Qualquer rota de vender item ou sacar saldo | não existe no servidor, e não vai existir |
 

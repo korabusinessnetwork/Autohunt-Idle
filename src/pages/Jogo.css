@@ -130,3 +130,35 @@
     transition: none;
   }
 }
+
+/*
+ * Aviso de ociosidade. Fica no canto, não no meio: encerrar a sessão por
+ * inatividade não é erro do jogador, e tela bloqueante daria esse tom.
+ */
+.jogo__ocioso {
+  position: absolute;
+  inset-block-end: var(--espaco-4);
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  width: min(22rem, calc(100% - var(--espaco-4) * 2));
+  padding: var(--espaco-3);
+  background: var(--cor-fundo);
+  border: var(--borda);
+  border-radius: var(--raio);
+  z-index: 20;
+}
+
+.jogo__ocioso-titulo {
+  margin: 0;
+  font-weight: 700;
+}
+
+.jogo__ocioso-texto {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  opacity: 0.85;
+}
