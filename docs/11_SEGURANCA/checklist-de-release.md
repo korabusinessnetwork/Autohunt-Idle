@@ -74,6 +74,14 @@ Não dá para automatizar: são chaves e botões de painel, fora do repositório
       aparecer andando em até 5 segundos, sem nenhuma tela de login.
 - [ ] **Decidir "Confirm email"** (P1 do backlog). Ligada = mais seguro contra e-mail digitado
       errado; desligada = menos fricção. O código funciona nos dois modos.
+      *Decidido em 2026-08-12: **desligada** durante o desenvolvimento. Volta à mesa aqui, antes do
+      lançamento público — é este item que a traz de volta.*
+- [ ] **Captcha no cadastro anônimo** (D23 do backlog). O próprio painel do Supabase avisa ao
+      habilitar `signInAnonymously`: sem captcha, um script cria contas em massa. Não vaza nada
+      (cada conta enxerga só a própria linha), mas incha o banco e **conta como MAU**, que é o que
+      o plano gratuito limita. Enquanto o jogo é privado, o risco é teórico. *Como conferir:*
+      Authentication → Attack Protection → captcha habilitado (hCaptcha e Turnstile têm plano
+      gratuito — não fere a restrição de custo).
 - [ ] **`service_role` não está em variável de ambiente do frontend.** *Como conferir:* no painel
       da Vercel, a lista de env vars do projeto não pode ter nenhuma chave que comece com
       `SUPABASE_SERVICE` nem qualquer `VITE_` com valor de JWT longo.
