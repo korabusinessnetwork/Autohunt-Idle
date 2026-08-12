@@ -64,6 +64,9 @@ que remover a proteção quebre um teste com nome legível em vez de passar desp
 
 ## 3. Manual — configuração do projeto Supabase
 
+> Para a primeira vez, o caminho completo está em `docs/01_ARQUITETURA/subir-o-supabase.md`. Esta
+> lista é a conferência; lá é a travessia.
+
 Não dá para automatizar: são chaves e botões de painel, fora do repositório.
 
 - [ ] **`signInAnonymously` habilitado.** Sem isso o jogo abre na tela de erro e ninguém joga

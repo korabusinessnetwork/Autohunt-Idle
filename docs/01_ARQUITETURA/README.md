@@ -22,6 +22,7 @@
 
 - `overview.md` — 1 página: stack, deployment, arquitetura em alto nível
 - `tech-stack.md` — justificativa de cada tecnologia principal
+- `subir-o-supabase.md` — **passo a passo do projeto vazio até abrir `/console` como admin**
 - `infra.md` — ambientes, CI/CD, logging, monitoring
 - `diagramas/` — C4, ER, fluxos de dados (Mermaid/Excalidraw)
 - `padroes.md` — convenções, estrutura de pastas, naming
