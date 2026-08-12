@@ -15,7 +15,7 @@
 
 | Comando | O que garante |
 |---|---|
-| `npm test` | 194 testes, dos quais 29 auditam o contrato do schema e 5 auditam a superfície do client. É aqui que moram as provas do `modelo-de-ameacas.md` |
+| `npm test` | 199 testes, dos quais 29 auditam o contrato do schema e 5 auditam a superfície do client. É aqui que moram as provas do `modelo-de-ameacas.md` |
 | `npm run build` | Tipo, compilação e o orçamento de peso do portal |
 | `npm audit --audit-level=critical` | Nenhuma dependência com vulnerabilidade crítica aberta |
 | `gitleaks` (com `fetch-depth: 0`) | Nenhum segredo no repositório — **inclusive no histórico**, porque segredo "removido num commit seguinte" continua lá |

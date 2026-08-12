@@ -1,45 +1,179 @@
 # 04 — MODELAGEM · Autohunt Idle
 
-> Estrutura de dados: entities, relationships, schema. Single source of truth do banco.
+> As 12 tabelas do jogo: o que cada uma guarda, quem consegue ler o quê, e quais invariantes o
+> banco enforça sozinho.
 
-> ⚠️ **Este projeto é single-tenant (ver [ADR-002](../08_DECISOES/adr-002-single-tenant.md))** — ignore as menções a `tenant_id`/multi-tenant abaixo, que são o texto padrão da Kora. Isolamento aqui é por `player_id`/`user_id`. Conteúdo real desta pasta ainda não escrito — pendente Fase 3.
+> ⚠️ Auditado contra o **banco vivo**, não contra o texto das migrations. A diferença já custou um
+> furo de segurança — ver `docs/07_APIS/` §6.
 
-## O que vive aqui
+> Este projeto é single-tenant ([ADR-002](../08_DECISOES/adr-002-single-tenant.md)): **não existe
+> `tenant_id` em lugar nenhum**, e um teste reprova o build se aparecer. Isolamento é por
+> `player_id`.
 
-- **Entidades**: descrição de cada tabela, seu propósito, ciclo de vida
-- **Relacionamentos**: FK, cardinalidades, constraints, índices
-- **Schema**: DDL (CREATE TABLE...), migrations, versionamento
-- **Multi-tenancy**: como RLS (Row Level Security) isola dados por tenant
-- **Padrões de dados**: soft delete, timestamps (created/updated), status enums
-- **Diagramas ER**: visual do relacionamento entre tabelas
+## 1. O desenho em uma frase
 
-## O que NÃO vive aqui
+Tudo pendura em `jogador`, que pendura em `auth.users` com `on delete cascade`. Apagar a conta no
+Auth apaga o jogo inteiro daquela pessoa, em cascata, sem lista para alguém esquecer de atualizar.
 
-- Queries/endpoints que usam os dados → `07_APIS/`
-- Regras de como usar os dados → `03_REGRAS_DE_NEGOCIO/`
-- Componentes que exibem os dados → `06_COMPONENTES/`
-- Infra do banco (backup, replicação) → `01_ARQUITETURA/`
+```
+auth.users (Supabase)
+└── jogador ─────────┬── farm_state          1:1
+                     ├── atributo_jogador    1:1
+                     ├── assinatura          1:1
+                     ├── passe_jogador       1:1
+                     ├── ranking_posicao     1:1 (só quem tem apelido)
+                     ├── item_jogador        1:N
+                     ├── ticket_anuncio      1:N
+                     └── evento_jogo         1:N
 
-## Arquivos sugeridos
+catálogos sem dono:  pacote_ouro · passe_recompensa · segredo_rng
+```
 
-- `entities.md` — lista de tabelas com descrição, campos, tipos
-- `relationships.md` — diagrama e documentação de FKs e cardinalidades
-- `database-schema.md` — DDL organizado, com comentários
-- `migrations.md` — histórico e convenção de nomes (ex: 2026-01-15_create_users.sql)
-- `diagramas/er.md` — diagrama ER (Mermaid ou similar)
-- `multi-tenancy.md` — estratégia RLS, como garantir isolamento
+## 2. As tabelas
 
-## Como preencher
+### `jogador` — a linha central
 
-1. **Desenhe o ER primeiro**: entidades, relacionamentos, cardinalidades
-2. **Schema em produção prevalece**: `supabase/schema.sql` é a verdade; doc descreve + explica
-3. **Toda nova tabela tem migration**: nunca muda schema direto (rollback possível)
-4. **Nomes em inglês, comentários em português**: `usuarios` → `users`, `describe table`
-5. **Multi-tenant por padrão**: toda tabela pensa em tenant_id, RLS, isolamento
+| | |
+|---|---|
+| **PK** | `id uuid` → `auth.users(id)` |
+| **Progressão** | `nivel`, `xp_total`, `moeda`, `diamante`, `vitalidade_atual` |
+| **Pessoal** | `data_nascimento`, `idioma`, `apelido` |
+| **Client lê** | tudo (é a própria linha) |
+| **Client escreve** | `data_nascimento` e `idioma`, e **só** |
+
+O grant de UPDATE é a proteção mais importante do schema: **`nivel`, `xp_total`, `moeda`,
+`diamante` e `vitalidade_atual` não estão nele**. Nem um update legítimo na própria linha os
+alcança — quem escreve progressão é RPC `SECURITY DEFINER`.
+
+Dois triggers guardam a idade:
+- `jogador_valida_idade` recusa data que implique menos de 18 anos (`IDADE_MINIMA_NAO_ATINGIDA`);
+- o mesmo trigger recusa **reescrever** uma data já informada (`DATA_NASCIMENTO_IMUTAVEL`), senão
+  o gate viraria formalidade reversível.
+
+`jogador_apelido_unico` é um índice único parcial sobre `lower(apelido)`: "Duda" e "duda" são o
+mesmo nome aos olhos do jogador, e nulo não ocupa vaga.
+
+### `farm_state` — o relógio e o RNG
+
+| | |
+|---|---|
+| **PK** | `player_id` |
+| **Tempo** | `last_seen_at`, `minutos_acumulados` |
+| **Pendente** | `xp_pendente`, `moeda_pendente` |
+| **Anúncio** | `minutos_anuncio_saldo`, `minutos_anuncio_creditados`, `janela_anuncio_iniciada_em` |
+| **Sorteio** | `contador_sorteio`, `ciclos_desde_mini_boss` |
+
+`last_seen_at` é a única fonte de "quanto tempo se passou". Nunca vem do client.
+
+**`contador_sorteio` NÃO está no grant do client.** É metade da semente de todo sorteio, e
+publicá-lo permitia prever o loot — ver `docs/07_APIS/` §6.
+
+### `atributo_jogador`
+
+`forca`, `inteligencia`, `vitalidade`, `sorte`, mais `auto_alocar`. Esse booleano existe por um bug
+real: sem ele, a auto-alocação desfazia a redistribuição manual no lote seguinte. Vira `false` no
+primeiro respec à mão, e `reativar_auto_alocacao()` devolve.
+
+### `item_jogador` — inventário, equipamento e fortificação numa tabela só
+
+| Coluna | Papel |
+|---|---|
+| `tipo` | `arma`, `capacete`, `armadura`, `luva`, `bota`, `acessorio`, `skin`, `chave`, `pedra_*` |
+| `raridade` | 1 (comum) a 10 (cósmico) |
+| `slot` | ocupado, ou `null` quando guardado. **O slot é sempre igual ao tipo** |
+| `fortificacao` | 0 a 15. **Nunca decresce** — não existe caminho no schema que reduza |
+| `tipo_dano`, `afinidade`, `conjunto_id` | sinergia e conjunto |
+| `origem` | `mundo`, `mini_boss`, `dungeon`, `sintese`, `passe` |
+| `exclusivo_do_passe` | marcado por **um único insert** no schema inteiro |
+
+`item_slot_unico` é o índice único por `(player_id, slot)` — dois itens no mesmo slot nem entram no
+banco. É constraint, não checagem em código.
+
+### `assinatura` e `passe_jogador` — o que o dinheiro toca
+
+Ambas seguem o mesmo padrão, e é deliberado:
+
+- **escrita exclusiva de `service_role`**, por webhook assinado do gateway. O client não consegue
+  se declarar assinante nem portador de passe;
+- **`referencia_externa` e `provedor` fora do grant do client** — são o identificador do jogador
+  *dentro do provedor*, e `CLAUDE.md` proíbe `select *` justamente em tabela de assinatura.
+
+`assinatura_ativa_tem_prazo` garante que status ativo sempre tem `expira_em`. Cancelar não corta o
+benefício: o status vira `cancelada` e o período pago segue valendo até vencer.
+
+### `ranking_posicao` — a única tabela com dado visível a terceiros
+
+Recomputada por `recomputar_ranking()` (exclusiva de `service_role`; falta agendar — D6).
+
+O grant é o ponto: **`player_id` não está nele.** O placar mostra apelido, nível e posição. Quem
+aparece ali escolheu aparecer, e aparece só com o nome que escolheu.
+
+### `ticket_anuncio` e `evento_jogo`
+
+`ticket_anuncio` é de uso único: o crédito acontece contra o ticket, nunca contra um pedido do
+client.
+
+`evento_jogo` é o log fire-and-forget. É a **única tabela em que o client pode inserir**
+(`player_id, tipo, dados`), e isso é dívida registrada (D10): `dados` é `jsonb` sem esquema, então
+nada impede um `tipo` novo carregar dado pessoal, nem um script inflar a tabela. Não credita nada
+— não é vetor de trapaça, é vetor de custo e ruído.
+
+### Catálogos: `pacote_ouro`, `passe_recompensa`
+
+Legíveis por qualquer jogador autenticado, e é o ponto: **preço e recompensa precisam estar na tela
+antes da compra.** É o que separa a loja de ouro e o passe de uma caixa de recompensa aleatória.
+
+Nenhuma das duas tem coluna de prazo, validade ou temporada. A ausência é verificada por teste.
+
+### `segredo_rng` — a tabela que ninguém alcança
+
+Uma linha, sem grant nenhum, RLS ligada e **sem policy**. Só função `SECURITY DEFINER` a lê, porque
+roda como dona do schema.
+
+O valor tempera toda semente de sorteio. Sem ele, conhecer o algoritmo e o contador não basta para
+prever o loot — que é exatamente o furo fechado na migration `20260823`.
+
+## 3. Os invariantes que o banco enforça sozinho
+
+Não dependem de nenhuma linha de código de aplicação:
+
+| Invariante | Como |
+|---|---|
+| Ninguém menor de 18 tem conta | trigger `jogador_valida_idade` |
+| Data de nascimento não é reescrita | mesmo trigger |
+| Dois itens não ocupam o mesmo slot | índice único `item_slot_unico` |
+| Dois jogadores não têm o mesmo apelido | índice único `jogador_apelido_unico` sobre `lower()` |
+| Saldo de diamante nunca negativo | `check (diamante >= 0)` |
+| Fortificação entre 0 e 15 | `check` na coluna |
+| Raridade entre 1 e 10 | `check` na coluna |
+| Assinatura ativa sempre tem prazo | `check` de tabela |
+| Apagar a conta não deixa órfão | `on delete cascade` em toda FK |
+
+## 4. RLS — todas as 12 tabelas
+
+Sem exceção, e dois testes garantem: `toda tabela criada tem RLS habilitada` (contrato) e
+`RLS ativa em toda tabela do schema public` (fumaça, varrendo `pg_class`).
+
+O padrão é `using (player_id = auth.uid())`. As três exceções são deliberadas:
+
+- `ranking_posicao` e os dois catálogos: leitura pública para autenticado — nenhum dado pessoal;
+- `segredo_rng`: RLS ligada e **nenhuma policy**, ou seja, ninguém passa.
+
+**Ressalva que não pode sumir:** o Postgres local reproduz `auth.uid()` a partir de uma variável de
+sessão, não de um JWT. **RLS não é exercitada por um token real** em teste nenhum — isso só num
+projeto Supabase. É a ameaça 7.5, e virou passo manual no checklist de release.
+
+## 5. O que a modelagem deliberadamente NÃO tem
+
+- **`tenant_id`** — ADR-002. Verificado por teste.
+- **Qualquer coluna de cartão** — o gateway processa, nós não guardamos. Verificado por teste.
+- **Tabela de classe/build** — a "build" é o que emerge do que está equipado agora.
+- **Coluna de bioma** — cenário é do client, e não pode virar entrada de cálculo de recompensa.
+- **Estado "conta desativada"** — a exclusão da LGPD é eliminação, não pausa.
 
 ## Ligações
 
-- `supabase/schema.sql` — schema real (fonte de verdade técnica)
-- `supabase/migrations/` — histórico de mudanças
-- `02_DESIGN_SYSTEM/` — padrões visuais que refletem estrutura (ex: fields)
-- `03_REGRAS_DE_NEGOCIO/` — o que as regras esperam da modelagem
+- `docs/07_APIS/` — as RPCs que operam sobre estas tabelas
+- `docs/11_SEGURANCA/modelo-de-ameacas.md` — o que cada grant protege
+- `supabase/migrations/` — a fonte
+- `scripts/pg-local.sh` — sobe um Postgres descartável e prova que tudo isto aplica
