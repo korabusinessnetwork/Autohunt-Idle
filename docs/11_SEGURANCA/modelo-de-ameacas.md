@@ -106,7 +106,7 @@ Superfície nova, criada na 7ª rodada, e a que mais depende de invariante e men
 | 7.2 | Tabela sem política de leitura própria | **FECHADA** | `toda tabela tem ao menos uma policy de leitura própria` |
 | 7.3 | Vazamento de `player_id` no placar público | **FECHADA** | grant de coluna em `ranking_posicao` limitado a `apelido, nivel, posicao, atualizado_em` |
 | 7.4 | Isolamento multi-tenant confundido com isolamento por jogador | **FECHADA** | `não existe tenant_id em nenhuma instrução (ADR-002)` |
-| 7.5 | **RLS não é exercitada por um JWT real** | **ABERTA** | O stub reproduz `auth.uid()` a partir de uma variável de sessão, não de um JWT. A política pode estar sintaticamente certa e semanticamente errada sem ninguém notar. **Só fecha num projeto Supabase de verdade** — vira item de release, ver `checklist-de-release.md` §4 |
+| 7.5 | **RLS não é exercitada por um JWT real** | **MITIGADA** | **Verificada em 2026-08-12**, contra o projeto real: duas contas anônimas, A não lê nem escreve nada de B em sete tabelas, e o papel `anon` não alcança tabela nenhuma. A política estava certa. Continua MITIGADA e não FECHADA porque **nenhum teste automático a defende**: o Postgres local reproduz `auth.uid()` por variável de sessão, não por JWT, e por isso não exercita policy. Uma migration distraída pode derrubar uma policy sem quebrar nada. É item recorrente de release, ver `checklist-de-release.md` §4 |
 
 ## 8. Superfície: dados pessoais (LGPD)
 

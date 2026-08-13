@@ -39,24 +39,27 @@ Na prática:
 |---|---|
 | Ameaças mapeadas | **65**, em 11 superfícies |
 | **FECHADAS** — com teste que reprova o build | **54** |
-| **MITIGADAS** — protegidas, mas nada trava se alguém desfizer | **5** |
-| **ABERTAS** | **5** |
+| **MITIGADAS** — protegidas, mas nada trava se alguém desfizer | **6** |
+| **ABERTAS** | **4** |
 | **ACEITA por proporcionalidade** | **1** — data de nascimento falsa; verificação por documento é paga e desproporcional ao risco deste produto |
 
-As cinco abertas, em ordem de impacto. **Nenhuma depende de trabalho de código pendente** — todas
+As quatro abertas, em ordem de impacto. **Nenhuma depende de trabalho de código pendente** — todas
 esperam decisão do dono, dado de jogador real ou serviço contratado:
 
-1. **RLS não é exercitada por JWT real** (7.5) — o Postgres local reproduz `auth.uid()` a partir de
-   uma variável de sessão, não de um JWT. A política pode estar sintaticamente certa e
-   semanticamente errada sem ninguém notar. Só fecha num projeto Supabase; virou passo manual no
-   checklist (§4).
-2. **Calibragem do preço da fortificação** (4.7) — se o custo em ouro forçar a compra, o caminho
+> **Saiu desta lista em 2026-08-12: RLS sob JWT real (7.5).** Exercitada contra o projeto Supabase
+> assim que ele existiu — duas contas, sete tabelas, leitura e escrita cruzadas, mais o papel
+> `anon`. A política estava certa. Passou a **MITIGADA**, não a FECHADA, e a distinção é o ponto:
+> nenhum teste automático a defende, porque o Postgres local não tem JWT para exercitar policy. Ela
+> é verdadeira hoje e pode deixar de ser numa migration distraída, sem nada quebrar. Por isso virou
+> item **recorrente** de release (§4 do checklist), não item riscado.
+
+1. **Calibragem do preço da fortificação** (4.7) — se o custo em ouro forçar a compra, o caminho
    gratuito vira fachada e a restrição de recompensa aleatória paga volta a valer *de fato*, com o
    código intacto (P6). Só dado de jogador real resolve.
-3. **Calibragem da trilha do passe** (10.10) — mesma família da anterior: nenhum teste julga se a
+2. **Calibragem da trilha do passe** (10.10) — mesma família da anterior: nenhum teste julga se a
    curva de pontos é honesta.
-4. **Webhook de gateway forjado** (3.4) — depende de P3.
-5. **Replay do callback de anúncio** (2.3) — depende de P2.
+3. **Webhook de gateway forjado** (3.4) — depende de P3.
+4. **Replay do callback de anúncio** (2.3) — depende de P2.
 
 Além delas, `modelo-de-ameacas.md` §13 registra cinco coisas que o modelo **não cobre**: abuso de
 volume, disponibilidade (DDoS/WAF), segurança operacional das contas do dono, o mercado P2P — que

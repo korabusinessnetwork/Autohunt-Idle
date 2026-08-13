@@ -168,7 +168,7 @@ propósito — esconder a rota seria obscuridade, e obscuridade não é controle
 |---|---|
 | **`pg_cron` chamando `recomputar_ranking()`** (D6) | Extensão gratuita, roda dentro do Postgres. Sem ela o placar só se mexe quando alguém define apelido — dá pra viver com isso enquanto você é o único jogador |
 | **Deploy das Edge Functions** | As três existem (`anuncio-callback`, `anuncio-resgate`, `assinatura-webhook`), mas nenhuma tem provedor plugado: P2 (anúncio) e P3 (gateway) são decisões suas. Sem provedor, elas rejeitam tudo — que é o estado correto |
-| **Teste de RLS com JWT real** (ameaça 7.5) | É o único teste que o Postgres local **não** consegue fazer: o stub simula `auth.uid()` por variável de sessão, não por token. Agora que existe um projeto de verdade, dá pra fazer — está no checklist de release, seção 4 |
+| ~~**Teste de RLS com JWT real**~~ (ameaça 7.5) — **feito em 2026-08-12** | Era o único teste que o Postgres local **não** consegue fazer: o stub simula `auth.uid()` por variável de sessão, não por token. Feito assim que o projeto existiu — duas contas anônimas, A não lê nem escreve nada de B em sete tabelas, `anon` não alcança tabela nenhuma, e as duas contas foram apagadas pelo próprio `excluir_minha_conta`. A política estava certa. **Continua no checklist de release §4**, porque não há teste automático que a defenda de uma migration distraída |
 | **Vercel** | Outro passo, outro documento. O jogo roda local primeiro |
 
 ## Ligações

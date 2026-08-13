@@ -109,13 +109,31 @@ Não dá para automatizar: são chaves e botões de painel, fora do repositório
 roda, que as constraints pegam e que a matemática fecha. **Não prova RLS sob um JWT real**
 (ameaça 7.5 do modelo). Estes testes só existem num projeto Supabase de verdade:
 
-- [ ] **Isolamento entre jogadores.** Criar duas contas, A e B. Com o token de A, tentar ler a
+> **Executados pela primeira vez em 2026-08-12**, contra o projeto real, com duas contas anônimas
+> criadas e excluídas pelo próprio `excluir_minha_conta`. Ficam marcados, e **voltam a ser
+> exigidos a cada release** — RLS é policy, e policy some numa migration distraída sem quebrar
+> nenhum teste. Repetir é barato; a primeira execução levou dois minutos.
+
+- [x] **Isolamento entre jogadores.** Criar duas contas, A e B. Com o token de A, tentar ler a
       linha de B em `jogador`, `farm_state`, `item_jogador` e `assinatura`. *Esperado:* zero linha
       em todas — não erro de permissão, **zero linha**, que é como RLS recusa.
-- [ ] **Escrita cruzada.** Com o token de A, tentar `update` na linha de B. *Esperado:* zero linha
-      afetada.
-- [ ] **Papel `anon`.** Sem autenticar, tentar ler qualquer tabela. *Esperado:* recusa — `anon` não
-      tem grant nenhum.
+      *2026-08-12: `[]` nas quatro, e também em `atributo_jogador`, `passe_jogador` e
+      `ticket_anuncio`. Zero linha, não erro — a distinção importa, porque erro de permissão
+      significaria que quem barrou foi o GRANT, e a policy nunca teria sido exercitada.*
+- [x] **Escrita cruzada.** Com o token de A, tentar `update` na linha de B. *Esperado:* zero linha
+      afetada. *2026-08-12: `[]` com `Prefer: return=representation`, ou seja, zero linha afetada —
+      a policy filtrou antes de escrever. O `delete` nem chega à policy: não existe grant de DELETE
+      para `authenticated`, então para por privilégio, uma camada antes.*
+- [x] **Papel `anon`.** Sem autenticar, tentar ler qualquer tabela. *Esperado:* recusa — `anon` não
+      tem grant nenhum. *2026-08-12: `42501 permission denied` nas oito tabelas testadas
+      (`jogador`, `farm_state`, `item_jogador`, `assinatura`, `ajuste`, `evento_jogo`,
+      `ranking_posicao`, `pacote_ouro`). Este é o item que a migration `20260827` consertou — antes
+      dela, `ajuste` respondia.*
+- [x] **A separação de escopo do console vale no banco, não só na tela** (ameaças 12.x).
+      *2026-08-12, com token de jogador comum: `ajuste` devolve **9 linhas de 16**, todas de escopo
+      `visual` — os sete números econômicos não chegam ao client. `definir_ajuste` devolve
+      `NAO_AUTORIZADO`, `log_operacional` devolve `NAO_AUTORIZADO`, e `UPDATE` direto na tabela para
+      por privilégio. `segredo_rng` e `farm_state.contador_sorteio`, negados.*
 - [ ] **Relógio do client.** Adiantar o relógio do sistema em 10 horas e reabrir o jogo.
       *Esperado:* a tela de retorno mostra exatamente o mesmo que mostraria sem mexer no relógio.
 - [ ] **Crédito de anúncio sem anúncio.** Chamar a rota de crédito direto, sem o callback do
