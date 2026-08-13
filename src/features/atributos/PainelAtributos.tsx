@@ -11,16 +11,21 @@ import {
   type Atributos,
 } from '../../game/regrasAtributos'
 import type { ChaveI18n } from '../../lib/i18n'
-import { reativarAutoAlocacao, redistribuirAtributos } from '../../lib/services/atributoService'
+import { redistribuirAtributos } from '../../lib/services/atributoService'
 import './PainelAtributos.css'
 
 // Painel de atributos.
 //
-// Regra de produto que molda esta tela: os pontos já foram distribuídos
-// sozinhos (Princípio nº1) — mexer aqui é opcional, e a tela diz isso em vez de
-// exigir uma decisão. E como o respec é grátis, sem penalidade e sem limite
-// (`specs/ranking-global.md`, critério 10), não existe confirmação de "tem
-// certeza?": não há nada a perder.
+// Regra de produto que molda esta tela: **quem gasta ponto é o jogador**. Até
+// 2026-08-13 o servidor distribuía sozinho e esta tela era opcional; hoje é
+// aqui que a build acontece, e o ponto fica guardado até alguém decidir.
+//
+// O Princípio nº1 é atendido pelo selo no ícone de atributos (`Jogo.tsx`), que
+// mostra quantos pontos estão parados — o convite chega sem exigir leitura, e
+// ignorar não quebra nada.
+//
+// Como o respec é grátis, sem penalidade e sem limite (`specs/ranking-global.md`,
+// critério 10), não existe confirmação de "tem certeza?": não há nada a perder.
 
 const ROTULO: Record<Atributo, ChaveI18n> = {
   forca: 'atributos.forca',
@@ -52,7 +57,6 @@ export function PainelAtributos({ aoFechar }: { aoFechar: () => void }) {
     sorte: snapshot?.atributos.sorte ?? 0,
   }
   const nivel = snapshot?.jogador.nivel ?? 1
-  const autoAlocar = snapshot?.atributos.autoAlocar ?? true
 
   const [rascunho, setRascunho] = useState<Atributos>(salvos)
   const [salvando, setSalvando] = useState(false)
@@ -77,22 +81,6 @@ export function PainelAtributos({ aoFechar }: { aoFechar: () => void }) {
   function zerar() {
     setRascunho({ forca: 0, inteligencia: 0, vitalidade: 0, sorte: 0 })
     setErro(null)
-  }
-
-  async function voltarAoAutomatico() {
-    setSalvando(true)
-    setErro(null)
-    try {
-      const resposta = await reativarAutoAlocacao()
-      if (resposta.error) {
-        setErro(ERRO[resposta.error.codigo] ?? 'atributos.erro.ATRIBUTO_FALHOU')
-        return
-      }
-      if (resposta.data) atualizarSnapshot(resposta.data)
-      aoFechar()
-    } finally {
-      setSalvando(false)
-    }
   }
 
   async function salvar() {
@@ -123,9 +111,7 @@ export function PainelAtributos({ aoFechar }: { aoFechar: () => void }) {
         <h2 className="atributos__titulo" id="atributos-titulo">
           {t('atributos.titulo')}
         </h2>
-        <p className="atributos__explicacao">
-          {t(autoAlocar ? 'atributos.autoAlocado' : 'atributos.manual')}
-        </p>
+        <p className="atributos__explicacao">{t('atributos.manual')}</p>
         <p className="atributos__pontos">{t('atributos.pontosLivres', { pontos: livres })}</p>
 
         <ul className="atributos__lista">
@@ -179,19 +165,6 @@ export function PainelAtributos({ aoFechar }: { aoFechar: () => void }) {
           <Botao variante="discreta" onClick={zerar} disabled={salvando}>
             {t('atributos.zerar')}
           </Botao>
-          {/*
-            Só aparece para quem assumiu o controle: é a porta de volta. Sem
-            ela, quem redistribui uma vez fica manual para sempre.
-          */}
-          {!autoAlocar ? (
-            <Botao
-              variante="discreta"
-              onClick={() => void voltarAoAutomatico()}
-              disabled={salvando}
-            >
-              {t('atributos.voltarAoAutomatico')}
-            </Botao>
-          ) : null}
           <Botao variante="discreta" onClick={aoFechar} disabled={salvando}>
             {t('config.fechar')}
           </Botao>

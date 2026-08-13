@@ -76,9 +76,12 @@ publicá-lo permitia prever o loot — ver `docs/07_APIS/` §6.
 
 ### `atributo_jogador`
 
-`forca`, `inteligencia`, `vitalidade`, `sorte`, mais `auto_alocar`. Esse booleano existe por um bug
-real: sem ele, a auto-alocação desfazia a redistribuição manual no lote seguinte. Vira `false` no
-primeiro respec à mão, e `reativar_auto_alocacao()` devolve.
+`forca`, `inteligencia`, `vitalidade`, `sorte`, mais `auto_alocar` — este último **morto desde
+2026-08-13**, sempre `false`. A auto-alocação saiu do jogo (ver `docs/03_REGRAS_DE_NEGOCIO/` §3), e
+a coluna ficou porque `montar_snapshot` e `exportar_meus_dados` a publicam; derrubá-la obrigaria a
+reescrever as duas por nada. `auto_alocar_atributos()` continua existindo pelo mesmo tipo de motivo
+— três RPCs a chamam com `perform` no level up —, mas o corpo dela hoje só garante que a linha de
+atributo existe.
 
 ### `item_jogador` — inventário, equipamento e fortificação numa tabela só
 

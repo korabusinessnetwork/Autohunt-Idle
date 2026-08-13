@@ -102,9 +102,10 @@ export interface EstadoAtributos {
   /** Pontos ganhos e ainda não gastos. */
   pontosLivres: number
   /**
-   * Se o servidor ainda distribui os pontos novos sozinho. Vira `false` quando
-   * o jogador redistribui à mão — senão a auto-alocação desfaria a escolha
-   * dele no lote seguinte.
+   * @deprecated Sempre `false`. A auto-alocação saiu do jogo em 2026-08-13 —
+   * quem gasta ponto é o jogador. O campo continua no tipo porque o snapshot
+   * continua publicando a coluna; nenhuma tela o lê para decidir nada. Ver
+   * `supabase/migrations/20260829_atributos_manuais.sql`.
    */
   autoAlocar: boolean
 }

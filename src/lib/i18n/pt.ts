@@ -33,7 +33,7 @@ export const pt = {
   "ocioso.voltar": 'Voltar a jogar',
   "ocioso.querAuto": 'Quero que jogue sozinho',
   'hud.aoVivo': 'Farmando ao vivo',
-  'hud.ativarOffline': 'Render com o jogo fechado',
+  'hud.ativarOffline': 'Caçada automática',
   // Rótulo da barra de ícones. Só o leitor de tela lê — na tela, o que aparece
   // são os ícones com os rótulos deles.
   'hud.acoes': 'Painéis do jogo',
@@ -146,8 +146,6 @@ export const pt = {
   // --- Atributos ----------------------------------------------------------
   'atributos.titulo': 'Atributos',
   'atributos.pontosLivres': '{pontos} pontos livres',
-  'atributos.autoAlocado':
-    'Seus pontos são distribuídos sozinhos. Mexer aqui é opcional — e sempre reversível.',
   'atributos.forca': 'Força',
   'atributos.forca.efeito': 'Dano físico',
   'atributos.inteligencia': 'Inteligência',
@@ -160,8 +158,8 @@ export const pt = {
   'atributos.subir': 'Subir {atributo}',
   'atributos.descer': 'Descer {atributo}',
   'atributos.zerar': 'Zerar tudo',
-  'atributos.voltarAoAutomatico': 'Deixar o jogo distribuir',
-  'atributos.manual': 'Você está distribuindo à mão.',
+  'atributos.manual':
+    'Cada nível te dá 1 ponto. Gasta como quiser — e pode mudar de ideia quando quiser, de graça.',
   'atributos.salvar': 'Salvar',
   'atributos.salvando': 'Salvando…',
   'atributos.semAlteracao': 'Nada mudou ainda',
@@ -217,6 +215,43 @@ export const pt = {
   'item.pedra_garantia': 'Pedra de Garantia',
   'item.skin': 'Skin',
   'item.chave': 'Chave',
+
+  // --- Nome da peça -------------------------------------------------------
+  // Uma peça se chama BASE + RARIDADE ("Espada lendária", "Cajado cósmico"), e
+  // não pelo slot que ela ocupa. Ver `features/mochila/nomeDoItem.ts`.
+  //
+  // Em português o adjetivo vem depois e concorda em gênero; em inglês vem
+  // antes e não concorda. É por isso que o formato é uma chave traduzível, e
+  // não uma concatenação no código — e por isso existem duas tabelas de
+  // adjetivo, `m` e `f`, que em inglês apontam para a mesma palavra.
+  'item.nome': '{base} {adjetivo}',
+  'item.base.espada': 'Espada',
+  'item.base.adaga': 'Adaga',
+  'item.base.arco': 'Arco',
+  'item.base.martelo': 'Martelo',
+  'item.base.cajado': 'Cajado',
+  'item.base.varinha': 'Varinha',
+  'item.adj.m.comum': 'comum',
+  'item.adj.m.incomum': 'incomum',
+  'item.adj.m.raro': 'raro',
+  'item.adj.m.epico': 'épico',
+  'item.adj.m.lendario': 'lendário',
+  'item.adj.m.caramelizado': 'caramelizado',
+  'item.adj.m.glaceado': 'glaceado',
+  'item.adj.m.dourado': 'dourado',
+  'item.adj.m.cristalizado': 'cristalizado',
+  'item.adj.m.cosmico': 'cósmico',
+  'item.adj.f.comum': 'comum',
+  'item.adj.f.incomum': 'incomum',
+  'item.adj.f.raro': 'rara',
+  'item.adj.f.epico': 'épica',
+  'item.adj.f.lendario': 'lendária',
+  'item.adj.f.caramelizado': 'caramelizada',
+  'item.adj.f.glaceado': 'glaceada',
+  'item.adj.f.dourado': 'dourada',
+  'item.adj.f.cristalizado': 'cristalizada',
+  'item.adj.f.cosmico': 'cósmica',
+
   'mochila.titulo': 'Mochila',
   'mochila.chaves': '{quantidade} chaves de dungeon',
   'mochila.vazia.titulo': 'Mochila vazia por enquanto',
@@ -270,7 +305,10 @@ export const pt = {
 
   // --- Síntese ------------------------------------------------------------
   'sintese.titulo': 'Síntese',
+  'sintese.abrir': 'Combinar itens',
   'sintese.explicacao': 'Junte 9 itens iguais e eles viram 1 do tier de cima. Sem pagar nada.',
+  'sintese.vazia.titulo': 'Nada pra combinar ainda',
+  'sintese.vazia.mensagem': 'Assim que os itens repetidos forem caindo, eles aparecem aqui.',
   'sintese.combinar': 'Combinar 9',
   'sintese.combinando': 'Combinando…',
   'sintese.faltam': 'Faltam {faltam} para combinar',

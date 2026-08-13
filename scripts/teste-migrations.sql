@@ -863,7 +863,7 @@ begin
       'e_admin', 'emitir_ticket_anuncio', 'emitir_ticket_auto', 'encerrar_sessao',
       'equipar_item', 'estado_jogador', 'excluir_minha_conta', 'exportar_meus_dados',
       'fortificar_item', 'iniciar_dungeon', 'iniciar_sessao', 'log_operacional',
-      'ranking_global', 'reativar_auto_alocacao', 'redistribuir_atributos',
+      'ranking_global', 'redistribuir_atributos',
       'sintetizar', 'validar_lote'
     ]::name[],
     'a superfície do client é exatamente a lista declarada');

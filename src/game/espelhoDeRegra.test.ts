@@ -88,10 +88,18 @@ describe('o espelho de regra bate com o servidor', () => {
   })
 
   it('pontos por nível', () => {
-    // Ancorado no corpo de `pontos_ganhos_ate`, e não num `* 3` solto: o
-    // schema tem multiplicações por 3 em outros lugares, e um teste que casa
-    // com qualquer uma delas não prova nada.
-    expect(SQL).toContain(`select greatest(0, p_nivel - 1) * ${PONTOS_POR_NIVEL};`)
+    // Ancorado no corpo de `pontos_ganhos_ate`, e não num `* 1` solto: o schema
+    // tem multiplicações em outros lugares, e um teste que casa com qualquer
+    // uma delas não prova nada.
+    //
+    // E olha a ÚLTIMA ocorrência, não qualquer uma: `pontos_ganhos_ate` já foi
+    // redefinida uma vez (3 pontos por nível viraram 1, em
+    // `20260829_atributos_manuais.sql`). Um `toContain` simples continuaria
+    // passando por causa da definição velha, que segue no histórico e nunca vai
+    // sair de lá.
+    const corpos = [...SQL.matchAll(/greatest\(0, p_nivel - 1\) \* (\d+);/g)]
+    expect(corpos.length, 'pontos_ganhos_ate não existe em migration nenhuma').toBeGreaterThan(0)
+    expect(Number(corpos.at(-1)![1])).toBe(PONTOS_POR_NIVEL)
   })
 
   it('o balanceamento econômico bate com o padrão semeado na tabela `ajuste`', () => {

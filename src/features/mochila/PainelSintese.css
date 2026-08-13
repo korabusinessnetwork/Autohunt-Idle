@@ -1,0 +1,191 @@
+/*
+ * Síntese, em quadro próprio.
+ *
+ * Abre POR CIMA da mochila, que continua visível atrás: o jogador combinou nove
+ * peças para ver a nova aparecer na lista, e cobrir a lista inteira esconderia
+ * justamente o resultado.
+ *
+ * `z-index` entre a mochila (25) e o detalhe de peça (30), que continua sendo o
+ * diálogo mais ao alto.
+ */
+.sintese {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--espaco-3);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--cor-contorno) 70%, transparent);
+  z-index: 28;
+}
+
+/*
+ * `height` fixo, e não `max-height`: a lista pagina pela altura que sobra
+ * (`ListaPaginada.tsx`), e um cartão que cresce com o conteúdo faria a conta de
+ * "quantos cabem" mudar a cada troca de página.
+ */
+.sintese__cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  width: min(34rem, 100%);
+  height: min(40rem, calc(100dvh - var(--espaco-3) * 2));
+  padding: var(--espaco-4);
+  overflow: hidden;
+  background: var(--cor-fundo);
+  border: var(--borda);
+  border-radius: var(--raio);
+}
+
+/* Tudo tem tamanho próprio; quem cede espaço é sempre a lista. */
+.sintese__cartao > * {
+  flex: 0 0 auto;
+}
+
+.sintese__cartao > .lista-paginada {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sintese__titulo {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.sintese__explicacao,
+.sintese__aviso,
+.sintese__faltam {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+
+.sintese__lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sintese__linha {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto auto;
+  gap: var(--espaco-1) var(--espaco-2);
+  align-items: center;
+  padding: var(--espaco-2);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+}
+
+.sintese__icone {
+  display: flex;
+  width: 36px;
+  height: 36px;
+}
+
+.sintese__nome {
+  font-weight: 700;
+}
+
+.sintese__quantidade {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.sintese__acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+}
+
+/* Cor por tier. A definição das 10 vive em `tokens.css` — aqui só se aplica. */
+.sintese__tier {
+  padding: 0.1rem var(--espaco-2);
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 2px solid var(--cor-texto);
+  border-radius: 999px;
+}
+
+.sintese__tier--comum {
+  background: var(--raridade-comum);
+}
+.sintese__tier--incomum {
+  background: var(--raridade-incomum);
+}
+.sintese__tier--raro {
+  background: var(--raridade-raro);
+}
+.sintese__tier--epico {
+  background: var(--raridade-epico);
+}
+.sintese__tier--lendario {
+  background: var(--raridade-lendario);
+}
+.sintese__tier--caramelizado {
+  background: var(--raridade-caramelizado);
+}
+.sintese__tier--glaceado {
+  background: var(--raridade-glaceado);
+}
+.sintese__tier--dourado {
+  background: var(--raridade-dourado);
+}
+.sintese__tier--cristalizado {
+  background: var(--raridade-cristalizado);
+}
+.sintese__tier--cosmico {
+  background: var(--raridade-cosmico);
+}
+
+.sintese__rodape {
+  display: flex;
+  gap: var(--espaco-2);
+}
+
+.sintese__rodape > * {
+  flex: 1;
+}
+
+/* =========================================================================
+ * ADAPTAÇÕES DE TELA — sempre no FIM do arquivo, porque media query não ganha
+ * especificidade nenhuma por ser media query
+ * (`docs/02_DESIGN_SYSTEM/menus-sem-rolagem.md`).
+ * ========================================================================= */
+
+@media (max-width: 48rem), (max-height: 34rem) {
+  .sintese__cartao {
+    gap: var(--espaco-1);
+    padding: var(--espaco-2);
+  }
+
+  .sintese__titulo {
+    font-size: 1rem;
+  }
+
+  .sintese__explicacao,
+  .sintese__aviso,
+  .sintese__faltam {
+    font-size: 0.75rem;
+    line-height: 1.35;
+  }
+
+  .sintese__linha {
+    padding: var(--espaco-1) var(--espaco-2);
+  }
+
+  .sintese__acoes .botao {
+    padding: var(--espaco-1) var(--espaco-2);
+    font-size: 0.75rem;
+  }
+
+  .sintese__icone,
+  .sintese__icone > * {
+    width: 28px;
+    height: 28px;
+  }
+}

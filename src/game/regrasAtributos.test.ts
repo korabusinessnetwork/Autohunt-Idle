@@ -4,15 +4,37 @@ import {
   ATRIBUTOS,
   PONTOS_POR_NIVEL,
   atributosZerados,
-  autoAlocar,
   custoAcumulado,
   custoDoProximoNivel,
   custoTotalDaAlocacao,
   pontosDisponiveis,
   pontosGanhosAte,
   validarAlocacao,
+  type Atributo,
   type Atributos,
 } from './regrasAtributos'
+
+/**
+ * Gasta um saldo inteiro, sempre no atributo mais barato. **Andaime de teste**,
+ * não regra de jogo: a auto-alocação saiu do produto em 2026-08-13, e o que
+ * sobrou aqui é só uma forma de fabricar uma alocação plausível para exercitar
+ * respec e validação sem hardcodar números que ninguém consegue conferir de
+ * cabeça.
+ */
+function distribuir(saldo: number): Atributos {
+  const atributos = atributosZerados()
+  let pontos = Math.max(0, saldo)
+
+  for (;;) {
+    let alvo: Atributo = ATRIBUTOS[0]
+    for (const chave of ATRIBUTOS) if (atributos[chave] < atributos[alvo]) alvo = chave
+
+    const custo = custoDoProximoNivel(atributos[alvo])
+    if (custo > pontos) return atributos
+    pontos -= custo
+    atributos[alvo] += 1
+  }
+}
 
 describe('custo por nível de atributo', () => {
   it('segue a fórmula que o critério 12 desempata', () => {
@@ -40,57 +62,19 @@ describe('custo por nível de atributo', () => {
 })
 
 describe('pontos ganhos', () => {
-  it('não dá ponto no nível 1 e dá 3 por level up', () => {
+  it('não dá ponto no nível 1 e dá 1 por level up', () => {
+    expect(PONTOS_POR_NIVEL).toBe(1)
     expect(pontosGanhosAte(1)).toBe(0)
-    expect(pontosGanhosAte(2)).toBe(PONTOS_POR_NIVEL)
-    expect(pontosGanhosAte(11)).toBe(10 * PONTOS_POR_NIVEL)
-  })
-})
-
-describe('auto-alocação', () => {
-  it('distribui de forma balanceada sem exigir nada do jogador', () => {
-    // É o que faz o Princípio nº1 valer aqui: quem nunca abrir a tela joga com
-    // uma build coerente.
-    const { atributos } = autoAlocar(atributosZerados(), 8)
-
-    const valores = ATRIBUTOS.map((chave) => atributos[chave])
-    expect(Math.max(...valores) - Math.min(...valores)).toBeLessThanOrEqual(1)
+    expect(pontosGanhosAte(2)).toBe(1)
+    expect(pontosGanhosAte(11)).toBe(10)
   })
 
-  it('gasta tudo que dá e devolve o troco', () => {
-    const { atributos, pontosRestantes } = autoAlocar(atributosZerados(), 10)
-
-    expect(custoTotalDaAlocacao(atributos) + pontosRestantes).toBe(10)
-    // Com custo 1 por nível nessa faixa, os 10 pontos viram 10 níveis.
-    expect(custoTotalDaAlocacao(atributos)).toBe(10)
-    expect(pontosRestantes).toBe(0)
-  })
-
-  it('para quando o próximo nível não cabe no saldo', () => {
-    // Todos em 10: o próximo nível de qualquer um custa 2.
-    const atuais: Atributos = { forca: 10, inteligencia: 10, vitalidade: 10, sorte: 10 }
-    const { atributos, pontosRestantes } = autoAlocar(atuais, 1)
-
-    expect(atributos).toEqual(atuais)
-    expect(pontosRestantes).toBe(1)
-  })
-
-  it('nunca cria nem destrói ponto, em qualquer saldo', () => {
-    for (const saldo of [0, 1, 7, 50, 500, 5000]) {
-      const { atributos, pontosRestantes } = autoAlocar(atributosZerados(), saldo)
-      expect(custoTotalDaAlocacao(atributos) + pontosRestantes, `saldo ${saldo}`).toBe(saldo)
-    }
-  })
-
-  it('respeita a alocação que já existia', () => {
-    const atuais: Atributos = { forca: 5, inteligencia: 0, vitalidade: 0, sorte: 0 }
-    const { atributos } = autoAlocar(atuais, 3)
-
-    // Nunca reduz o que já estava alocado — o respec é do jogador, não do
-    // sistema.
-    expect(atributos.forca).toBeGreaterThanOrEqual(5)
-    // E os pontos novos vão para quem está atrás.
-    expect(atributos.inteligencia + atributos.vitalidade + atributos.sorte).toBe(3)
+  it('o jogador chega ao nível 11 com pontos para UM atributo em 10, e nada além', () => {
+    // O que a mudança de 3 para 1 significa na prática, em número: dez níveis
+    // compram dez pontos, e dez pontos compram exatamente dez níveis de um
+    // atributo só — o décimo primeiro já custa 2.
+    expect(pontosGanhosAte(11)).toBe(custoAcumulado(10))
+    expect(pontosGanhosAte(11)).toBeLessThan(custoAcumulado(11))
   })
 })
 
@@ -108,7 +92,7 @@ describe('respec', () => {
 
   it('zerar tudo devolve todos os pontos ganhos', () => {
     const nivel = 60
-    const { atributos } = autoAlocar(atributosZerados(), pontosGanhosAte(nivel))
+    const atributos = distribuir(pontosGanhosAte(nivel))
 
     expect(pontosDisponiveis(atributosZerados(), nivel)).toBe(pontosGanhosAte(nivel))
     expect(custoTotalDaAlocacao(atributos)).toBeLessThanOrEqual(pontosGanhosAte(nivel))
@@ -118,7 +102,7 @@ describe('respec', () => {
 describe('validação de alocação', () => {
   it('aceita a alocação que cabe nos pontos ganhos', () => {
     const nivel = 50
-    const { atributos } = autoAlocar(atributosZerados(), pontosGanhosAte(nivel))
+    const atributos = distribuir(pontosGanhosAte(nivel))
     expect(validarAlocacao(atributos, nivel)).toEqual({ valida: true })
   })
 

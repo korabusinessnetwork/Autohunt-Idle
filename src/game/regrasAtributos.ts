@@ -13,8 +13,16 @@ export const ATRIBUTOS = ['forca', 'inteligencia', 'vitalidade', 'sorte'] as con
 export type Atributo = (typeof ATRIBUTOS)[number]
 export type Atributos = Record<Atributo, number>
 
-/** Pontos concedidos a cada level up. */
-export const PONTOS_POR_NIVEL = 3
+/**
+ * Pontos concedidos a cada level up.
+ *
+ * Era 3, virou 1 em 2026-08-13, por decisão do dono. Com 3, subir de nível
+ * pagava um atributo inteiro e a escolha não pesava; com 1, cada ponto é uma
+ * decisão. O custo por nível de atributo (`custoDoProximoNivel`) não mudou —
+ * então a partir do décimo ponto num mesmo atributo o preço dobra, e
+ * especializar passa a custar caro de verdade.
+ */
+export const PONTOS_POR_NIVEL = 1
 
 export function atributosZerados(): Atributos {
   return { forca: 0, inteligencia: 0, vitalidade: 0, sorte: 0 }
@@ -48,46 +56,12 @@ export function custoTotalDaAlocacao(atributos: Atributos): number {
   return ATRIBUTOS.reduce((total, chave) => total + custoAcumulado(atributos[chave]), 0)
 }
 
-/**
- * Qual atributo recebe o próximo ponto na auto-alocação.
- *
- * O de menor nível, com desempate na ordem declarada em `ATRIBUTOS`. Como o
- * custo cresce com o nível, o menor é sempre também o mais barato — então, se
- * ele não couber no saldo, nenhum outro caberia.
- */
-export function proximoAlvoDaAutoAlocacao(atributos: Atributos): Atributo {
-  let alvo: Atributo = ATRIBUTOS[0]
-  for (const chave of ATRIBUTOS) {
-    if (atributos[chave] < atributos[alvo]) alvo = chave
-  }
-  return alvo
-}
-
-export interface ResultadoAlocacao {
-  atributos: Atributos
-  pontosRestantes: number
-}
-
-/**
- * Distribui pontos automaticamente, de forma balanceada.
- *
- * É o que faz o Princípio nº1 valer aqui: quem nunca abrir a tela de atributos
- * joga com uma build coerente, sem precisar entender o sistema.
- */
-export function autoAlocar(atuais: Atributos, pontosDisponiveis: number): ResultadoAlocacao {
-  const atributos = { ...atuais }
-  let pontos = Math.max(0, pontosDisponiveis)
-
-  for (;;) {
-    const alvo = proximoAlvoDaAutoAlocacao(atributos)
-    const custo = custoDoProximoNivel(atributos[alvo])
-    if (custo > pontos) break
-    pontos -= custo
-    atributos[alvo] += 1
-  }
-
-  return { atributos, pontosRestantes: pontos }
-}
+// A auto-alocação morava aqui: distribuía os pontos sozinha, sempre no atributo
+// de menor nível, para que quem nunca abrisse esta tela jogasse com uma build
+// coerente. Saiu do jogo em 2026-08-13 — ver o cabeçalho de
+// `supabase/migrations/20260829_atributos_manuais.sql`. Quem gasta ponto é o
+// jogador; o Princípio nº1 passou a ser atendido pelo selo de pontos livres no
+// ícone de atributos, que avisa sem exigir leitura.
 
 export type ErroAlocacao = 'ATRIBUTO_INVALIDO' | 'PONTOS_INSUFICIENTES'
 

@@ -93,7 +93,7 @@ agora"), não uma tela em branco nem um zero solto.
 Este é o único ponto do jogo em que o cadastro é pedido, e a posição é deliberada:
 
 ```
-"Render com o jogo fechado"
+"Caçada automática"
   → tem identidade verificada?
       não → ModalCadastro (e-mail, senha, DATA DE NASCIMENTO)
               → trigger do banco valida 18+ ANTES de criar credencial

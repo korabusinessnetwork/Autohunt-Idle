@@ -69,8 +69,9 @@ Um diretório por feature, com o componente, seu CSS, e a lógica pura que a fea
 | `farm-offline` | `TelaRetorno` | **o momento mais importante do produto** — quanto rendeu enquanto você esteve fora |
 | `desbloqueio` | `PainelDesbloqueio` | anúncio e assinatura. Título neutro, porque a Poki proíbe elemento de compra |
 | `cadastro` | `ModalCadastro` | e-mail, senha e data de nascimento. O gate de 18+ |
-| `atributos` | `PainelAtributos` | distribuir pontos, ou deixar o jogo distribuir |
-| `mochila` | `PainelMochila` | inventário, dungeon e síntese |
+| `atributos` | `PainelAtributos` | gastar os pontos ganhos por level up — 1 por nível, sempre à mão |
+| `mochila` | `PainelMochila` | as peças, uma por uma e pelo nome, mais a dungeon |
+| `mochila` | `PainelSintese` | as pilhas de 9, atrás de um botão da mochila |
 | `mochila` | `PainelEquipamento` | 6 slots + skin, conjunto, e a fortificação |
 | `loja` | `PainelLoja` | trocar diamante por ouro |
 | `passe` | `PainelPasse` | a trilha inteira, com ou sem passe comprado |

@@ -35,7 +35,7 @@ with verificacoes as (
 
   -- ---- A superfície do jogador é exatamente a declarada ---------------------
   union all
-  select 3, 'o jogador alcança exatamente as 21 RPCs do contrato',
+  select 3, 'o jogador alcança exatamente as 20 RPCs do contrato',
          (select array_agg(p.proname order by p.proname)
             from pg_proc p join pg_namespace n on n.oid = p.pronamespace
            where n.nspname = 'public'
@@ -45,7 +45,7 @@ with verificacoes as (
            'e_admin', 'emitir_ticket_anuncio', 'emitir_ticket_auto', 'encerrar_sessao',
            'equipar_item', 'estado_jogador', 'excluir_minha_conta', 'exportar_meus_dados',
            'fortificar_item', 'iniciar_dungeon', 'iniciar_sessao', 'log_operacional',
-           'ranking_global', 'reativar_auto_alocacao', 'redistribuir_atributos',
+           'ranking_global', 'redistribuir_atributos',
            'sintetizar', 'validar_lote'
          ]::name[],
          coalesce((select string_agg(p.proname, ', ' order by p.proname)
@@ -57,7 +57,7 @@ with verificacoes as (
                         'e_admin', 'emitir_ticket_anuncio', 'emitir_ticket_auto', 'encerrar_sessao',
                         'equipar_item', 'estado_jogador', 'excluir_minha_conta', 'exportar_meus_dados',
                         'fortificar_item', 'iniciar_dungeon', 'iniciar_sessao', 'log_operacional',
-                        'ranking_global', 'reativar_auto_alocacao', 'redistribuir_atributos',
+                        'ranking_global', 'redistribuir_atributos',
                         'sintetizar', 'validar_lote')), 'nenhuma a mais')
 
   -- ---- O furo de 2026-08-11, fechado -------------------------------------

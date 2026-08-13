@@ -50,7 +50,6 @@ vaze por omissão reprova.
 | RPC | Parâmetros | Por que pode ter parâmetro |
 |---|---|---|
 | `redistribuir_atributos(forca, inteligencia, vitalidade, sorte)` | a distribuição desejada | É escolha, e o servidor confere o custo total contra os pontos ganhos |
-| `reativar_auto_alocacao()` | — | |
 | `definir_apelido(apelido)` | o apelido | Exige `identidade_verificada`; colisão é decidida pelo índice único |
 | `ranking_global()` | — | Devolve o top e a própria linha. **Nunca `player_id` de terceiro** |
 

@@ -3,7 +3,7 @@
 # Concatena todas as migrations em UM arquivo, em ordem cronológica, para colar
 # de uma vez no SQL editor do Supabase.
 #
-# POR QUE EXISTE: são 17 migrations, e a ordem importa — várias redefinem
+# POR QUE EXISTE: são umas vinte migrations, e a ordem importa — várias redefinem
 # funções de migrations anteriores (`iniciar_sessao` foi reescrita cinco vezes).
 # Colar arquivo por arquivo é onde se erra a ordem ou se pula um, e o erro só
 # aparece muito depois, como comportamento estranho em vez de falha.

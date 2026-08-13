@@ -7,7 +7,8 @@ import { nomeDaRaridade } from '../../game/regrasLoot'
 import type { ChaveI18n } from '../../lib/i18n'
 import type { ItemPossuido, TipoDano } from '../../lib/tipos'
 import { formatarNumero } from '../../utils/formato'
-import { chaveDaRaridade, ROTULO_TIPO } from './rotulos'
+import { nomeDoItem } from './nomeDoItem'
+import { chaveDaRaridade } from './rotulos'
 import './DetalheItem.css'
 
 // "Ver atributos" de UMA peça (pedido do dono, 2026-08-13).
@@ -77,7 +78,7 @@ export function DetalheItem({ item, armaEquipada, aoEquipar, aoFechar, ocupado }
           </span>
           <div className="detalhe-item__identidade">
             <h3 className="detalhe-item__titulo" id="detalhe-item-titulo">
-              {t(ROTULO_TIPO[item.tipo])}
+              {nomeDoItem(item, t)}
               {item.fortificacao > 0 ? ` ${t('fort.nivel', { nivel: item.fortificacao })}` : ''}
             </h3>
             <span className={`detalhe-item__tier detalhe-item__tier--${nomeDaRaridade(item.raridade)}`}>

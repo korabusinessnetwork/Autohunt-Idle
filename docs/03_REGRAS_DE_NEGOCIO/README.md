@@ -46,13 +46,27 @@ a pedir validação, o servidor nunca credita mais que isso de uma vez.
 
 - **Curva de XP:** `50·(n−1)·n` acumulado até o nível `n`. Sem teto — o nível é infinito
   (`specs/ranking-global.md`), e `nivel_por_xp` devolve `bigint`.
-- **Pontos por nível:** 3.
+- **Pontos por nível:** 1 (era 3 até 2026-08-13).
 - **Custo de atributo:** 1 ponto por nível até +10; a partir daí sobe. `custo_acumulado_atributo` é
   forma fechada, e o teste de fumaça confere contra o somatório real **nível a nível até 250** —
   forma fechada que diverge do somatório é exatamente o erro que só executando aparece.
 - **Vitalidade:** 25 de vida por ponto.
-- **Auto-alocação:** ligada por padrão, desliga no primeiro respec manual, e `reativar_auto_alocacao()`
-  devolve. Sem esse desligamento a auto-alocação desfazia a escolha do jogador no lote seguinte.
+- **Quem gasta o ponto é o jogador.** Não há auto-alocação: o ponto fica guardado até alguém
+  decidir onde pôr.
+
+> **Mudou em 2026-08-13** (`supabase/migrations/20260829_atributos_manuais.sql`), por decisão do
+> dono. Até então cada level up dava 3 pontos e o servidor os distribuía sozinho, sempre no atributo
+> de menor nível — a auto-alocação existia para servir o Princípio nº 1 ("quem nunca abrir a tela
+> joga com uma build coerente"). Na prática ela virou o contrário: os quatro atributos subiam
+> juntos, e a tela de atributos não tinha decisão nenhuma dentro. O Princípio nº 1 passou a ser
+> atendido pelo **selo de pontos livres no ícone de atributos** — o convite chega sem exigir
+> leitura, e ignorar não quebra nada.
+>
+> A migration **zera a alocação de todo mundo**, e isso não é dano colateral: o bolo de pontos
+> encolheu três vezes, então a alocação antiga custaria mais do que os pontos que passam a existir,
+> e o jogador ficaria com saldo negativo sem conseguir salvar nada. Como o respec é livre e sem
+> penalidade, os pontos voltam inteiros. O que muda de fato é a Vitalidade máxima, que deriva do
+> atributo — por isso a migration também apara a vida atual.
 
 ## 4. Loot e raridade
 

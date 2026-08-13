@@ -106,8 +106,17 @@
   font-size: 1rem;
 }
 
-.mochila__subtitulo--menor {
-  font-size: 0.9rem;
+/* Dungeon e síntese lado a lado: são as duas coisas que se faz com o que está
+   na mochila além de vestir, e empilhá-las custaria uma linha inteira da lista
+   numa tela que não rola. */
+.mochila__atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+}
+
+.mochila__atalhos > * {
+  flex: 1 1 8rem;
 }
 
 .mochila__chaves {
@@ -118,9 +127,7 @@
   -webkit-text-stroke: 1px var(--cor-texto);
 }
 
-.mochila__explicacao,
-.mochila__aviso,
-.mochila__faltam {
+.mochila__aviso {
   margin: 0;
   font-size: 0.85rem;
   line-height: 1.45;
@@ -158,9 +165,9 @@
 }
 
 /*
- * Equipar, atributos da peça e combinar — as três coisas que se faz com uma
- * pilha. Ficam juntas numa fileira própria, e não espalhadas pela linha, para
- * o olho separar "o que é isto" (em cima) de "o que dá para fazer" (embaixo).
+ * Equipar e ver os atributos — as duas coisas que se faz com uma peça. Ficam
+ * juntas numa fileira própria, e não espalhadas pela linha, para o olho separar
+ * "o que é isto" (em cima) de "o que dá para fazer" (embaixo).
  */
 .mochila__acoes {
   display: flex;
@@ -215,13 +222,17 @@
   background: var(--raridade-cosmico);
 }
 
-.mochila__tipo {
+/* O nome da peça — "Espada lendária", e não "Arma". É a informação principal da
+   linha, e por isso a única em negrito. */
+.mochila__nome {
   font-weight: 700;
 }
 
-.mochila__quantidade {
+.mochila__fort {
   font-variant-numeric: tabular-nums;
-  opacity: 0.85;
+  font-weight: 700;
+  color: var(--cor-recompensa);
+  -webkit-text-stroke: 1px var(--cor-texto);
 }
 
 /* =========================================================================
@@ -285,19 +296,18 @@
     font-size: 0.85rem;
   }
 
-  .mochila__subtitulo--menor {
-    font-size: 0.8rem;
-  }
-
   .mochila__chaves {
     font-size: 0.95rem;
   }
 
-  .mochila__explicacao,
-  .mochila__aviso,
-  .mochila__faltam {
+  .mochila__aviso {
     font-size: 0.75rem;
     line-height: 1.35;
+  }
+
+  .mochila__atalhos > * {
+    padding: var(--espaco-2);
+    font-size: 0.8rem;
   }
 
   /* A linha de item deixa de reservar uma fileira só para o botão: essa fileira

@@ -24,15 +24,6 @@ export async function redistribuirAtributos(
   return ok(data as Snapshot)
 }
 
-/**
- * Devolve a distribuição ao servidor.
- *
- * Sem parâmetro: o jogador está pedindo "cuida disso pra mim", não propondo uma
- * alocação. Como o respec é livre, alternar entre manual e automático não custa
- * nada e não pede confirmação.
- */
-export async function reativarAutoAlocacao(): Promise<Envelope<Snapshot>> {
-  const { data, error } = await obterSupabase().rpc('reativar_auto_alocacao', {})
-  if (error) return deErroSupabase<Snapshot>(error, 'ATRIBUTO_FALHOU')
-  return ok(data as Snapshot)
-}
+// `reativarAutoAlocacao` morava aqui, e devolvia a distribuição ao servidor.
+// Saiu junto com a auto-alocação em 2026-08-13; a RPC correspondente é
+// derrubada em `supabase/migrations/20260829_atributos_manuais.sql`.

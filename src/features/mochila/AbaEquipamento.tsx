@@ -18,6 +18,7 @@ import type { ItemPossuido, SlotEquipamento, TipoDano } from '../../lib/tipos'
 import { formatarNumero } from '../../utils/formato'
 import { useTelaEstreita } from '../../utils/useTelaEstreita'
 import { useArrasteDeItem } from './ArrasteDeItem'
+import { nomeDoItem } from './nomeDoItem'
 import { chaveDaRaridade, ROTULO_SLOT } from './rotulos'
 import './AbaEquipamento.css'
 
@@ -150,7 +151,10 @@ export function AbaEquipamento({
   }
 
   function descrever(item: ItemPossuido) {
-    const partes: string[] = [t(chaveDaRaridade(item.raridade))]
+    // O nome vem primeiro, e a raridade NÃO vem escrita: ela já está dita pela
+    // bolinha colorida ao lado (`equip__tier`), e repeti-la em texto roubava a
+    // largura de que o nome precisa numa coluna estreita.
+    const partes: string[] = [nomeDoItem(item, t)]
     if (item.fortificacao > 0) partes.push(t('fort.nivel', { nivel: item.fortificacao }))
     if (item.tipoDano) partes.push(t(ROTULO_DANO[item.tipoDano]))
     if (item.afinidade) {

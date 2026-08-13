@@ -38,7 +38,7 @@ export const en: Record<ChaveI18n, string> = {
   "ocioso.voltar": 'Back to playing',
   "ocioso.querAuto": 'Let it play for me',
   'hud.aoVivo': 'Farming live',
-  'hud.ativarOffline': 'Earn with the game closed',
+  'hud.ativarOffline': 'Auto hunt',
   'hud.acoes': 'Game panels',
 
   // --- Pagination -----------------------------------------------------------
@@ -142,8 +142,6 @@ export const en: Record<ChaveI18n, string> = {
   // --- Attributes -----------------------------------------------------------
   'atributos.titulo': 'Attributes',
   'atributos.pontosLivres': '{pontos} points to spend',
-  'atributos.autoAlocado':
-    'Your points spend themselves. Touching this is optional — and always reversible.',
   'atributos.forca': 'Strength',
   'atributos.forca.efeito': 'Physical damage',
   'atributos.inteligencia': 'Intelligence',
@@ -156,8 +154,8 @@ export const en: Record<ChaveI18n, string> = {
   'atributos.subir': 'Raise {atributo}',
   'atributos.descer': 'Lower {atributo}',
   'atributos.zerar': 'Reset all',
-  'atributos.voltarAoAutomatico': 'Let the game spend them',
-  'atributos.manual': "You're spending them by hand.",
+  'atributos.manual':
+    'Every level gives you 1 point. Spend it however you like — and change your mind any time, for free.',
   'atributos.salvar': 'Save',
   'atributos.salvando': 'Saving…',
   'atributos.semAlteracao': 'Nothing changed yet',
@@ -218,6 +216,39 @@ export const en: Record<ChaveI18n, string> = {
   'item.pedra_garantia': 'Sure Thing Stone',
   'item.skin': 'Skin',
   'item.chave': 'Key',
+
+  // --- Item names -----------------------------------------------------------
+  // English puts the adjective first and never agrees in gender, so both the
+  // `m` and `f` tables land on the same word. They exist because Portuguese
+  // needs them — see the note in `pt.ts`.
+  'item.nome': '{adjetivo} {base}',
+  'item.base.espada': 'Sword',
+  'item.base.adaga': 'Dagger',
+  'item.base.arco': 'Bow',
+  'item.base.martelo': 'Hammer',
+  'item.base.cajado': 'Staff',
+  'item.base.varinha': 'Wand',
+  'item.adj.m.comum': 'Common',
+  'item.adj.m.incomum': 'Uncommon',
+  'item.adj.m.raro': 'Rare',
+  'item.adj.m.epico': 'Epic',
+  'item.adj.m.lendario': 'Legendary',
+  'item.adj.m.caramelizado': 'Toffee-Touched',
+  'item.adj.m.glaceado': 'Glazed Over',
+  'item.adj.m.dourado': 'Gilded',
+  'item.adj.m.cristalizado': 'Rock Candy',
+  'item.adj.m.cosmico': 'Starfrosted',
+  'item.adj.f.comum': 'Common',
+  'item.adj.f.incomum': 'Uncommon',
+  'item.adj.f.raro': 'Rare',
+  'item.adj.f.epico': 'Epic',
+  'item.adj.f.lendario': 'Legendary',
+  'item.adj.f.caramelizado': 'Toffee-Touched',
+  'item.adj.f.glaceado': 'Glazed Over',
+  'item.adj.f.dourado': 'Gilded',
+  'item.adj.f.cristalizado': 'Rock Candy',
+  'item.adj.f.cosmico': 'Starfrosted',
+
   'mochila.titulo': 'Bag',
   'mochila.chaves': '{quantidade} dungeon keys',
   'mochila.vazia.titulo': 'Nothing in the bag yet',
@@ -274,7 +305,10 @@ export const en: Record<ChaveI18n, string> = {
 
   // --- Synthesis ------------------------------------------------------------
   'sintese.titulo': 'Synthesis',
+  'sintese.abrir': 'Combine items',
   'sintese.explicacao': 'Stack 9 matching items and they become 1 of the tier above. Costs nothing.',
+  'sintese.vazia.titulo': 'Nothing to combine yet',
+  'sintese.vazia.mensagem': 'As duplicates start dropping, they show up here.',
   'sintese.combinar': 'Combine 9',
   'sintese.combinando': 'Combining…',
   'sintese.faltam': '{faltam} more to combine',
