@@ -209,7 +209,16 @@ Registrado para não virar ponto cego por omissão:
   operacional, fora do código. Vira item de release.
 - **Mercado P2P.** Superfície inteira ainda não construída, e a mais delicada do roadmap — tem
   documento próprio: `plano-mercado-p2p.md`.
-- **Dano por espécie de monstro.** Pedido do dono, deixado fora com o motivo registrado: hoje
-  inimigo não causa dano econômico (o dano por ciclo é um número só, do servidor), e fazê-lo
-  depender de quais espécies apareceram exigiria o client informar quem apareceu — a informação
-  que 13 ameaças deste documento dependem de ele nunca enviar.
+- **Dano por espécie de monstro.** Pedido do dono, atendido **só na tela** em 2026-08-13
+  (`specs/mapas-instanciados-combate-e-hud.md`): o inimigo passou a bater, cada espécie tem o
+  próprio multiplicador, e a barra de vitalidade do herói cai de verdade. O que **não** mudou é a
+  fronteira: esse dano é visual, sai de `inimigo_dano` (escopo `visual`, mesmo estatuto de
+  `heroi_velocidade`), e zerar a barra devolve o herói à entrada do mapa sem tirar nada e sem
+  avisar o servidor. O dano **econômico** continua sendo um número só, do servidor
+  (`dano_por_ciclo_base`), porque fazê-lo depender de quais espécies apareceram exigiria o client
+  informar quem apareceu — a informação que 13 ameaças deste documento dependem de ele nunca
+  enviar.
+- **Mapa escolhido pelo jogador.** Desde a mesma rodada existem 8 mapas, destravados por nível.
+  Nada disso chega ao banco: `mapaId` mora em estado de tela, e dois testes guardam a fronteira —
+  `nenhuma migration declara bioma nem mapa` e `o mapa escolhido não vai para o servidor`. Forçar
+  o mapa 8 no nível 1 mostra o cenário do endgame e credita exatamente o mesmo.

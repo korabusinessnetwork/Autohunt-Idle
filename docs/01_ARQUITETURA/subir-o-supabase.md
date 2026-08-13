@@ -94,6 +94,26 @@ nascimento imutável e não no e-mail confirmado.
 e-mail de confirmação que não chega vira meia hora perdida investigando a coisa errada. Antes do
 lançamento público a decisão volta à mesa — está no checklist de release.
 
+## 4b. Apontar as URLs de volta — senão o link do e-mail cai no vazio
+
+**Authentication → URL Configuration.**
+
+- **Site URL**: `http://localhost:5173` durante o desenvolvimento (a Vite serve nessa porta), e o
+  domínio de produção quando publicar.
+- **Redirect URLs**: acrescente `http://localhost:5173/**` e o domínio de produção. Se usar preview
+  da Vercel, acrescente também `https://*.vercel.app/**`.
+
+**Isto já mordeu uma vez** (2026-08-13, "me cadastro e não acontece nada, vai pra uma página que não
+carrega"). A Site URL padrão do Supabase é `http://localhost:3000`, e o jogo roda na 5173: o link de
+confirmação levava a uma porta onde não tem nada servindo.
+
+O jogo manda a origem certa em `emailRedirectTo` (`authService.cadastrar`, sem URL fixa no código —
+sai de `window.location.origin`), mas o Supabase **só honra o redirect se ele estiver na lista de
+Redirect URLs**. Fora da lista, ele volta a usar a Site URL. Por isso os dois lugares importam.
+
+Se a confirmação de e-mail estiver desligada (recomendação do passo 4), nada disso é exercitado —
+mas deixe configurado do mesmo jeito: recuperação de senha usa a mesma lista.
+
 ## 5. Ligar o jogo no projeto
 
 **Project Settings → API.** Copie dois valores:

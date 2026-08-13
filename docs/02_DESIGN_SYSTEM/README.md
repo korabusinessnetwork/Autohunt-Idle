@@ -73,9 +73,17 @@ existir no CSS, um `var(--…)` apontar para token inexistente, um hex solto
 aparecer fora de `tokens.css`, ou a cor de tema do `index.html` divergir de
 `--cor-fundo`.
 
+## Menus não rolam (vigente desde 2026-08-13)
+
+Nenhum painel do jogo tem barra de rolagem. O que não cabe vira **largura**
+(grade), vira **página** (paginação medida) ou vira **menos moldura**
+(compactação) — nessa ordem. Regra completa, degraus de tela e o teste que a
+segura em `menus-sem-rolagem.md`.
+
 ## Ligações
 
 - `06_COMPONENTES/` — implementação dos componentes em React
+- `menus-sem-rolagem.md` (nesta pasta) — a regra de nenhum menu rolar
 - `memory/identity.md` — identidade visual e posicionamento (seção "Identidade Visual")
 - `brief-arte-claude-design.md` (nesta pasta) — prompt da rodada 1, enviado ao Claude Design
 - `brief-arte-correcao.md` (nesta pasta) — prompt da rodada 2: escala 8, cenário de bioma, telas
