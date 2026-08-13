@@ -1,68 +1,140 @@
+/*
+ * A tela do jogo — UMA tela, sem rolagem.
+ *
+ * Reescrito por `specs/mapas-instanciados-combate-e-hud.md` (5). Antes o jogo
+ * era uma coluna: HUD em cima, canvas no meio, rodapé de botões embaixo. Em
+ * celular o rodapé quebrava em três linhas e o jogo virava uma tira de 6rem.
+ *
+ * Agora o canvas ocupa tudo e a HUD flutua por cima. Nenhuma medida em pixel
+ * fixo: `clamp()` em tudo que tem texto, para caber de 320px a 2560px sem
+ * media query por tamanho de fonte.
+ */
 .jogo {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espaco-3);
-  min-height: 100dvh;
-  padding: var(--espaco-3);
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  /* `dvh` e não `vh`: no celular a barra do navegador some e volta, e com `vh`
+     o rodapé de ícones fica atrás dela em metade dos estados. */
+  height: 100dvh;
+  background: var(--cor-contorno);
 }
+
+.jogo__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* O canvas recebe toque para o joystick virtual; o navegador não pode
+     interpretar o mesmo gesto como rolagem ou zoom. */
+  touch-action: none;
+}
+
+/* --- HUD ------------------------------------------------------------------ */
 
 .jogo__hud {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: var(--espaco-4);
-  padding: var(--espaco-3);
-  background: var(--cor-fundo);
-  border: var(--borda);
-  border-radius: var(--raio);
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espaco-2);
+  padding: var(--espaco-2);
+  /* A HUD informa; ela não intercepta o clique de mira. Os controles dentro
+     dela reativam o ponteiro. */
+  pointer-events: none;
 }
 
-.jogo__bloco {
+.jogo__painel {
   display: flex;
   flex-direction: column;
   gap: var(--espaco-1);
-  min-width: 8rem;
+  padding: var(--espaco-2);
+  background: color-mix(in srgb, var(--cor-fundo) 82%, transparent);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+  pointer-events: auto;
 }
 
-.jogo__bloco--fim {
-  margin-inline-start: auto;
+.jogo__painel--esquerda {
+  width: clamp(9rem, 30vw, 14rem);
+}
+
+.jogo__painel--direita {
   align-items: flex-end;
 }
 
+.jogo__linha {
+  display: flex;
+  align-items: baseline;
+  gap: var(--espaco-2);
+}
+
 .jogo__rotulo {
-  font-size: 0.75rem;
+  font-size: clamp(0.55rem, 1.6vw, 0.7rem);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   opacity: 0.75;
 }
 
 .jogo__valor {
-  font-size: 1.75rem;
+  font-size: clamp(1rem, 3.4vw, 1.5rem);
   line-height: 1;
 }
 
-.jogo__valor--moeda {
+.jogo__detalhe {
+  font-size: clamp(0.55rem, 1.6vw, 0.72rem);
+  opacity: 0.78;
+}
+
+.jogo__moeda {
+  font-size: clamp(0.8rem, 2.6vw, 1.1rem);
+  font-weight: 700;
+  -webkit-text-stroke: 1px var(--cor-contorno);
+}
+
+.jogo__moeda--ouro {
   color: var(--cor-recompensa);
-  -webkit-text-stroke: 1px var(--cor-texto);
 }
 
 /* Cor distinta da do ouro: as duas moedas nunca podem ser confundidas de
    relance, porque só uma delas paga a fortificação. */
-.jogo__valor--diamante {
+.jogo__moeda--diamante {
   color: var(--cor-secundaria);
-  -webkit-text-stroke: 1px var(--cor-texto);
 }
 
-.jogo__detalhe {
-  font-size: 0.75rem;
-  opacity: 0.75;
+.jogo__conta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espaco-1);
+  max-width: 9rem;
+  padding: var(--espaco-1) var(--espaco-2);
+  color: var(--cor-texto);
+  font: inherit;
+  font-size: clamp(0.6rem, 1.8vw, 0.75rem);
+  background: transparent;
+  border: 2px solid var(--cor-texto);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.jogo__conta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jogo__conta:hover,
+.jogo__conta:focus-visible {
+  background: var(--cor-fundo);
 }
 
 .jogo__barra {
   width: 100%;
-  height: 0.6rem;
+  height: 0.55rem;
   overflow: hidden;
-  background: color-mix(in srgb, var(--cor-texto) 15%, transparent);
+  background: color-mix(in srgb, var(--cor-contorno) 70%, transparent);
   border: 2px solid var(--cor-texto);
   border-radius: 999px;
 }
@@ -73,63 +145,68 @@
   transition: width var(--duracao-media) ease;
 }
 
+/*
+ * A vitalidade não usa a transição longa das outras barras: desde que o
+ * monstro dá dano, ela cai em degraus, e 320ms de suavização atrasariam
+ * justamente o sinal que o jogador precisa ver na hora.
+ */
 .jogo__barra--vida .jogo__barra-preenchida {
   background: var(--cor-positivo);
-}
-
-.jogo__palco {
-  position: relative;
-  flex: 1;
-  min-height: 20rem;
-  overflow: hidden;
-  border: var(--borda);
-  border-radius: var(--raio);
-}
-
-.jogo__canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
+  transition: width var(--duracao-rapida) linear;
 }
 
 .jogo__aovivo {
   position: absolute;
-  inset-block-start: var(--espaco-2);
+  inset-block-start: 50%;
   inset-inline-start: var(--espaco-2);
+  transform: translateY(-50%);
   padding: var(--espaco-1) var(--espaco-2);
-  font-size: 0.75rem;
+  font-size: clamp(0.5rem, 1.5vw, 0.7rem);
   font-weight: 700;
-  background: var(--cor-fundo);
+  background: color-mix(in srgb, var(--cor-fundo) 82%, transparent);
   border: 2px solid var(--cor-texto);
   border-radius: 999px;
+  pointer-events: none;
 }
 
-.jogo__selo {
-  display: inline-grid;
-  place-items: center;
-  min-width: 1.4rem;
-  height: 1.4rem;
-  margin-inline-start: var(--espaco-2);
-  padding-inline: 0.3rem;
-  font-size: 0.8rem;
-  background: var(--cor-recompensa);
-  border: 2px solid var(--cor-texto);
-  border-radius: 999px;
+/* O retrato do herói, no canto de baixo à esquerda. Mesmo recuo do bloco do
+   auto: os dois cantos de baixo são um par, e nenhum dos dois cobre os
+   ícones. */
+.jogo__retrato {
+  position: absolute;
+  inset-block-end: clamp(4rem, 12vh, 5.5rem);
+  inset-inline-start: var(--espaco-2);
 }
+
+/* O auto fica no canto de baixo à direita, acima da barra de ícones: é
+   produto, então nunca some — mas também não disputa o centro com o jogo. */
+.jogo__modo {
+  position: absolute;
+  inset-block-end: clamp(4rem, 12vh, 5.5rem);
+  inset-inline-end: var(--espaco-2);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--espaco-1);
+  max-width: min(14rem, 55vw);
+  text-align: end;
+}
+
+/* --- Barra de ícones ------------------------------------------------------ */
 
 .jogo__acoes {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--espaco-2);
-  align-items: center;
+  gap: var(--espaco-1);
+  align-items: flex-end;
   justify-content: center;
+  padding: var(--espaco-2);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .jogo__barra-preenchida {
-    transition: none;
-  }
-}
+/* --- Ociosidade ----------------------------------------------------------- */
 
 /*
  * Aviso de ociosidade. Fica no canto, não no meio: encerrar a sessão por
@@ -137,7 +214,7 @@
  */
 .jogo__ocioso {
   position: absolute;
-  inset-block-end: var(--espaco-4);
+  inset-block-end: clamp(5rem, 16vh, 7rem);
   inset-inline-start: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -161,4 +238,25 @@
   font-size: 0.85rem;
   line-height: 1.45;
   opacity: 0.85;
+}
+
+/*
+ * Tela baixa e deitada (celular na horizontal): o rótulo "ao vivo" e o texto
+ * de saldo do auto são os primeiros a sair, porque são os únicos elementos da
+ * HUD que não mudam o que o jogador pode fazer.
+ */
+@media (max-height: 26rem) {
+  .jogo__aovivo {
+    display: none;
+  }
+
+  .jogo__modo .jogo__detalhe {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jogo__barra-preenchida {
+    transition: none;
+  }
 }

@@ -44,6 +44,7 @@ export function ModalCadastro({ aoFechar, aoConcluir }: Props) {
   const [dataNascimento, setDataNascimento] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<ChaveI18n | null>(null)
+  const [aguardandoConfirmacao, setAguardandoConfirmacao] = useState<string | null>(null)
 
   async function aoEnviar(evento: FormEvent) {
     evento.preventDefault()
@@ -61,10 +62,38 @@ export function ModalCadastro({ aoFechar, aoConcluir }: Props) {
         setErro(chaveDoErro(resposta.error.codigo))
         return
       }
+      // Com confirmação de e-mail ligada no Supabase o cadastro NÃO terminou:
+      // fechar o modal aqui era exatamente o "não acontece nada" que o dono
+      // viu. O jogador precisa saber que falta um clique, e onde ele está.
+      if (resposta.data?.confirmacaoPendente) {
+        setAguardandoConfirmacao(resposta.data.email)
+        return
+      }
       aoConcluir()
     } finally {
       setEnviando(false)
     }
+  }
+
+  if (aguardandoConfirmacao) {
+    return (
+      <div className="cadastro" role="dialog" aria-modal="true" aria-labelledby="cadastro-titulo">
+        <div className="cadastro__cartao">
+          <h2 className="cadastro__titulo" id="cadastro-titulo">
+            {t('cadastro.confirme.titulo')}
+          </h2>
+          <p className="cadastro__explicacao">
+            {t('cadastro.confirme.explicacao', { email: aguardandoConfirmacao })}
+          </p>
+          <p className="cadastro__aviso">{t('cadastro.confirme.calmo')}</p>
+          <div className="cadastro__acoes">
+            <Botao type="button" onClick={aoConcluir}>
+              {t('cadastro.confirme.ok')}
+            </Botao>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

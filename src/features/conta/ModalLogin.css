@@ -1,0 +1,85 @@
+/*
+ * Login. Mesma anatomia do cadastro de propósito: são a mesma decisão vista de
+ * dois lados ("quero minha conta"), e duas caixas com formatos diferentes
+ * fariam o jogador achar que caiu em outro lugar.
+ */
+.login {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--espaco-3);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--cor-contorno) 78%, transparent);
+  z-index: 30;
+}
+
+.login__cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  width: min(24rem, 100%);
+  max-height: calc(100dvh - var(--espaco-3) * 2);
+  overflow: hidden;
+  padding: var(--espaco-4);
+  background: var(--cor-fundo);
+  border: var(--borda);
+  border-radius: var(--raio);
+}
+
+.login__titulo {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.login__explicacao {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+
+/* O aviso de que entrar abandona o progresso do convidado. Não é decoração:
+   é a única chance de o jogador saber disso antes, e por isso não fica
+   apagado como o texto de apoio. */
+.login__aviso {
+  margin: 0;
+  padding: var(--espaco-2);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  font-weight: 700;
+  color: var(--cor-recompensa);
+  border: 2px solid var(--cor-recompensa);
+  border-radius: var(--raio);
+}
+
+.login__campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.login__campo input {
+  font: inherit;
+  font-weight: 400;
+  padding: var(--espaco-2);
+  color: var(--cor-texto);
+  background: var(--cor-campo);
+  border: var(--borda);
+  border-radius: var(--raio);
+}
+
+.login__erro {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--cor-bloqueado);
+}
+
+.login__acoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+}

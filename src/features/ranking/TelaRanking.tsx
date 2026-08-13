@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 
 import { Botao } from '../../components/shared/Botao'
 import { TelaCarregando, TelaErro, TelaVazia } from '../../components/shared/EstadoTela'
+import { Paginacao, usePaginacao } from '../../components/shared/ListaPaginada'
 import { useSessao } from '../../context/SessaoContext'
 import type { ChaveI18n } from '../../lib/i18n'
 import { definirApelido, rankingGlobal } from '../../lib/services/rankingService'
@@ -41,6 +42,10 @@ export function TelaRanking({ aoFechar, aoPedirCadastro }: Props) {
   const [apelido, setApelido] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [erroApelido, setErroApelido] = useState<ChaveI18n | null>(null)
+
+  // O top do ranking é a lista mais longa do jogo (até 100 nomes). Não rola:
+  // vira página, com quantas linhas couberem na altura do cartão.
+  const paginado = usePaginacao<RankingGlobal['top'][number], HTMLOListElement>(ranking?.top ?? [])
 
   const temApelido = Boolean(snapshot?.jogador.apelido)
   // Apelido é único e ninguém mais pode usar — então precisa de uma conta que
@@ -140,8 +145,8 @@ export function TelaRanking({ aoFechar, aoPedirCadastro }: Props) {
             <TelaVazia titulo={t('ranking.vazio.titulo')} mensagem={t('ranking.vazio.mensagem')} />
           ) : (
             <>
-              <ol className="ranking__lista">
-                {ranking.top.map((linha) => (
+              <ol className="ranking__lista lista-paginada" ref={paginado.alvo}>
+                {paginado.itensDaPagina.map((linha) => (
                   <li
                     key={`${linha.posicao}-${linha.apelido}`}
                     className={`ranking__linha ${linha.euMesmo ? 'ranking__linha--eu' : ''}`}
@@ -156,6 +161,12 @@ export function TelaRanking({ aoFechar, aoPedirCadastro }: Props) {
                   </li>
                 ))}
               </ol>
+
+              <Paginacao
+                pagina={paginado.pagina}
+                paginas={paginado.paginas}
+                irPara={paginado.irPara}
+              />
 
               {/* A própria posição aparece sempre, inclusive fora do top 100. */}
               {ranking.eu && !ranking.top.some((linha) => linha.euMesmo) ? (

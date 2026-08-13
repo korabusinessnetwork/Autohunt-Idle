@@ -12,11 +12,15 @@ import { INTERVALO_LOTE_MS } from './regrasFarm'
 import {
   avancarMundo,
   criarMundo,
+  definirArma,
   definirIntencao,
+  definirMapa,
   definirModo,
+  definirVitalidadeMaxima,
   type EstadoMundo,
   type ModoDeJogo,
 } from './mundo'
+import type { PerfilArma } from './armas'
 import type { Entrada } from './entrada'
 import type { Renderizador } from './renderizador'
 
@@ -25,6 +29,8 @@ export interface OpcoesMotor {
   /** Disparado a cada ciclo de lote. Não transporta valor: só pede validação. */
   aoValidarLote: () => void
   semente?: number
+  /** Em qual das 8 instâncias a cena começa. */
+  mapaId?: number
   /**
    * De onde vem o input do jogador. Sem ela o motor roda igual, só que sem
    * ninguém no comando — é o que os testes usam.
@@ -38,6 +44,12 @@ export interface Motor {
   parar(): void
   /** Liga ou desliga o auto. Quem decide se PODE ligar é a UI. */
   definirModo(modo: ModoDeJogo): void
+  /** Viaja para outro mapa. Quem confere o nível exigido é a UI. */
+  definirMapa(mapaId: number): void
+  /** Troca a arma na mão — vem do loadout que o servidor publica. */
+  definirArma(arma: PerfilArma): void
+  /** Ajusta a escala da barra de vitalidade ao que o servidor publica. */
+  definirVitalidadeMaxima(maxima: number): void
   /** Instante do último input do jogador, para a trava de inatividade. */
   ultimoInputEm(): number
 }
@@ -49,9 +61,10 @@ export function criarMotor({
   renderizador,
   aoValidarLote,
   semente = 1,
+  mapaId = 1,
   entrada,
 }: OpcoesMotor): Motor {
-  const estado = criarMundo(semente)
+  const estado = criarMundo(semente, mapaId)
 
   let quadro = 0
   let ultimoInstante = 0
@@ -96,6 +109,15 @@ export function criarMotor({
     },
     definirModo(modo) {
       definirModo(estado, modo)
+    },
+    definirMapa(mapaId) {
+      definirMapa(estado, mapaId)
+    },
+    definirArma(arma) {
+      definirArma(estado, arma)
+    },
+    definirVitalidadeMaxima(maxima) {
+      definirVitalidadeMaxima(estado, maxima)
     },
     ultimoInputEm() {
       return entrada?.ultimoInputEm() ?? 0

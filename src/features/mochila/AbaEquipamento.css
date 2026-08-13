@@ -1,0 +1,385 @@
+/*
+ * Aba de equipamento.
+ *
+ * O cartão e o fundo escuro saíram daqui em 2026-08-13: quem monta o diálogo
+ * agora é `PainelMochila.css`, e este arquivo cuida só do conteúdo da aba.
+ */
+.equip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  /* Ocupa a coluna inteira e pode encolher: é o que dá à lista de baixo uma
+     altura conhecida para paginar em cima. */
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* Tudo que não é a lista tem tamanho próprio e não encolhe — quem cede espaço
+   é a lista, virando página. */
+.equip__conjunto,
+.equip__aviso,
+.equip__dica,
+.equip__slots,
+.equip__fort {
+  flex: 0 0 auto;
+}
+
+.equip__dica {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  opacity: 0.75;
+}
+
+.equip__conjunto,
+.equip__aviso {
+  margin: 0;
+  padding: var(--espaco-2);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  background: color-mix(in srgb, var(--cor-secundaria) 25%, transparent);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+}
+
+.equip__slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  gap: var(--espaco-2);
+}
+
+.equip__slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--espaco-1);
+  padding: var(--espaco-2);
+  font: inherit;
+  text-align: start;
+  color: var(--cor-texto);
+  background: transparent;
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+  cursor: pointer;
+}
+
+.equip__slot--ativo {
+  background: var(--cor-secundaria);
+}
+
+/*
+ * Alvo de arraste. Enquanto uma peça está no ar, o slot que a aceita se
+ * ANUNCIA — sem isso o jogador arrasta procurando às cegas onde soltar, e
+ * arraste que exige adivinhação é pior que o botão que ele já tinha.
+ *
+ * Só o slot compatível acende: os outros seis continuam apagados, e é essa
+ * diferença que ensina a regra "cada peça tem um lugar" sem uma linha de
+ * texto (Princípio nº 1).
+ */
+.equip__slot--aceita {
+  border-style: dashed;
+  border-color: var(--cor-recompensa);
+}
+
+/* A peça está bem em cima: solta agora que entra. */
+.equip__slot--sob {
+  border-style: solid;
+  background: var(--cor-recompensa);
+  scale: 1.06;
+}
+
+.equip__slot-nome {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.75;
+}
+
+.equip__slot-item {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+/* `.equip .lista-paginada` e não só `.lista-paginada`: a especificidade maior
+   garante que o trilho vença independentemente da ordem de import do CSS. */
+.equip__lista,
+.equip .lista-paginada {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.equip__linha {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--espaco-2);
+  align-items: center;
+  padding: var(--espaco-2);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+}
+
+.equip__descricao {
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+/* "Equipar" e o botão de atributos da peça, lado a lado no fim da linha. */
+.equip__acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-1);
+}
+
+.equip__emUso {
+  font-size: 0.8rem;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+/* Bolinha de tier — mesma linguagem de cor da mochila. */
+.equip__tier {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--cor-texto);
+  border-radius: 50%;
+}
+
+.equip__tier--comum {
+  background: var(--raridade-comum);
+}
+.equip__tier--incomum {
+  background: var(--raridade-incomum);
+}
+.equip__tier--raro {
+  background: var(--raridade-raro);
+}
+.equip__tier--epico {
+  background: var(--raridade-epico);
+}
+.equip__tier--lendario {
+  background: var(--raridade-lendario);
+}
+.equip__tier--caramelizado {
+  background: var(--raridade-caramelizado);
+}
+.equip__tier--glaceado {
+  background: var(--raridade-glaceado);
+}
+.equip__tier--dourado {
+  background: var(--raridade-dourado);
+}
+.equip__tier--cristalizado {
+  background: var(--raridade-cristalizado);
+}
+.equip__tier--cosmico {
+  background: var(--raridade-cosmico);
+}
+
+/* Bloco de fortificação — chance e custo sempre visíveis antes da tentativa.
+   É um `<details>`: aberto na tela larga, recolhido no celular (ver o `@media`
+   estreito). O corpo é quem carrega o layout; o `<details>` só carrega a
+   moldura, para não depender de `display: grid` em `<details>`, que ainda
+   varia entre navegadores. */
+.equip__fort {
+  padding: var(--espaco-3);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+  background: color-mix(in srgb, var(--cor-recompensa) 18%, transparent);
+}
+
+.equip__fort-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  padding-top: var(--espaco-2);
+}
+
+.equip__fort-titulo {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.equip__fort-linha {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.equip__fort-linha--calmo {
+  opacity: 0.8;
+}
+
+.equip__fort-opcao {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.equip__fort-opcao input:disabled + span {
+  opacity: 0.5;
+}
+
+/*
+ * Telas baixas: comprime, não rola. O bloco de fortificação é o mais alto da
+ * coluna (chance, custo, pedras, duas opções e o botão), e ele NÃO pode virar
+ * rolagem — a chance e o custo precisam estar visíveis antes da tentativa, que
+ * é a restrição ética de transparência, não uma preferência de layout.
+ */
+/*
+ * Pouco espaço — celular em pé (estreito) ou deitado (baixo): os slots viram
+ * uma barra, como a hotbar de um jogo. Sete cartões de 6,5rem empilhados em
+ * quatro fileiras comiam metade da altura da coluna — e o que sobra depois
+ * disso não dá para ver nem uma peça.
+ *
+ * O rótulo escrito sai, o ÍCONE fica: é ele que o jogador reconhece, e o slot
+ * ativo continua marcado pelo fundo.
+ *
+ * A consulta é a mesma de `useTelaEstreita` (que recolhe a fortificação). As
+ * duas andam juntas de propósito.
+ */
+@media (max-width: 48rem), (max-height: 34rem) {
+  /* A dica sai; o gesto fica. Ela custa uma linha inteira da lista de peças, e
+     os slots já acendem sozinhos assim que o arraste começa. */
+  .equip__dica {
+    display: none;
+  }
+
+  .equip__acoes .botao {
+    padding: var(--espaco-1) var(--espaco-2);
+    font-size: 0.75rem;
+  }
+
+  .equip__acoes .botao--so-icone {
+    min-width: 1.9rem;
+    min-height: 1.9rem;
+  }
+
+  .equip__slots {
+    /* `minmax(0, …)`: sem o zero, a célula não encolhe abaixo do ícone e a
+       fileira vaza para fora da coluna. */
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: var(--espaco-1);
+  }
+
+  .equip__slot {
+    position: relative;
+    min-width: 0;
+    padding: var(--espaco-1);
+  }
+
+  /* O ícone acompanha a célula em vez de mandar nela. */
+  .equip__slot > :first-child {
+    width: 100%;
+    max-width: 2.5rem;
+    height: auto;
+  }
+
+  .equip__slot-nome,
+  .equip__slot-item {
+    /* `position: absolute` e não `display: none`: o leitor de tela continua
+       dizendo qual slot é qual, que é o que o botão tem de nome acessível. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /*
+   * Fortificação em duas colunas. Chance, custo e pedras são três frases
+   * curtas que numa coluna só ocupam três alturas de linha — lado a lado
+   * ocupam duas, e continuam todas visíveis ANTES do botão de tentar, que é a
+   * restrição de transparência (`memory/restrictions.md`), não estética.
+   */
+  .equip__fort {
+    padding: var(--espaco-2);
+  }
+
+  .equip__fort-corpo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--espaco-1) var(--espaco-2);
+    align-items: center;
+  }
+
+  /* Promessa de "falhar não rebaixa", botão e resultado atravessam as duas
+     colunas: são frase inteira, não dado de meia linha. */
+  .equip__fort-linha--calmo,
+  .equip__fort-corpo > button,
+  .equip__fort-corpo > [role='status'] {
+    grid-column: 1 / -1;
+  }
+
+  .equip__fort-titulo {
+    font-size: 0.9rem;
+  }
+
+  /* 0,72rem é o ponto em que "Pedras: 3 · 1 · 0" e o rótulo das opções param de
+     quebrar em duas linhas — cada quebra evitada aqui é uma peça a mais
+     visível na lista de baixo. */
+  .equip__fort-linha,
+  .equip__fort-opcao {
+    font-size: 0.72rem;
+    line-height: 1.3;
+  }
+
+  .equip__fort-corpo > button {
+    padding: var(--espaco-2);
+  }
+}
+
+@media (max-height: 52rem) {
+  .equip {
+    gap: var(--espaco-2);
+  }
+
+  /* Uma fileira só, sempre. Com `auto-fit` os sete slots quebravam em duas
+     fileiras na coluna do notebook, e a segunda fileira custava mais altura do
+     que a lista de peças inteira tinha para viver. Sete colunas fixas cabem
+     folgado: o rótulo escrito continua lá, só menor. */
+  .equip__slots {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: var(--espaco-1);
+  }
+
+  .equip__slot {
+    min-width: 0;
+    padding: var(--espaco-1);
+  }
+
+  .equip__slot > :first-child {
+    width: 100%;
+    max-width: 2.25rem;
+    height: auto;
+  }
+
+  .equip__slot-nome {
+    font-size: 0.6rem;
+  }
+
+  .equip__slot-item {
+    font-size: 0.75rem;
+  }
+
+  .equip__fort {
+    gap: var(--espaco-1);
+    padding: var(--espaco-2);
+  }
+
+  .equip__fort-linha,
+  .equip__fort-opcao {
+    font-size: 0.78rem;
+  }
+}

@@ -20,6 +20,7 @@
 // entra em cálculo de recompensa — arte é arte.
 
 import type { SlotEquipamento, TipoDano, TipoItem } from '../lib/tipos'
+import { embaralhar, familiaDaArma } from './armas'
 import type { FormaAssinatura } from './biomas'
 import type { FormaBase, FormaInimigo } from './mundo'
 
@@ -183,31 +184,15 @@ export function arteDoProp(bioma: number): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Famílias de arma por tipo de dano.
+ * As três famílias de acessório. As de ARMA não moram mais aqui: desde
+ * `specs/mapas-instanciados-combate-e-hud.md` a família da arma decide também
+ * o COMBATE, então ela mudou-se para `armas.ts` e este módulo passou a
+ * consumi-la.
  *
- * A separação não é decorativa: é o que faz o ícone denunciar se a arma é
- * física ou mágica antes de abrir o tooltip — e `tipoDano` já vem do servidor
- * em `ItemPossuido`.
+ * A mudança é o que garante que o ícone nunca minta: um item que mostra arco
+ * atira flecha porque as duas respostas saem da mesma função.
  */
-const ARMAS_FISICAS = ['espada', 'adaga', 'arco', 'martelo'] as const
-const ARMAS_MAGICAS = ['cajado', 'varinha'] as const
 const ACESSORIOS = ['anel', 'colar', 'brinco'] as const
-
-/**
- * Hash estável do id do item.
- *
- * Escolhe QUAL família dentro do tipo, para dois itens do mesmo tipo e raridade
- * não serem visualmente gêmeos. Precisa ser estável: o ícone não pode mudar
- * quando a lista reordena.
- */
-function embaralhar(id: string): number {
-  let h = 2166136261
-  for (let i = 0; i < id.length; i++) {
-    h ^= id.charCodeAt(i)
-    h = Math.imul(h, 16777619)
-  }
-  return h >>> 0
-}
 
 /** Raridade 1–10 → sufixo 0–9 dos arquivos de item. */
 function sufixoDeRaridade(raridade: number): number {
@@ -259,11 +244,8 @@ export function arteDoItem(
   const semente = embaralhar(id)
 
   switch (tipo) {
-    case 'arma': {
-      const familias = tipoDano === 'magico' ? ARMAS_MAGICAS : ARMAS_FISICAS
-      const familia = familias[semente % familias.length]!
-      return `${RAIZ}/itens/w-${familia}-${sufixo}.png`
-    }
+    case 'arma':
+      return `${RAIZ}/itens/w-${familiaDaArma(id, tipoDano)}-${sufixo}.png`
     case 'acessorio': {
       const familia = ACESSORIOS[semente % ACESSORIOS.length]!
       return `${RAIZ}/itens/ac-${familia}-${sufixo}.png`

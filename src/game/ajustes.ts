@@ -28,6 +28,15 @@ export interface AjustesVisuais {
   inimigo_vida: number
   inimigo_velocidade: number
   inimigo_tamanho: number
+  /**
+   * Dano base de um golpe de inimigo NA TELA.
+   *
+   * Nasceu com `specs/mapas-instanciados-combate-e-hud.md`: até então o inimigo
+   * dava zero, porque o combate só tinha uma direção. Como todo o resto deste
+   * arquivo, não credita nada — quem perde ciclo por vitalidade zerada é a
+   * conta do servidor, que não sabe o que aconteceu na tela.
+   */
+  inimigo_dano: number
 }
 
 /**
@@ -47,6 +56,7 @@ export const AJUSTES_PADRAO: Readonly<AjustesVisuais> = {
   inimigo_vida: 1,
   inimigo_velocidade: 1,
   inimigo_tamanho: 1,
+  inimigo_dano: 6,
 }
 
 let atuais: AjustesVisuais = { ...AJUSTES_PADRAO }

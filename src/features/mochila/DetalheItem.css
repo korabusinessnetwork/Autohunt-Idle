@@ -1,0 +1,179 @@
+/*
+ * Atributos de uma peça. Diálogo curto e de altura conhecida — cabe inteiro em
+ * qualquer tela, e por isso não pagina nem rola (`docs/02_DESIGN_SYSTEM/
+ * menus-sem-rolagem.md`).
+ *
+ * `z-index` acima da mochila: este diálogo abre POR CIMA dela, e a mochila
+ * continua visível atrás de propósito — quem está comparando duas peças não
+ * quer perder de vista a lista de onde veio.
+ */
+.detalhe-item {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--espaco-3);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--cor-contorno) 70%, transparent);
+  z-index: 30;
+}
+
+.detalhe-item__cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  width: min(24rem, 100%);
+  max-height: calc(100dvh - var(--espaco-3) * 2);
+  overflow: hidden;
+  padding: var(--espaco-4);
+  background: var(--cor-fundo);
+  border: var(--borda);
+  border-radius: var(--raio);
+}
+
+.detalhe-item__topo {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-3);
+}
+
+.detalhe-item__moldura {
+  display: flex;
+  padding: var(--espaco-1);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+}
+
+.detalhe-item__identidade {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: var(--espaco-1);
+  min-width: 0;
+}
+
+.detalhe-item__titulo {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+/* Mesma linguagem de cor da mochila e do equipamento: a raridade se reconhece
+   pela cor antes de se ler o nome. */
+.detalhe-item__tier {
+  padding: 0.1rem var(--espaco-2);
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 2px solid var(--cor-texto);
+  border-radius: 999px;
+}
+
+.detalhe-item__tier--comum,
+.detalhe-item__moldura--comum {
+  background: var(--raridade-comum);
+}
+.detalhe-item__tier--incomum,
+.detalhe-item__moldura--incomum {
+  background: var(--raridade-incomum);
+}
+.detalhe-item__tier--raro,
+.detalhe-item__moldura--raro {
+  background: var(--raridade-raro);
+}
+.detalhe-item__tier--epico,
+.detalhe-item__moldura--epico {
+  background: var(--raridade-epico);
+}
+.detalhe-item__tier--lendario,
+.detalhe-item__moldura--lendario {
+  background: var(--raridade-lendario);
+}
+.detalhe-item__tier--caramelizado,
+.detalhe-item__moldura--caramelizado {
+  background: var(--raridade-caramelizado);
+}
+.detalhe-item__tier--glaceado,
+.detalhe-item__moldura--glaceado {
+  background: var(--raridade-glaceado);
+}
+.detalhe-item__tier--dourado,
+.detalhe-item__moldura--dourado {
+  background: var(--raridade-dourado);
+}
+.detalhe-item__tier--cristalizado,
+.detalhe-item__moldura--cristalizado {
+  background: var(--raridade-cristalizado);
+}
+.detalhe-item__tier--cosmico,
+.detalhe-item__moldura--cosmico {
+  background: var(--raridade-cosmico);
+}
+
+/* O número que a tela existe para responder: quanto essa peça soma. Por isso
+   ele é o maior texto do cartão. */
+.detalhe-item__poder {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--cor-recompensa);
+  -webkit-text-stroke: 1px var(--cor-texto);
+}
+
+.detalhe-item__aviso {
+  margin: 0;
+  padding: var(--espaco-2);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  background: color-mix(in srgb, var(--cor-secundaria) 25%, transparent);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+}
+
+.detalhe-item__linhas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.detalhe-item__linha {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  opacity: 0.9;
+}
+
+.detalhe-item__acoes {
+  display: flex;
+  gap: var(--espaco-2);
+}
+
+.detalhe-item__acoes > * {
+  flex: 1;
+}
+
+.detalhe-item__emUso {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+/* Telas baixas: comprime, não rola. */
+@media (max-height: 34rem) {
+  .detalhe-item__cartao {
+    gap: var(--espaco-1);
+    padding: var(--espaco-2);
+  }
+
+  .detalhe-item__poder {
+    font-size: 1.15rem;
+  }
+
+  .detalhe-item__linha {
+    font-size: 0.75rem;
+    line-height: 1.3;
+  }
+}

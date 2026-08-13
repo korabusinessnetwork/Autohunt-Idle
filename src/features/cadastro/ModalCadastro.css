@@ -8,11 +8,15 @@
   z-index: 30;
 }
 
+/* Nenhum menu rola (regra do dono): o cartão fica preso à tela e, quando a tela
+   é baixa, ele comprime — ver o `@media` no fim do arquivo. */
 .cadastro__cartao {
   display: flex;
   flex-direction: column;
   gap: var(--espaco-3);
   width: min(24rem, 100%);
+  max-height: calc(100dvh - var(--espaco-3) * 2);
+  overflow: hidden;
   padding: var(--espaco-4);
   background: var(--cor-fundo);
   border: var(--borda);
@@ -66,4 +70,30 @@
   display: flex;
   flex-direction: column;
   gap: var(--espaco-2);
+}
+
+/*
+ * Tela baixa: comprime, não rola. Os campos continuam todos presentes — a data
+ * de nascimento é exigência legal (ECA Digital) e não é um campo que possa
+ * ficar escondido atrás de rolagem.
+ */
+@media (max-height: 40rem) {
+  .cadastro__cartao {
+    gap: var(--espaco-2);
+    padding: var(--espaco-3);
+  }
+
+  .cadastro__explicacao,
+  .cadastro__aviso {
+    font-size: 0.8rem;
+    line-height: 1.35;
+  }
+
+  .cadastro__campo {
+    font-size: 0.8rem;
+  }
+
+  .cadastro__campo input {
+    padding: var(--espaco-1) var(--espaco-2);
+  }
 }

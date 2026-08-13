@@ -1,5 +1,6 @@
 import { Botao } from '../../components/shared/Botao'
 import { IconeItem } from '../../components/shared/IconeItem'
+import { Paginacao, usePaginacao } from '../../components/shared/ListaPaginada'
 import { useSessao } from '../../context/SessaoContext'
 import { nomeDaRaridade } from '../../game/regrasLoot'
 import { checkoutDisponivel } from '../../lib/services/subscriptionService'
@@ -38,6 +39,17 @@ export function PainelPasse({ aoFechar }: { aoFechar: () => void }) {
       ? Math.min(1, Math.max(0, (pontos - base) / (proximo.pontos - base)))
       : 1
 
+  // A trilha não rola: vira página, com quantos degraus couberem no cartão. E
+  // abre onde o jogador está — abrir no tier 1 seria mostrar primeiro o que ele
+  // já destravou, que é a metade menos útil da trilha.
+  const paginado = usePaginacao<(typeof trilha)[number], HTMLOListElement>(
+    trilha,
+    Math.max(
+      0,
+      trilha.findIndex((degrau) => degrau.tier > tierAtual),
+    ),
+  )
+
   return (
     <div className="passe" role="dialog" aria-modal="true" aria-labelledby="passe-titulo">
       <div className="passe__cartao">
@@ -70,8 +82,8 @@ export function PainelPasse({ aoFechar }: { aoFechar: () => void }) {
         {/* A promessa que substitui a contagem regressiva. */}
         <p className="passe__detalhe passe__detalhe--calmo">{t('passe.semPrazo')}</p>
 
-        <ol className="passe__trilha">
-          {trilha.map((degrau) => {
+        <ol className="passe__trilha lista-paginada" ref={paginado.alvo}>
+          {paginado.itensDaPagina.map((degrau) => {
             const destravado = degrau.tier <= tierAtual
             return (
               <li
@@ -105,6 +117,8 @@ export function PainelPasse({ aoFechar }: { aoFechar: () => void }) {
             )
           })}
         </ol>
+
+        <Paginacao pagina={paginado.pagina} paginas={paginado.paginas} irPara={paginado.irPara} />
 
         {!ativo ? (
           <>

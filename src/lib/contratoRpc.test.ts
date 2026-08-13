@@ -13,10 +13,19 @@ function lerMigration(arquivo: string): string {
   return readFileSync(new URL(`../../supabase/migrations/${arquivo}`, import.meta.url), 'utf8')
 }
 
-/** Remove comentários de linha — só o SQL que o Postgres executa interessa. */
+/**
+ * Remove comentários de linha — só o SQL que o Postgres executa interessa.
+ *
+ * O `\r?` não é detalhe de estilo: sem ele, num checkout com CRLF (o padrão do
+ * Git no Windows) a linha termina em `\r`, `--.*$` não casa, e NENHUM
+ * comentário era removido. O efeito era pior que um teste quebrado — três
+ * auditorias deste arquivo (tenant_id, `random()`, grant de escrita em
+ * `ajuste`) passavam a acusar os próprios comentários que explicam a regra, e
+ * quem lesse a suíte veria falha sem entender que ela é do parser.
+ */
 function semComentarios(sql: string): string {
   return sql
-    .split('\n')
+    .split(/\r?\n/)
     .map((linha) => linha.replace(/--.*$/, ''))
     .join('\n')
 }

@@ -46,30 +46,91 @@ export async function garantirSessao(): Promise<Envelope<Sessao>> {
   return ok({ userId: data.user.id, temCadastro: false })
 }
 
+/**
+ * Entra numa conta que já tem e-mail e senha.
+ *
+ * Faltava a porta de volta (`specs/mapas-instanciados-combate-e-hud.md`, 7):
+ * quem cadastrava e depois abria o jogo em outro navegador caía numa conta
+ * anônima nova, sem nenhum caminho para a própria.
+ *
+ * ATENÇÃO ao que este `signInWithPassword` faz com a sessão em curso: ele a
+ * SUBSTITUI. Se a sessão atual era uma conta anônima com progresso, esse
+ * progresso continua existindo no banco, mas fica sem ninguém para reivindicá-lo
+ * — a conta anônima só era alcançável pela sessão daquele navegador. Por isso a
+ * tela avisa ANTES do clique, e não depois (prevenção de erro, CLAUDE.md).
+ */
+export async function entrar(email: string, senha: string): Promise<Envelope<Sessao>> {
+  if (!emailValido(email)) return falha<Sessao>('EMAIL_INVALIDO', 'E-mail inválido.')
+  if (!senha) return falha<Sessao>('SENHA_OBRIGATORIA', 'Senha vazia.')
+
+  const supabase = obterSupabase()
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password: senha,
+  })
+
+  if (error || !data.user) {
+    // Credencial errada e conta inexistente devolvem a MESMA resposta, de
+    // propósito: distinguir as duas conta para qualquer um de fora quais
+    // e-mails têm conta neste jogo.
+    return falha<Sessao>('LOGIN_INVALIDO', 'E-mail ou senha não conferem.')
+  }
+
+  return ok({ userId: data.user.id, temCadastro: Boolean(data.user.email) })
+}
+
 export interface DadosCadastro {
   email: string
   senha: string
   dataNascimento: string
 }
 
+export interface ResultadoCadastro extends Sessao {
+  /** E-mail informado, para a tela dizer PARA ONDE o link foi. */
+  email: string
+  /**
+   * O e-mail ainda não vale: o projeto Supabase está com "Confirm email"
+   * ligado e mandou um link. Enquanto o jogador não abrir esse link, a conta
+   * continua sem e-mail — e sem farm offline.
+   */
+  confirmacaoPendente: boolean
+}
+
 /**
  * Acrescenta e-mail/senha à conta anônima em curso e grava a data de
  * nascimento no perfil. O progresso não é tocado porque ele nunca esteve fora
  * desta conta.
+ *
+ * SOBRE A CONFIRMAÇÃO DE E-MAIL (bug de 2026-08-13, "me cadastro e não
+ * acontece nada, vai pra uma página que não carrega"):
+ *
+ * Com "Confirm email" ligado no projeto, `updateUser` NÃO grava o e-mail na
+ * hora — ele guarda como pendente e manda um link. A resposta vem sem `error`,
+ * então a versão anterior fechava o modal como se tivesse dado certo: daí o
+ * "não acontece nada". E o link ia para a Site URL padrão do Supabase
+ * (`http://localhost:3000`), que em desenvolvimento não é onde o jogo roda:
+ * daí a "página que não carrega".
+ *
+ * As duas pontas são tratadas aqui: `emailRedirectTo` manda o link de volta
+ * para a origem REAL de quem está jogando, e o resultado diz se ficou pendente
+ * para a tela poder avisar em vez de fechar calada.
  */
-export async function cadastrar(dados: DadosCadastro): Promise<Envelope<Sessao>> {
-  if (!emailValido(dados.email)) return falha<Sessao>('EMAIL_INVALIDO', 'E-mail inválido.')
+export async function cadastrar(dados: DadosCadastro): Promise<Envelope<ResultadoCadastro>> {
+  const email = dados.email.trim()
+  if (!emailValido(email)) return falha<ResultadoCadastro>('EMAIL_INVALIDO', 'E-mail inválido.')
   if (dados.senha.length < TAMANHO_MINIMO_SENHA) {
-    return falha<Sessao>('SENHA_CURTA', 'Senha curta demais.')
+    return falha<ResultadoCadastro>('SENHA_CURTA', 'Senha curta demais.')
   }
 
   const idade = validarDataNascimento(dados.dataNascimento)
-  if (idade !== 'ok') return falha<Sessao>(idade, 'Data de nascimento reprovada no gate de idade.')
+  if (idade !== 'ok') {
+    return falha<ResultadoCadastro>(idade, 'Data de nascimento reprovada no gate de idade.')
+  }
 
   const supabase = obterSupabase()
   const { data: sessaoAtual } = await supabase.auth.getSession()
   const usuarioAnonimo = sessaoAtual.session?.user
-  if (!usuarioAnonimo) return falha<Sessao>('SEM_SESSAO', 'Nenhuma sessão em curso.')
+  if (!usuarioAnonimo) return falha<ResultadoCadastro>('SEM_SESSAO', 'Nenhuma sessão em curso.')
 
   // A data de nascimento vai PRIMEIRO: se o trigger do banco reprovar a idade,
   // a conta anônima segue anônima e nenhuma credencial foi criada.
@@ -78,19 +139,34 @@ export async function cadastrar(dados: DadosCadastro): Promise<Envelope<Sessao>>
     .update({ data_nascimento: dados.dataNascimento })
     .eq('id', usuarioAnonimo.id)
 
-  if (erroPerfil) return deErroSupabase<Sessao>(erroPerfil, 'CADASTRO_FALHOU')
+  if (erroPerfil) return deErroSupabase<ResultadoCadastro>(erroPerfil, 'CADASTRO_FALHOU')
 
-  const { data, error } = await supabase.auth.updateUser({
-    email: dados.email.trim(),
-    password: dados.senha,
-  })
+  const { data, error } = await supabase.auth.updateUser(
+    { email, password: dados.senha },
+    // Origem real de quem está jogando — nunca URL fixa no código (CLAUDE.md).
+    // Cobre localhost:5173, o preview da Vercel e o domínio de produção sem
+    // ninguém precisar lembrar de trocar nada.
+    { emailRedirectTo: typeof window === 'undefined' ? undefined : window.location.origin },
+  )
 
   if (error) {
     const jaExiste = /already|registered|exists/i.test(error.message ?? '')
-    return falha<Sessao>(jaExiste ? 'EMAIL_EM_USO' : 'CADASTRO_FALHOU', error.message ?? '')
+    return falha<ResultadoCadastro>(
+      jaExiste ? 'EMAIL_EM_USO' : 'CADASTRO_FALHOU',
+      error.message ?? '',
+    )
   }
 
-  return ok({ userId: data.user?.id ?? usuarioAnonimo.id, temCadastro: true })
+  // Se o e-mail já veio gravado no usuário, a confirmação está desligada e o
+  // cadastro terminou aqui mesmo. Se não veio, ficou pendente de link.
+  const confirmado = (data.user?.email ?? '').toLowerCase() === email.toLowerCase()
+
+  return ok({
+    userId: data.user?.id ?? usuarioAnonimo.id,
+    temCadastro: confirmado,
+    email,
+    confirmacaoPendente: !confirmado,
+  })
 }
 
 /**

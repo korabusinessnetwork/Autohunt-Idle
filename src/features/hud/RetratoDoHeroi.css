@@ -1,0 +1,118 @@
+/*
+ * O retrato do herói. Canto inferior esquerdo, acima da barra de ícones — o
+ * mesmo recuo que o bloco do auto usa do lado direito, para os dois cantos de
+ * baixo lerem como um par.
+ */
+.retrato {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  padding: var(--espaco-2);
+  background: color-mix(in srgb, var(--cor-fundo) 82%, transparent);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+  pointer-events: auto;
+}
+
+.retrato__moldura {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(2.75rem, 9vw, 3.75rem);
+  height: clamp(2.75rem, 9vw, 3.75rem);
+  background: var(--cor-secundaria);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+}
+
+.retrato__foto {
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+  /* Pixel art: interpolar destrói a borda dura que é a linguagem inteira do
+     desenho. */
+  image-rendering: pixelated;
+}
+
+/* O nível fica NO retrato, não ao lado: é a etiqueta do personagem, e no canto
+   da moldura ele não gasta uma linha de texto da HUD. */
+.retrato__nivel {
+  position: absolute;
+  inset-block-end: -0.35rem;
+  inset-inline-start: -0.35rem;
+  min-width: 1.35rem;
+  padding: 0 0.25rem;
+  font-size: clamp(0.6rem, 2vw, 0.75rem);
+  font-weight: 700;
+  line-height: 1.35rem;
+  text-align: center;
+  background: var(--cor-recompensa);
+  border: 2px solid var(--cor-texto);
+  border-radius: 999px;
+}
+
+.retrato__arma {
+  position: absolute;
+  inset-block-start: -0.4rem;
+  inset-inline-end: -0.4rem;
+  display: flex;
+  background: var(--cor-fundo);
+  border-radius: var(--raio);
+}
+
+.retrato__barras {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: clamp(7rem, 24vw, 11rem);
+}
+
+.retrato__barra {
+  height: 0.6rem;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--cor-contorno) 70%, transparent);
+  border: 2px solid var(--cor-texto);
+  border-radius: 999px;
+}
+
+.retrato__preenchida {
+  height: 100%;
+}
+
+/*
+ * A vitalidade não usa transição longa: ela cai em degraus quando o monstro
+ * bate, e suavizar atrasaria justamente o sinal que o jogador precisa ver na
+ * hora. O XP pode ser suave — ele só sobe.
+ */
+.retrato__barra--vida .retrato__preenchida {
+  background: var(--cor-positivo);
+  transition: width var(--duracao-rapida) linear;
+}
+
+.retrato__barra--xp {
+  height: 0.45rem;
+}
+
+.retrato__barra--xp .retrato__preenchida {
+  background: var(--cor-secundaria);
+  transition: width var(--duracao-media) ease;
+}
+
+.retrato__xp {
+  font-size: clamp(0.5rem, 1.5vw, 0.68rem);
+  opacity: 0.8;
+}
+
+/* Tela deitada e baixa: o texto de XP sai, as barras ficam. A barra diz a
+   mesma coisa sem gastar linha. */
+@media (max-height: 26rem) {
+  .retrato__xp {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .retrato__preenchida {
+    transition: none;
+  }
+}

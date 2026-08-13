@@ -1,0 +1,56 @@
+/*
+ * Controle de página — a peça que substituiu a barra de rolagem dos menus.
+ *
+ * Mesma linguagem dos botões do jogo (contorno grosso, cantos do design
+ * system): é para parecer parte do painel, não um widget de tabela.
+ */
+.paginacao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espaco-2);
+  flex: 0 0 auto;
+}
+
+/* Uma página só: o controle continua ocupando o lugar dele (a medida da lista
+   depende disso), mas não aparece nem é lido. */
+.paginacao--unica {
+  visibility: hidden;
+}
+
+.paginacao__passo {
+  width: 2rem;
+  height: 2rem;
+  font: inherit;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--cor-texto);
+  background: var(--cor-secundaria);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+  cursor: pointer;
+}
+
+.paginacao__passo:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.paginacao__contador {
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+/*
+ * O trilho da lista paginada: cresce até o que sobrou do cartão e para ali.
+ * O `min-height: 0` é o que permite ENCOLHER — sem ele o item de flex se
+ * recusa a ficar menor que o conteúdo e a rolagem volta pelo cartão.
+ */
+.lista-paginada {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}

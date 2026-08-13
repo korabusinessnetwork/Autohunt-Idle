@@ -42,6 +42,27 @@
   text-decoration: underline;
 }
 
+/*
+ * Botão que carrega só um ícone — o de "atributos desta peça", na linha de
+ * item. Existe porque a linha já tem "Equipar" e "Combinar": um terceiro
+ * rótulo escrito não caberia sem espremer os outros dois.
+ *
+ * Fica QUADRADO e com contorno visível mesmo na variante discreta: sem
+ * contorno, ícone solto no meio de uma linha não lê como botão. O nome
+ * continua existindo em `aria-label` e `title` — nunca só no desenho.
+ */
+.botao.botao--so-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  padding: var(--espaco-1);
+  border-color: var(--cor-texto);
+  text-decoration: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .botao {
     transition: none;

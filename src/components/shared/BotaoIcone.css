@@ -1,0 +1,96 @@
+/*
+ * Botão de ícone da HUD.
+ *
+ * Vive sobre o canvas, então precisa de fundo próprio: texto claro direto sobre
+ * a arena some assim que passa um inimigo claro por baixo.
+ */
+.botao-icone {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  position: relative;
+  min-width: clamp(2.75rem, 8vw, 3.75rem);
+  padding: var(--espaco-1) var(--espaco-2);
+  color: var(--cor-texto);
+  font: inherit;
+  font-size: clamp(0.55rem, 1.6vw, 0.7rem);
+  line-height: 1.1;
+  background: color-mix(in srgb, var(--cor-fundo) 88%, transparent);
+  border: 2px solid var(--cor-texto);
+  border-radius: var(--raio);
+  cursor: pointer;
+  transition: transform var(--duracao-rapida) ease, background var(--duracao-rapida) ease;
+}
+
+.botao-icone:hover:not(:disabled),
+.botao-icone:focus-visible {
+  background: var(--cor-fundo);
+  transform: translateY(-2px);
+}
+
+.botao-icone:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Onde tem coisa nova. Sinaliza sem cobrar — o botão continua igual. */
+.botao-icone--destacado {
+  border-color: var(--cor-recompensa);
+  color: var(--cor-recompensa);
+}
+
+.botao-icone__rotulo {
+  max-width: 5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.botao-icone__selo {
+  position: absolute;
+  inset-block-start: -0.4rem;
+  inset-inline-end: -0.4rem;
+  display: grid;
+  place-items: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding-inline: 0.2rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--cor-contorno);
+  background: var(--cor-recompensa);
+  border: 2px solid var(--cor-contorno);
+  border-radius: 999px;
+}
+
+/*
+ * Tela estreita: o rótulo sai do fluxo, mas continua no DOM — o `aria-label` do
+ * botão repete o mesmo texto, então quem usa leitor de tela não perde nada.
+ */
+@media (max-width: 33rem) {
+  .botao-icone__rotulo {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .botao-icone {
+    min-width: 0;
+    padding: var(--espaco-2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .botao-icone {
+    transition: none;
+  }
+
+  .botao-icone:hover:not(:disabled),
+  .botao-icone:focus-visible {
+    transform: none;
+  }
+}

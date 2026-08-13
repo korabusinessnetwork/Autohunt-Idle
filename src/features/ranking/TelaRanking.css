@@ -4,19 +4,27 @@
   display: grid;
   place-items: center;
   padding: var(--espaco-3);
-  overflow-y: auto;
+  overflow: hidden;
   background: color-mix(in srgb, var(--cor-texto) 55%, transparent);
   z-index: 25;
 }
 
+/*
+ * Altura FIXA, não `max-height` — e isso não é capricho.
+ *
+ * A lista aqui é paginada pela altura que sobra (`ListaPaginada.tsx`). Se o
+ * cartão crescesse com o conteúdo, paginar encolheria o cartão, que encolheria
+ * o trilho, que mudaria a conta de quantos cabem: a lista ficaria piscando
+ * entre dois tamanhos. Com altura fixa a conta é estável no primeiro quadro.
+ */
 .ranking__cartao {
   display: flex;
   flex-direction: column;
   gap: var(--espaco-3);
-  width: min(28rem, 100%);
-  max-height: 90dvh;
+  width: min(30rem, 100%);
+  height: min(40rem, calc(100dvh - var(--espaco-3) * 2));
   padding: var(--espaco-4);
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--cor-fundo);
   border: var(--borda);
   border-radius: var(--raio);
@@ -80,6 +88,13 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ranking__linha {
+  flex: 0 0 auto;
 }
 
 .ranking__linha {

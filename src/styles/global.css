@@ -31,3 +31,46 @@ h3 {
   outline: 3px solid var(--cor-texto);
   outline-offset: 2px;
 }
+
+/* =========================================================================
+ * MODO APERTADO — telas muito baixas (celular deitado, ~420px de altura).
+ *
+ * Nenhum menu do jogo rola (regra do dono, 2026-08-13): o que não cabe vira
+ * página ou vira largura, nunca barra de rolagem. Sobra o caso em que a tela é
+ * tão baixa que nem a moldura cabe — e aí a moldura é que cede.
+ *
+ * Vive aqui, e não em cada painel, porque é a MESMA decisão em doze arquivos:
+ * respiro menor, texto de apoio menor, botão menos alto. O conteúdo continua
+ * inteiro; o que encolhe é o espaço em volta dele.
+ *
+ * Os seletores usam `[role='dialog']` para ganhar especificidade de propósito:
+ * `global.css` é importado primeiro, então uma regra de classe simples aqui
+ * perderia para a regra de classe simples do painel, escrita depois. Media
+ * query não ganha peso nenhum por ser media query.
+ * ========================================================================= */
+@media (max-height: 34rem) {
+  [role='dialog'] > [class*='__cartao'] {
+    gap: var(--espaco-2);
+    padding: var(--espaco-2);
+  }
+
+  [role='dialog'] [class*='__titulo'] {
+    font-size: 1rem;
+  }
+
+  [role='dialog'] [class*='__explicacao'],
+  [role='dialog'] [class*='__detalhe'],
+  [role='dialog'] [class*='__dica'],
+  [role='dialog'] [class*='__aviso'],
+  [role='dialog'] [class*='__motivo'],
+  [role='dialog'] [class*='__faixa'],
+  [role='dialog'] [class*='__efeito'],
+  [role='dialog'] [class*='__custo'] {
+    font-size: 0.72rem;
+    line-height: 1.3;
+  }
+
+  [role='dialog'] .botao {
+    padding: var(--espaco-2);
+  }
+}

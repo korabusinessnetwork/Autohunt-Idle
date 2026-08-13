@@ -13,6 +13,8 @@
   flex-direction: column;
   gap: var(--espaco-3);
   width: min(20rem, 100%);
+  max-height: calc(100dvh - var(--espaco-3) * 2);
+  overflow: hidden;
   padding: var(--espaco-4);
   background: var(--cor-fundo);
   border: var(--borda);
@@ -66,4 +68,21 @@
   border: 2px solid var(--cor-texto);
   border-radius: var(--raio);
   background: color-mix(in srgb, var(--cor-recompensa) 35%, var(--cor-fundo));
+}
+
+/* Celular deitado: os dois grupos (idioma e acessibilidade) vão lado a lado.
+   Configuração escondida é configuração que não existe — e sem rolagem, o que
+   não coube some. */
+@media (max-height: 34rem) {
+  .config__cartao {
+    width: min(36rem, 100%);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-content: start;
+  }
+
+  .config__titulo,
+  .config__cartao > .botao {
+    grid-column: 1 / -1;
+  }
 }

@@ -44,8 +44,13 @@ const ESCALA_EXPORTACAO = 8
  * Na escala 2 eles saíam com 16–44px de altura e os inimigos com 34–47px — ou
  * seja, cenário e criatura do mesmo tamanho, e o olho passava a confundir os
  * dois. Ficar atrás não bastava para separar; tamanho separa.
+ *
+ * Subiu para 4 em 2026-08-13, junto com a viewport maior e o herói menor: a
+ * mesma mudança pelos dois lados. O ator encolheu na tela, e o cenário cresceu
+ * no mundo, então o mapa passou a parecer um lugar grande em vez de um fundo
+ * atrás de um boneco.
  */
-const ESCALA_PROP = 3
+const ESCALA_PROP = 4
 
 /** Sprite carregado ou silhueta gerada — `drawImage` aceita os dois. */
 type Desenhavel = HTMLImageElement | HTMLCanvasElement
@@ -345,13 +350,18 @@ function alturaDoSprite(raio: number): number {
 /**
  * O herói não tem raio — não colide com nada, porque o mundo aberto é
  * simulação visual e a derrota vem do servidor. Então a altura é fixa, acima do
- * inimigo médio (40px), que é o que faz ele ler como protagonista.
+ * inimigo médio (~37px), que é o que faz ele ler como protagonista.
  *
  * Fica abaixo do tanque nos blocos altos, e isso é deliberado: o inimigo cresce
  * com o bloco (`mundo.ts`), e é essa diferença que faz a zona avançada parecer
  * mais perigosa sem nenhuma arte nova.
+ *
+ * Caiu de 48 para 42 em 2026-08-13, junto com a viewport maior. Os dois efeitos
+ * se somam: na tela o herói ficou ~30% menor. Não caiu mais do que isso porque
+ * abaixo de ~40 ele passa a ler como mais um bicho do mapa em vez de
+ * protagonista — e a margem para o inimigo médio é o que sustenta essa leitura.
  */
-const ALTURA_HEROI = 48
+const ALTURA_HEROI = 42
 
 export function desenharInimigo(
   ctx: CanvasRenderingContext2D,
@@ -448,27 +458,161 @@ export function desenharHeroi(
   ctx.restore()
 }
 
+/**
+ * Barra de vida do inimigo — só aparece depois do primeiro golpe.
+ *
+ * Barra em cima de todo mundo o tempo todo transforma a arena num painel de
+ * controle. Aparecer no dano é o contrato do gênero: some sozinha quando o
+ * inimigo é esquecido, e diz exatamente o que o jogador quer saber na hora em
+ * que ele quer saber — "falta muito?".
+ */
+export function desenharBarraDoInimigo(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  raio: number,
+  proporcao: number,
+  paleta: Paleta,
+): void {
+  const largura = Math.max(18, raio * 2)
+  const topo = y - raio - 12
+
+  ctx.fillStyle = paleta['--cor-contorno']
+  ctx.fillRect(x - largura / 2 - 1, topo - 1, largura + 2, 5)
+  ctx.fillStyle = paleta['--cor-bloqueado']
+  ctx.fillRect(x - largura / 2, topo, largura * Math.min(1, Math.max(0, proporcao)), 3)
+}
+
+/**
+ * O golpe de corpo — o arco que espada, martelo, adaga e punho desenham.
+ *
+ * É só desenho: o dano já foi aplicado no mesmo quadro em que o golpe nasceu
+ * (`mundo.ts`). Separar as duas coisas evita a armadilha clássica de o dano
+ * depender de a animação ter rodado — o que quebraria em aba de fundo.
+ */
+export function desenharGolpe(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  angulo: number,
+  arco: number,
+  alcance: number,
+  progresso: number,
+  paleta: Paleta,
+): void {
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.rotate(angulo)
+  ctx.globalAlpha = 0.15 + progresso * 0.55
+
+  ctx.beginPath()
+  ctx.moveTo(0, 0)
+  ctx.arc(0, 0, alcance, -arco / 2, arco / 2)
+  ctx.closePath()
+  ctx.fillStyle = paleta['--cor-texto']
+  ctx.fill()
+
+  // O fio do golpe: sem ele o arco lê como sombra, e não como corte.
+  ctx.beginPath()
+  ctx.arc(0, 0, alcance * 0.92, -arco / 2, arco / 2)
+  ctx.strokeStyle = paleta['--cor-recompensa']
+  ctx.lineWidth = 3
+  ctx.stroke()
+
+  ctx.restore()
+}
+
+/**
+ * Projétil — flecha do arco, orbe do cajado e da varinha.
+ *
+ * Duas formas distintas de propósito: o pedido era "o arco deve soltar flechas",
+ * e flecha só é flecha se parecer flecha. O orbe fica redondo e com rastro, que
+ * é a leitura de magia no gênero.
+ */
 export function desenharProjetil(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
+  dx: number,
+  dy: number,
+  tipo: 'flecha' | 'magia',
   paleta: Paleta,
 ): void {
-  ctx.beginPath()
-  ctx.arc(x, y, 4, 0, Math.PI * 2)
-  ctx.fillStyle = paleta['--cor-recompensa']
-  ctx.fill()
+  const angulo = Math.atan2(dy, dx)
+
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.rotate(angulo)
+
+  if (tipo === 'flecha') {
+    ctx.strokeStyle = paleta['--cor-texto']
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(-9, 0)
+    ctx.lineTo(6, 0)
+    ctx.stroke()
+
+    // Ponta.
+    ctx.beginPath()
+    ctx.moveTo(10, 0)
+    ctx.lineTo(4, -3.5)
+    ctx.lineTo(4, 3.5)
+    ctx.closePath()
+    ctx.fillStyle = paleta['--cor-recompensa']
+    ctx.fill()
+
+    // Empena.
+    ctx.beginPath()
+    ctx.moveTo(-9, 0)
+    ctx.lineTo(-13, -3)
+    ctx.lineTo(-11, 0)
+    ctx.lineTo(-13, 3)
+    ctx.closePath()
+    ctx.fillStyle = paleta['--cor-primaria']
+    ctx.fill()
+  } else {
+    ctx.globalAlpha = 0.35
+    ctx.beginPath()
+    ctx.ellipse(-7, 0, 10, 3.5, 0, 0, Math.PI * 2)
+    ctx.fillStyle = paleta['--cor-secundaria']
+    ctx.fill()
+
+    ctx.globalAlpha = 1
+    ctx.beginPath()
+    ctx.arc(0, 0, 5, 0, Math.PI * 2)
+    ctx.fillStyle = paleta['--cor-secundaria']
+    ctx.fill()
+
+    ctx.beginPath()
+    ctx.arc(-1, -1, 2, 0, Math.PI * 2)
+    ctx.fillStyle = paleta['--cor-texto']
+    ctx.fill()
+  }
+
+  ctx.restore()
 }
 
 /**
  * Chão do bioma, em coordenadas de MUNDO.
  *
- * Desde `specs/mundo-aberto-e-modo-manual.md` o mapa é muito maior que a tela,
- * então o cenário não pode mais ser desenhado "na viewport": ele é ladrilhado
- * pelo mundo, e a câmera passa por cima. Se ficasse preso à tela, andar não
- * moveria o chão — e o mundo pareceria uma esteira.
+ * Desde `specs/mundo-aberto-e-modo-manual.md` o mapa é maior que a tela, então
+ * o cenário não pode ser desenhado "na viewport": ele é ladrilhado pelo mundo, e
+ * a câmera passa por cima. Se ficasse preso à tela, andar não moveria o chão — e
+ * o mundo pareceria uma esteira.
  *
- * Só os ladrilhos que tocam a área visível são desenhados.
+ * O CHÃO É PROCEDURAL, e não o PNG do bioma. Não é economia: `sc-*.png` tem
+ * 608×352 e é um CENÁRIO DE FUNDO, com horizonte e profundidade — desenhado
+ * para a arena de tela fixa que existia antes do mundo aberto. Ladrilhar isso
+ * num jogo visto de cima produz faixa de horizonte repetida e árvore cortada em
+ * grade: vira papel de parede, não lugar.
+ *
+ * Os PNGs de prop continuam entrando: objeto visto de cima funciona.
+ *
+ * A AMBIENTAÇÃO (2026-08-13, `specs/mapas-instanciados-combate-e-hud.md`, 3): a
+ * malha de bolinhas chapada virou arena — malha hexagonal fina, migalhas
+ * luminosas, borda do mapa desenhada e vinheta. É a leitura do Slither.io, que
+ * é o que o dono pediu, e continua 100% procedural: nenhum arquivo novo, nenhum
+ * byte a mais no orçamento de portal.
  */
 const LADO_LADRILHO = 320
 
@@ -481,38 +625,17 @@ export function desenharCenario(
   paleta: Paleta,
   bioma: number,
   intensidade: number,
+  mapa: { largura: number; altura: number },
+  tempo = 0,
 ): void {
-  ctx.fillStyle = paleta[`--bioma-${bioma}-fundo`] ?? paleta['--cor-fundo']
+  const fundo = paleta[`--bioma-${bioma}-fundo`] ?? paleta['--cor-fundo']
+  const detalhe = paleta[`--bioma-${bioma}-detalhe`] ?? paleta['--cor-secundaria']
+
+  ctx.fillStyle = fundo
   ctx.fillRect(origemX, origemY, largura, altura)
 
-  // O CHÃO É PROCEDURAL, e não o PNG do bioma. Não é economia: `sc-*.png` tem
-  // 608×352 e é um CENÁRIO DE FUNDO — tem horizonte, profundidade e um chão na
-  // parte de baixo. Foi desenhado para a arena de tela fixa que existia antes
-  // de `specs/mundo-aberto-e-modo-manual.md`.
-  //
-  // Ladrilhar um cenário de fundo num mundo top-down produz faixa de horizonte
-  // repetida e árvore cortada em grade — vira papel de parede, não lugar. O
-  // chão de um jogo visto de cima precisa ser TEXTURA, e textura é o que esta
-  // função desenha, na paleta do bioma.
-  //
-  // Os PNGs de prop continuam entrando: eles são objetos, e objeto visto de
-  // cima funciona. Quem some é só o fundo.
-  ctx.fillStyle = paleta[`--bioma-${bioma}-detalhe`] ?? paleta['--cor-secundaria']
-  ctx.globalAlpha = 0.16 + intensidade * 0.16
-  const passo = 34 - Math.round(intensidade * 8)
-  const raio = 4 + intensidade * 2.5
-
-  const inicioY = Math.floor(origemY / passo) * passo
-  const inicioX = Math.floor(origemX / passo) * passo
-  for (let y = inicioY; y < origemY + altura + passo; y += passo) {
-    const desloca = (Math.floor(y / passo) % 2) * (passo / 2)
-    for (let x = inicioX + desloca; x < origemX + largura + passo; x += passo) {
-      ctx.beginPath()
-      ctx.arc(x, y, raio, 0, Math.PI * 2)
-      ctx.fill()
-    }
-  }
-  ctx.globalAlpha = 1
+  desenharMalha(ctx, origemX, origemY, largura, altura, detalhe, intensidade)
+  desenharMigalhas(ctx, origemX, origemY, largura, altura, paleta, bioma, tempo)
 
   const primeiroX = Math.floor(origemX / LADO_LADRILHO)
   const ultimoX = Math.floor((origemX + largura) / LADO_LADRILHO)
@@ -524,6 +647,163 @@ export function desenharCenario(
       desenharProps(ctx, tx, ty, bioma, intensidade)
     }
   }
+
+  desenharBordaDoMapa(ctx, origemX, origemY, largura, altura, paleta, detalhe, mapa)
+}
+
+/**
+ * A malha hexagonal do fundo.
+ *
+ * Hexágono, e não quadrado, porque grade quadrada num jogo com movimento livre
+ * lê como papel milimetrado — o olho fixa nas linhas retas e o mundo parece
+ * parado. O hexágono dá referência de movimento sem competir com os atores.
+ *
+ * Desenhada em duas famílias de linhas curtas (o "favo" clássico) em vez de
+ * caminho fechado por célula: um caminho por hexágono seria centenas de
+ * `beginPath` por quadro.
+ */
+function desenharMalha(
+  ctx: CanvasRenderingContext2D,
+  origemX: number,
+  origemY: number,
+  largura: number,
+  altura: number,
+  cor: string,
+  intensidade: number,
+): void {
+  // 32, e não 26: com a viewport maior o mundo desenha 20% menor na tela, e a
+  // malha antiga virava textura fina — o oposto do que ela existe para fazer.
+  const lado = 32
+  const alturaLinha = lado * 1.5
+  const passoX = lado * Math.sqrt(3)
+
+  ctx.save()
+  ctx.strokeStyle = cor
+  ctx.globalAlpha = 0.07 + intensidade * 0.06
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+
+  const inicioY = Math.floor(origemY / alturaLinha) * alturaLinha - alturaLinha
+  const inicioX = Math.floor(origemX / passoX) * passoX - passoX
+
+  for (let y = inicioY; y < origemY + altura + alturaLinha; y += alturaLinha) {
+    const desloca = (Math.round(y / alturaLinha) % 2) * (passoX / 2)
+    for (let x = inicioX + desloca; x < origemX + largura + passoX; x += passoX) {
+      // Meio favo: o topo em "V" invertido mais a perna vertical. Repetido em
+      // linhas alternadas, fecha o hexágono com metade dos traços.
+      ctx.moveTo(x - passoX / 2, y - lado * 0.25)
+      ctx.lineTo(x, y - lado * 0.75)
+      ctx.lineTo(x + passoX / 2, y - lado * 0.25)
+      ctx.lineTo(x + passoX / 2, y + lado * 0.25)
+    }
+  }
+
+  ctx.stroke()
+  ctx.restore()
+}
+
+/**
+ * As migalhas — pontos luminosos espalhados pelo chão.
+ *
+ * São o que dá ESCALA ao movimento: sem um detalhe pequeno e frequente, andar
+ * num fundo texturizado não parece andar. Posição derivada da célula, nunca
+ * sorteada, então a mesma parte do mapa tem sempre as mesmas migalhas.
+ *
+ * O pulso é lento de propósito. Piscar rápido no fundo de um jogo que se joga
+ * por horas é cansaço visual, não vida.
+ */
+function desenharMigalhas(
+  ctx: CanvasRenderingContext2D,
+  origemX: number,
+  origemY: number,
+  largura: number,
+  altura: number,
+  paleta: Paleta,
+  bioma: number,
+  tempo: number,
+): void {
+  // Mesmo motivo da malha: o passo acompanha a viewport para a migalha
+  // continuar sendo referência de movimento, e não poeira.
+  const passo = 105
+  const cores = [
+    paleta[`--bioma-${bioma}-assinatura`] ?? paleta['--cor-secundaria'],
+    paleta['--cor-recompensa'],
+    paleta['--cor-texto'],
+  ]
+
+  const inicioX = Math.floor(origemX / passo) * passo
+  const inicioY = Math.floor(origemY / passo) * passo
+
+  ctx.save()
+  for (let y = inicioY; y < origemY + altura + passo; y += passo) {
+    for (let x = inicioX; x < origemX + largura + passo; x += passo) {
+      const celula = ruido(x / passo, y / passo)
+      // Nem toda célula tem migalha: densidade uniforme vira grade, e grade
+      // denuncia que o mundo é gerado.
+      if (celula > 0.62) continue
+
+      const cx = x + ruido(x / passo + 11, y / passo) * passo
+      const cy = y + ruido(x / passo, y / passo + 7) * passo
+      const cor = cores[Math.floor(celula * cores.length * 1.6) % cores.length]!
+      const pulso = 0.55 + 0.45 * Math.sin(tempo * 1.4 + celula * 10)
+
+      ctx.globalAlpha = 0.18 + celula * 0.25
+      ctx.fillStyle = cor
+      ctx.beginPath()
+      ctx.arc(cx, cy, 2.5 + celula * 4.4 * pulso, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+  ctx.restore()
+}
+
+/**
+ * A borda do mapa.
+ *
+ * A arena precisa TER fim visível. Sem isto, chegar na borda é o herói parar de
+ * andar sem motivo aparente — que o jogador lê como travamento, não como
+ * limite. É o mesmo recurso do anel do Slither.io, e resolve em uma linha o que
+ * uma mensagem de erro resolveria mal.
+ *
+ * Só o trecho de borda que toca a área visível é desenhado.
+ */
+function desenharBordaDoMapa(
+  ctx: CanvasRenderingContext2D,
+  origemX: number,
+  origemY: number,
+  largura: number,
+  altura: number,
+  paleta: Paleta,
+  cor: string,
+  mapa: { largura: number; altura: number },
+): void {
+  const visivel =
+    origemX < 60 ||
+    origemY < 60 ||
+    origemX + largura > mapa.largura - 60 ||
+    origemY + altura > mapa.altura - 60
+  if (!visivel) return
+
+  ctx.save()
+
+  // Faixa de aviso por dentro, e a linha dura por cima.
+  ctx.globalAlpha = 0.12
+  ctx.strokeStyle = cor
+  ctx.lineWidth = 44
+  ctx.strokeRect(22, 22, mapa.largura - 44, mapa.altura - 44)
+
+  ctx.globalAlpha = 0.9
+  ctx.strokeStyle = paleta['--cor-bloqueado']
+  ctx.lineWidth = 5
+  ctx.strokeRect(0, 0, mapa.largura, mapa.altura)
+
+  ctx.restore()
+}
+
+/** Ruído determinístico de 0 a 1. Mesma célula, mesmo valor, sempre. */
+function ruido(a: number, b: number): number {
+  const n = Math.sin(a * 127.1 + b * 311.7) * 43758.5453
+  return n - Math.floor(n)
 }
 
 /**

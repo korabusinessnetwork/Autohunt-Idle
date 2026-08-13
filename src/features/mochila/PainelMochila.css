@@ -4,19 +4,27 @@
   display: grid;
   place-items: center;
   padding: var(--espaco-3);
-  overflow-y: auto;
+  overflow: hidden;
   background: color-mix(in srgb, var(--cor-texto) 55%, transparent);
   z-index: 25;
 }
 
+/*
+ * Largo, alto e imóvel. Eram 30rem com rolagem; com equipamento e itens lado a
+ * lado a largura passou a ser o recurso escasso.
+ *
+ * `height` fixo, não `max-height`: as duas listas são paginadas pela altura que
+ * sobra (`ListaPaginada.tsx`), e um cartão que cresce com o conteúdo faria a
+ * conta de "quantos cabem" mudar a cada troca de página.
+ */
 .mochila__cartao {
   display: flex;
   flex-direction: column;
-  gap: var(--espaco-3);
-  width: min(30rem, 100%);
-  max-height: 90dvh;
+  gap: var(--espaco-2);
+  width: min(62rem, 100%);
+  height: min(46rem, calc(100dvh - var(--espaco-3) * 2));
   padding: var(--espaco-4);
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--cor-fundo);
   border: var(--borda);
   border-radius: var(--raio);
@@ -27,9 +35,79 @@
   font-size: 1.2rem;
 }
 
-.mochila__subtitulo {
+.mochila__poder {
   margin: 0;
   font-size: 1rem;
+  font-weight: 700;
+}
+
+/*
+ * As duas colunas: equipamento à esquerda, itens à direita.
+ *
+ * A primeira versão desta fusão usou ABAS, e o dono recusou pelo motivo certo:
+ * aba é a mesma fricção dos dois ícones separados, só que escondida dentro do
+ * painel — continuava sendo preciso clicar para descobrir onde as coisas estão.
+ *
+ * `min-height: 0` nos dois lugares não é enfeite: sem ele, um item de grid se
+ * recusa a encolher abaixo do conteúdo, o cartão estoura os 90dvh e a rolagem
+ * volta para o painel inteiro — exatamente o que esta mudança tira.
+ */
+.mochila__colunas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--espaco-3);
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* Nenhuma das duas rola. O que passa do que cabe vira página, no controle que
+   fica no pé de cada coluna. */
+.mochila__coluna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Título, chaves, botão e explicações têm tamanho próprio; quem cede espaço
+   para a lista é sempre a lista (ou o bloco de equipamento, que tem a dele
+   por dentro). */
+.mochila__coluna > * {
+  flex: 0 0 auto;
+}
+
+.mochila__coluna > .lista-paginada,
+.mochila__coluna > .equip {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/*
+ * O rodapé fica fora das abas: fechar e conferir atributos valem nas duas, e
+ * um botão que muda de lugar conforme a aba é um botão que o jogador procura.
+ */
+.mochila__rodape {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+}
+
+.mochila__rodape > * {
+  flex: 1;
+}
+
+.mochila__subtitulo {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  margin: 0;
+  font-size: 1rem;
+}
+
+.mochila__subtitulo--menor {
+  font-size: 0.9rem;
 }
 
 .mochila__chaves {
@@ -79,6 +157,24 @@
   grid-column: 1 / -1;
 }
 
+/*
+ * Equipar, atributos da peça e combinar — as três coisas que se faz com uma
+ * pilha. Ficam juntas numa fileira própria, e não espalhadas pela linha, para
+ * o olho separar "o que é isto" (em cima) de "o que dá para fazer" (embaixo).
+ */
+.mochila__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-2);
+}
+
+.mochila__emUso {
+  font-size: 0.85rem;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
 /* Cor por tier. A definição das 10 vive em `tokens.css` — aqui só se aplica. */
 .mochila__tier {
   padding: 0.1rem var(--espaco-2);
@@ -126,4 +222,140 @@
 .mochila__quantidade {
   font-variant-numeric: tabular-nums;
   opacity: 0.85;
+}
+
+/* =========================================================================
+ * ADAPTAÇÕES DE TELA
+ *
+ * Todas no FIM do arquivo, e isso é regra, não arrumação: media query não
+ * ganha especificidade nenhuma por ser media query. Uma `@media` escrita antes
+ * da regra larga da mesma classe simplesmente perde — foi assim que a primeira
+ * versão destas compactações não fez efeito nenhum.
+ *
+ * Nenhuma delas devolve rolagem: o painel encolhe por dentro, e a paginação se
+ * ajusta sozinha porque ela MEDE a altura em vez de contar linhas fixas.
+ * ========================================================================= */
+
+/* Notebook comum (~640–700px de viewport): é onde a coluna de equipamento
+   (slots + fortificação) deixa de caber no layout folgado. */
+@media (max-height: 52rem) {
+  .mochila__cartao {
+    gap: var(--espaco-1);
+    padding: var(--espaco-3);
+  }
+
+  .mochila__poder {
+    font-size: 0.9rem;
+  }
+}
+
+/* Tela ESTREITA (celular em pé): uma coluna só. Lado a lado em 320px seriam
+   duas tiras ilegíveis, e aí o empilhado é que respeita o pedido. As linhas vão
+   em fração, não em `auto`: com `auto` a seção de itens fica com o que quiser e
+   a de equipamento é espremida no que sobrar — e o que é espremido, numa tela
+   sem rolagem, some.
+
+   Só de largura, de propósito: o celular deitado é largo e baixo, e lá as duas
+   colunas continuam lado a lado — é a largura que salva a altura. */
+@media (max-width: 48rem) {
+  .mochila__colunas {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+}
+
+/* Pouco espaço em QUALQUER eixo: menos moldura, mesmo conteúdo. O que compete
+   por altura é o texto de apoio, não a informação. Mesma consulta de
+   `AbaEquipamento.css` e de `useTelaEstreita`, que recolhe a fortificação. */
+@media (max-width: 48rem), (max-height: 34rem) {
+  .mochila__cartao {
+    gap: var(--espaco-1);
+    padding: var(--espaco-2);
+  }
+
+  .mochila__titulo {
+    font-size: 1rem;
+  }
+
+  .mochila__poder {
+    font-size: 0.9rem;
+  }
+
+  .mochila__subtitulo {
+    font-size: 0.85rem;
+  }
+
+  .mochila__subtitulo--menor {
+    font-size: 0.8rem;
+  }
+
+  .mochila__chaves {
+    font-size: 0.95rem;
+  }
+
+  .mochila__explicacao,
+  .mochila__aviso,
+  .mochila__faltam {
+    font-size: 0.75rem;
+    line-height: 1.35;
+  }
+
+  /* A linha de item deixa de reservar uma fileira só para o botão: essa fileira
+     extra custava quase metade da altura da lista. */
+  .mochila__linha {
+    grid-template-columns: auto auto 1fr auto auto;
+    padding: var(--espaco-1) var(--espaco-2);
+  }
+
+  .mochila__linha > :last-child {
+    grid-column: auto;
+  }
+
+  /* As três ações entram na mesma fileira do resto: sem quebra de linha, sem
+     texto de apoio. O ícone de atributos ganha o espaço que o rótulo escrito
+     de "Combinar" abre mão. */
+  .mochila__acoes {
+    flex-wrap: nowrap;
+    gap: var(--espaco-1);
+  }
+
+  .mochila__acoes .botao {
+    padding: var(--espaco-1) var(--espaco-2);
+    font-size: 0.75rem;
+  }
+
+  .mochila__acoes .botao--so-icone {
+    min-width: 1.9rem;
+    min-height: 1.9rem;
+  }
+
+  .mochila__emUso {
+    font-size: 0.72rem;
+  }
+
+  .mochila__icone,
+  .mochila__icone > * {
+    width: 28px;
+    height: 28px;
+  }
+
+  .mochila__rodape > * {
+    padding: var(--espaco-2);
+  }
+}
+
+/*
+ * Celular deitado (~420px de altura) é o caso mais apertado do jogo: sobra
+ * largura e não sobra altura nenhuma. Aqui os títulos das duas seções saem.
+ *
+ * Não é perda de orientação: cada seção continua nomeada no `aria-label` para
+ * quem usa leitor de tela, e na tela a diferença é óbvia sem rótulo — de um
+ * lado a barra de slots com os ícones do que está vestido, do outro as chaves e
+ * o botão da dungeon. O que estes 90px compram é a LISTA aparecer, e um título
+ * sobre uma lista invisível não orienta ninguém.
+ */
+@media (max-height: 34rem) {
+  .mochila__subtitulo {
+    display: none;
+  }
 }

@@ -21,6 +21,7 @@ export const pt = {
   'hud.moeda': 'Ouro',
   'hud.diamante': 'Diamantes',
   'hud.vitalidade': 'Vitalidade',
+  'hud.retrato': 'Seu personagem',
   'hud.xpParaProximo': '{atual} / {alvo} XP',
   'hud.modo': 'Modo',
   'hud.auto.ligado': 'Automático',
@@ -33,6 +34,41 @@ export const pt = {
   "ocioso.querAuto": 'Quero que jogue sozinho',
   'hud.aoVivo': 'Farmando ao vivo',
   'hud.ativarOffline': 'Render com o jogo fechado',
+  // Rótulo da barra de ícones. Só o leitor de tela lê — na tela, o que aparece
+  // são os ícones com os rótulos deles.
+  'hud.acoes': 'Painéis do jogo',
+
+  // --- Paginação ----------------------------------------------------------
+  // Nenhum menu rola: o que não cabe vira página. Estes três rótulos são o
+  // controle inteiro, e só aparecem quando existe mais de uma página.
+  'paginacao.contador': '{pagina} de {paginas}',
+  'paginacao.anterior': 'Página anterior',
+  'paginacao.proxima': 'Próxima página',
+
+  // --- Mapa ---------------------------------------------------------------
+  // Mapa é CENÁRIO: um mapa avançado não rende mais nada, e por isso nenhum
+  // texto daqui promete recompensa maior. O que ele vende é lugar novo.
+  'mapa.titulo': 'Mapa',
+  'mapa.explicacao':
+    'Oito lugares pra explorar, um por tema. O que muda é a paisagem e o bicho que mora lá — o que você ganha continua saindo do tempo que você joga.',
+  'mapa.faixaDeNivel': 'Nível {de} a {ate}',
+  'mapa.viajar': 'Ir pra lá',
+  'mapa.vocEstaAqui': 'Você está aqui',
+  'mapa.faltamNiveis': 'Faltam {niveis} níveis',
+  'mapa.alemDaUltimaLeva':
+    'Você já passou do nível {nivel} — os mapas novos ainda estão sendo desenhados. Até lá, o Céu de Confete é a sua casa.',
+
+  // --- Login --------------------------------------------------------------
+  'login.titulo': 'Entrar na sua conta',
+  'login.explicacao': 'Já tem conta aqui? Entra que seu personagem tá te esperando.',
+  'login.entrar': 'Entrar',
+  'login.entrando': 'Entrando…',
+  'login.minhaConta': 'Minha conta',
+  'login.naoTenhoConta': 'Ainda não tenho conta',
+  'login.avisoConvidado':
+    'Você tá jogando como convidado. Entrar em outra conta deixa esse progresso pra trás — se quiser guardar ele, cria uma conta antes.',
+  'login.erro.SENHA_OBRIGATORIA': 'Falta a senha.',
+  'login.erro.LOGIN_INVALIDO': 'E-mail ou senha não conferem. Tenta de novo.',
 
   // --- Tela de retorno ----------------------------------------------------
   'retorno.titulo': 'Enquanto você tava fora',
@@ -100,6 +136,12 @@ export const pt = {
   'cadastro.erro.SENHA_CURTA': 'A senha precisa de pelo menos 8 caracteres.',
   'cadastro.erro.EMAIL_EM_USO': 'Esse e-mail já tem conta. Seu progresso aqui continua intacto.',
   'cadastro.erro.CADASTRO_FALHOU': 'Não deu pra criar o acesso agora. Tenta de novo?',
+  'cadastro.confirme.titulo': 'Falta um clique no seu e-mail',
+  'cadastro.confirme.explicacao':
+    'Mandamos um link de confirmação pra {email}. Abre ele pra liberar o farm offline.',
+  'cadastro.confirme.calmo':
+    'Nada se perdeu: seu personagem e tudo que ele já ganhou continuam aqui, do jeito que estavam.',
+  'cadastro.confirme.ok': 'Voltar pro jogo',
 
   // --- Atributos ----------------------------------------------------------
   'atributos.titulo': 'Atributos',
@@ -191,7 +233,18 @@ export const pt = {
   'mochila.slot.acessorio': 'Acessório',
   'mochila.slot.skin': 'Skin',
   'mochila.equipamento': 'Equipamento',
+  'mochila.aba.itens': 'Itens',
+  'mochila.verAtributos': 'Ver atributos',
   'mochila.slot.vazio': 'Vazio',
+  'mochila.arrastarDica': 'Arraste uma peça até o slot dela para vestir — ou use o botão Equipar.',
+  'mochila.erroAoEquipar': 'Não deu pra vestir essa peça agora. Tenta de novo?',
+  'item.detalhe.ver': 'Ver atributos desta peça',
+  'item.detalhe.poder': 'Poder da peça: {poder}',
+  'item.detalhe.fortificacao': 'Fortificada +{nivel} — rende {ganho}% a mais que sem fortificação',
+  'item.detalhe.semFortificacao': 'Sem fortificação ainda — dá pra subir até +{teto}',
+  'item.detalhe.dano': 'Tipo de dano: {dano}',
+  'item.detalhe.afinidade': 'Afinidade: {dano}',
+  'item.detalhe.conjunto': 'Conjunto: {conjunto}',
   'mochila.semStat': 'Skin não muda nenhum número — é só aparência.',
 
   // --- Tipo de dano, afinidade e conjunto ---------------------------------

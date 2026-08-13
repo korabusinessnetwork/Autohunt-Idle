@@ -1,0 +1,45 @@
+/*
+ * Arrastar item até o slot. Ver `ArrasteDeItem.tsx` para o porquê de evento de
+ * ponteiro em vez da API de arrastar do HTML (resumo: a do HTML não existe no
+ * celular).
+ */
+
+/* Linha que pode ser arrastada.
+   `touch-action: none` é o que faz o gesto existir no telefone: sem isso o
+   navegador entende o dedo como rolagem e engole o arraste antes de qualquer
+   evento chegar aqui. Nenhum menu rola, então não se perde nada. */
+.arrastavel {
+  touch-action: none;
+  cursor: grab;
+  /* Arrastar sobre texto seleciona o texto e o arraste vira uma mancha azul. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.arrastavel:active {
+  cursor: grabbing;
+}
+
+/* O fantasma que acompanha o dedo. Fica FORA de qualquer cartão de propósito:
+   os painéis são `overflow: hidden` (nenhum menu rola), então um fantasma
+   dentro deles seria cortado na borda — justamente no caminho até o slot. */
+.arraste-fantasma {
+  /* Padrão declarado aqui, e não só no `style` que o React escreve: `translate`
+     com variável indefinida é declaração inválida — o fantasma apareceria
+     grudado no canto da tela em vez de no dedo. */
+  --arraste-x: 0px;
+  --arraste-y: 0px;
+
+  position: fixed;
+  top: 0;
+  left: 0;
+  translate: var(--arraste-x) var(--arraste-y);
+  /* Centraliza no ponteiro e levanta um pouco: o dedo tapa o que está embaixo
+     dele, e uma peça escondida pelo próprio dedo não ajuda a mirar. */
+  margin: -3.25rem 0 0 -1.5rem;
+  /* Nunca captura o ponteiro: é ele que precisa enxergar o slot lá embaixo. */
+  pointer-events: none;
+  z-index: 60;
+  rotate: -6deg;
+  filter: drop-shadow(0 4px 8px var(--cor-contorno));
+}

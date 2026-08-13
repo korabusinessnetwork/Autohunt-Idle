@@ -26,6 +26,7 @@ export const en: Record<ChaveI18n, string> = {
   'hud.moeda': 'Gold',
   'hud.diamante': 'Gems',
   'hud.vitalidade': 'Vitality',
+  'hud.retrato': 'Your character',
   'hud.xpParaProximo': '{atual} / {alvo} XP',
   'hud.modo': 'Mode',
   'hud.auto.ligado': 'Autopilot',
@@ -38,6 +39,35 @@ export const en: Record<ChaveI18n, string> = {
   "ocioso.querAuto": 'Let it play for me',
   'hud.aoVivo': 'Farming live',
   'hud.ativarOffline': 'Earn with the game closed',
+  'hud.acoes': 'Game panels',
+
+  // --- Pagination -----------------------------------------------------------
+  'paginacao.contador': '{pagina} of {paginas}',
+  'paginacao.anterior': 'Previous page',
+  'paginacao.proxima': 'Next page',
+
+  // --- Map ------------------------------------------------------------------
+  'mapa.titulo': 'Map',
+  'mapa.explicacao':
+    'Eight places to explore, one per theme. What changes is the scenery and who lives there — what you earn still comes from the time you put in.',
+  'mapa.faixaDeNivel': 'Level {de} to {ate}',
+  'mapa.viajar': 'Travel here',
+  'mapa.vocEstaAqui': "You're here",
+  'mapa.faltamNiveis': '{niveis} levels to go',
+  'mapa.alemDaUltimaLeva':
+    "You're past level {nivel} — the next maps are still being drawn. Until then, the Confetti Sky is home.",
+
+  // --- Login ----------------------------------------------------------------
+  'login.titulo': 'Sign in',
+  'login.explicacao': 'Already have an account? Sign in — your character is waiting.',
+  'login.entrar': 'Sign in',
+  'login.entrando': 'Signing in…',
+  'login.minhaConta': 'My account',
+  'login.naoTenhoConta': "I don't have an account yet",
+  'login.avisoConvidado':
+    "You're playing as a guest. Signing into another account leaves this progress behind — create an account first if you want to keep it.",
+  'login.erro.SENHA_OBRIGATORIA': 'Password is missing.',
+  'login.erro.LOGIN_INVALIDO': "That email and password don't match. Give it another go.",
 
   // --- Welcome back screen --------------------------------------------------
   'retorno.titulo': 'While you were out',
@@ -102,6 +132,12 @@ export const en: Record<ChaveI18n, string> = {
   'cadastro.erro.SENHA_CURTA': 'Your password needs at least 8 characters.',
   'cadastro.erro.EMAIL_EM_USO': 'That email already has an account. Your progress here is untouched.',
   'cadastro.erro.CADASTRO_FALHOU': "Couldn't create the login right now. Try again?",
+  'cadastro.confirme.titulo': 'One click left, in your inbox',
+  'cadastro.confirme.explicacao':
+    'We sent a confirmation link to {email}. Open it to unlock offline farming.',
+  'cadastro.confirme.calmo':
+    'Nothing was lost: your character and everything it earned are still here, exactly as they were.',
+  'cadastro.confirme.ok': 'Back to the game',
 
   // --- Attributes -----------------------------------------------------------
   'atributos.titulo': 'Attributes',
@@ -198,7 +234,18 @@ export const en: Record<ChaveI18n, string> = {
   'mochila.slot.acessorio': 'Accessory',
   'mochila.slot.skin': 'Skin',
   'mochila.equipamento': 'Gear',
+  'mochila.aba.itens': 'Items',
+  'mochila.verAtributos': 'See attributes',
   'mochila.slot.vazio': 'Empty',
+  'mochila.arrastarDica': 'Drag a piece onto its slot to wear it — or use the Equip button.',
+  'mochila.erroAoEquipar': "Couldn't put that on right now. Try again?",
+  'item.detalhe.ver': "See this piece's stats",
+  'item.detalhe.poder': 'Piece power: {poder}',
+  'item.detalhe.fortificacao': 'Fortified +{nivel} — {ganho}% more than unfortified',
+  'item.detalhe.semFortificacao': 'Not fortified yet — can go up to +{teto}',
+  'item.detalhe.dano': 'Damage type: {dano}',
+  'item.detalhe.afinidade': 'Affinity: {dano}',
+  'item.detalhe.conjunto': 'Set: {conjunto}',
   'mochila.semStat': 'A skin changes no numbers — it is looks only.',
 
   // --- Damage type, affinity and sets ---------------------------------------

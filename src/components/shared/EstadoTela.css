@@ -9,6 +9,18 @@
   text-align: center;
 }
 
+/*
+ * Dentro de um painel, o estado não pode reivindicar 60vh.
+ *
+ * O `min-height` acima é para quando isto É a tela (carregando o jogo, erro de
+ * conexão). Num diálogo, o cartão tem altura fixa e nenhum menu rola — um
+ * estado vazio de 60vh estouraria o cartão e sumiria com os botões de baixo.
+ */
+[role='dialog'] .estado-tela {
+  min-height: 0;
+  padding: var(--espaco-3) 0;
+}
+
 .estado-tela__titulo {
   margin: 0;
   font-size: 1.5rem;
