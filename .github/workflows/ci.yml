@@ -30,9 +30,12 @@ jobs:
           # a árvore atual: segredo vazado e "removido" depois continua lá.
           fetch-depth: 0
 
+      # Node 22: o Vite 8 exige `^20.19 || >=22.12`, e a linha 20 já saiu do
+      # suporte. Fixar a 22 mantém o CI na mesma versão da máquina de
+      # desenvolvimento, em vez de depender de qual 20.x o runner resolve.
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
 
       - run: npm ci
@@ -61,7 +64,12 @@ jobs:
       - uses: actions/checkout@v4
 
       # O runner do GitHub já traz binários do Postgres instalados; o script
-      # sobe uma instância descartável, aplica as 12 migrations em ordem e roda
-      # o teste de fumaça.
+      # sobe uma instância descartável, aplica as migrations em ordem e roda o
+      # teste de fumaça.
+      #
+      # Sem PGBIN fixo de propósito: o script escolhe a maior versão instalada.
+      # Apontar para `/usr/lib/postgresql/16` deixaria o job quebrado no dia em
+      # que a imagem do runner trocar de versão — e a quebra apareceria como
+      # "migrations falharam", que é a mensagem errada.
       - name: pg-local
-        run: PGBIN=/usr/lib/postgresql/16/bin ./scripts/pg-local.sh
+        run: ./scripts/pg-local.sh

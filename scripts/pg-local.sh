@@ -14,6 +14,19 @@
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Onde estão os binários. A 16 é a versão de referência (a mesma que o Supabase
+# roda), mas exigir exatamente ela travaria o script em máquina que só tem a 15
+# ou a 17 — e no CI a versão pré-instalada muda sem aviso quando a imagem do
+# runner é atualizada. Sem PGBIN no ambiente, pega a maior instalada.
+if [[ -z "${PGBIN:-}" ]]; then
+  for v in $(ls /usr/lib/postgresql 2>/dev/null | sort -rn); do
+    if [[ -x "/usr/lib/postgresql/$v/bin/initdb" ]]; then
+      PGBIN="/usr/lib/postgresql/$v/bin"
+      break
+    fi
+  done
+fi
 PGBIN="${PGBIN:-/usr/lib/postgresql/16/bin}"
 PORTA="${PGPORT:-5433}"
 BASE="${PGTMP:-/tmp/autohunt-pg}"
@@ -77,12 +90,34 @@ for m in "$RAIZ"/supabase/migrations/*.sql; do
 done
 
 echo "→ rodando o teste de fumaça"
-$PGBIN/psql -h "$SOCK" -p "$PORTA" -U postgres -d autohunt -v ON_ERROR_STOP=1 \
-  -f "$RAIZ/scripts/teste-migrations.sql" 2>&1 | grep -E "^(==|psql.*(ERROR|FALHOU))|VERIFICAÇÕES" || true
-
-# `grep` não decide o resultado; o código de saída do psql decide.
-$PGBIN/psql -h "$SOCK" -p "$PORTA" -U postgres -d autohunt -v ON_ERROR_STOP=1 \
-  -f "$RAIZ/scripts/teste-migrations.sql" >/dev/null 2>&1
+# UMA execução só, e o código de saída dela é o veredito.
+#
+# Rodava duas vezes: a primeira para mostrar o progresso (com o `grep` do
+# resultado descartado por um `|| true`) e a segunda, calada, para decidir o
+# resultado. Só que `teste-migrations.sql` NÃO é idempotente — ele insere os
+# jogadores de teste com UUID fixo em `auth.users` — então a segunda execução
+# sempre morria em chave duplicada e o script nunca saía com 0, mesmo com todas
+# as verificações passando. Era o CI vermelho desde que este script nasceu.
+#
+# Guardar a saída em arquivo e filtrá-la depois dá o mesmo progresso na tela sem
+# pipeline nenhum no caminho do código de saída.
+FUMACA="$BASE/fumaca.txt"
+if $PGBIN/psql -h "$SOCK" -p "$PORTA" -U postgres -d autohunt -v ON_ERROR_STOP=1 \
+     -f "$RAIZ/scripts/teste-migrations.sql" >"$FUMACA" 2>&1; then
+  grep -E "^(==)|VERIFICAÇÕES" "$FUMACA" || true
+else
+  grep -E "^(==|psql.*(ERROR|FALHOU))" "$FUMACA" | head -30
+  echo "✗ o teste de fumaça falhou"
+  exit 1
+fi
 
 echo "✓ migrations aplicam e o teste de fumaça passa"
-$MANTER && echo "  banco mantido de pé: $PGBIN/psql -h $SOCK -p $PORTA -U postgres -d autohunt"
+
+# `if`, e não `$MANTER && echo ...`: sem `--manter` a forma curta devolve 1, e
+# como esta é a ÚLTIMA linha do arquivo, o 1 virava o código de saída do script
+# inteiro. Sucesso que sai 1 é falha para quem chama — o CI incluído.
+if $MANTER; then
+  echo "  banco mantido de pé: $PGBIN/psql -h $SOCK -p $PORTA -U postgres -d autohunt"
+fi
+
+exit 0

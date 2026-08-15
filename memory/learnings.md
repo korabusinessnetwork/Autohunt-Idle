@@ -50,6 +50,8 @@
 |---|---|---|
 | 2024-01-20 | Supabase realtime lento com >500 subscriptions ativas | Implementar connection pooling (ADR-XX), pesquisar alternativa se escalar |
 | (exemplo preenchido) | Validação server-side é obrigatória mesmo com client-side | Criar padrão de schema Zod em toda API (promover para patterns.md) |
+| 2026-08-15 | `scripts/pg-local.sh` **nunca** saiu com código 0: rodava `teste-migrations.sql` duas vezes contra o mesmo banco (as fixtures inserem UUID fixo em `auth.users`, então a segunda morria em chave duplicada) e terminava em `$MANTER && echo`, que devolve 1 quando `MANTER=false`. O job de Postgres do CI estava vermelho desde que nasceu | Script de verificação precisa ter o **caminho de falha testado** — rodar uma vez de propósito quebrado e conferir que o código de saída muda. Verde/vermelho que nunca foi visto verde não é sinal |
+| 2026-08-15 | Com o CI cronicamente vermelho, ninguém repara quando ele fica vermelho por um motivo NOVO: a regra de atributo mudou em 2026-08-13 e o teste de fumaça do banco continuou afirmando a regra velha por dois dias, sem chamar atenção | CI vermelho não é ruído a tolerar — enquanto houver um vermelho conhecido, todo vermelho novo entra de graça. Zerar antes de seguir |
 
 ## Aprendizados de Produto
 
