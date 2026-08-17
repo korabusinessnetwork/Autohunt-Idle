@@ -135,11 +135,20 @@ begin
                         'XP coletado entra no total');
   perform public.checar((v_snap #>> '{jogador,nivel}')::bigint > 1, 'jogador subiu de nível');
 
-  -- Auto-alocação: quem nunca abriu a tela de atributos tem build coerente.
-  perform public.checar((v_snap #>> '{atributos,forca}')::integer > 0,
-                        'pontos foram auto-alocados');
-  perform public.checar((v_snap #>> '{atributos,pontosLivres}')::integer < 4,
-                        'quase nenhum ponto sobra sem gastar');
+  -- Ninguém distribui por você (`20260829_atributos_manuais.sql`). Subir de
+  -- nível não mexe em atributo nenhum: o ponto fica guardado até o jogador
+  -- decidir onde gastar, e é o selo no ícone que avisa que ele existe.
+  perform public.checar((v_snap #>> '{atributos,forca}')::integer = 0,
+                        'level up não aloca atributo sozinho');
+  perform public.checar((v_snap #>> '{atributos,inteligencia}')::integer = 0
+                    and (v_snap #>> '{atributos,vitalidade}')::integer = 0
+                    and (v_snap #>> '{atributos,sorte}')::integer = 0,
+                        'nenhum dos quatro sobe sozinho');
+  -- Um ponto por level up, e todos eles chegam livres.
+  perform public.checar(
+    (v_snap #>> '{atributos,pontosLivres}')::integer
+      = (v_snap #>> '{jogador,nivel}')::integer - 1,
+    'todo ponto ganho chega livre, 1 por nível');
 end $$;
 
 -- ---------------------------------------------------------------------------
