@@ -36,6 +36,32 @@ function distribuir(saldo: number): Atributos {
   }
 }
 
+describe('a lista de atributos', () => {
+  it('a alocação vazia cobre a lista inteira — nem mais, nem menos', () => {
+    // O `tsc` já reprova quem acrescenta um atributo em `ATRIBUTOS` e esquece o
+    // literal de `atributosZerados`. Este teste é a rede para quem roda só o
+    // vitest, que NÃO faz typecheck: o atributo esquecido viraria `undefined`,
+    // e `custoAcumulado(undefined)` devolve NaN em silêncio — o guard
+    // `nivel <= 0` não pega `undefined`.
+    expect(Object.keys(atributosZerados()).sort()).toEqual([...ATRIBUTOS].sort())
+  })
+
+  it('nenhum atributo fica fora da conta de custo', () => {
+    for (const chave of ATRIBUTOS) {
+      const alocacao = { ...atributosZerados(), [chave]: 3 } as Atributos
+      expect(custoTotalDaAlocacao(alocacao), chave).toBe(custoAcumulado(3))
+      expect(Number.isNaN(custoTotalDaAlocacao(alocacao)), chave).toBe(false)
+    }
+  })
+
+  it('Destreza existe, e Força vem antes dela', () => {
+    // A ordem não é cosmética: o andaime `distribuir` (e a tela) percorrem esta
+    // lista, e o primeiro empatado é quem recebe o ponto.
+    expect(ATRIBUTOS).toContain('destreza')
+    expect(ATRIBUTOS.indexOf('forca')).toBeLessThan(ATRIBUTOS.indexOf('destreza'))
+  })
+})
+
 describe('custo por nível de atributo', () => {
   it('segue a fórmula que o critério 12 desempata', () => {
     // A prosa da spec dizia "níveis 10-19 custam 2"; a fórmula dizia outra
@@ -83,8 +109,8 @@ describe('respec', () => {
     // Prova central do critério 12: subir de 10 para 11 custa 2, então descer
     // de 11 para 10 precisa liberar os mesmos 2 — nem 1, nem 3.
     const nivel = 200
-    const antes: Atributos = { forca: 10, inteligencia: 0, vitalidade: 0, sorte: 0 }
-    const depois: Atributos = { forca: 11, inteligencia: 0, vitalidade: 0, sorte: 0 }
+    const antes: Atributos = { ...atributosZerados(), forca: 10 }
+    const depois: Atributos = { ...atributosZerados(), forca: 11 }
 
     expect(pontosDisponiveis(antes, nivel) - pontosDisponiveis(depois, nivel)).toBe(2)
     expect(custoTotalDaAlocacao(depois) - custoTotalDaAlocacao(antes)).toBe(2)
@@ -108,18 +134,32 @@ describe('validação de alocação', () => {
 
   it('rejeita alocação que o jogador não pode pagar', () => {
     // A outra prova central: o servidor não aceita uma distribuição inventada.
-    expect(validarAlocacao({ forca: 999, inteligencia: 0, vitalidade: 0, sorte: 0 }, 5)).toEqual({
+    expect(validarAlocacao({ ...atributosZerados(), forca: 999 }, 5)).toEqual({
       valida: false,
       erro: 'PONTOS_INSUFICIENTES',
     })
   })
 
   it('rejeita valor negativo ou fracionário', () => {
-    expect(validarAlocacao({ forca: -1, inteligencia: 0, vitalidade: 0, sorte: 0 }, 100)).toEqual({
+    expect(validarAlocacao({ ...atributosZerados(), forca: -1 }, 100)).toEqual({
       valida: false,
       erro: 'ATRIBUTO_INVALIDO',
     })
-    expect(validarAlocacao({ forca: 1.5, inteligencia: 0, vitalidade: 0, sorte: 0 }, 100)).toEqual({
+    expect(validarAlocacao({ ...atributosZerados(), forca: 1.5 }, 100)).toEqual({
+      valida: false,
+      erro: 'ATRIBUTO_INVALIDO',
+    })
+  })
+
+  it('valida o atributo NOVO como valida qualquer outro', () => {
+    // Destreza chegou como quinto atributo em 2026-08-14. Um atributo que a
+    // validação não enxerga é um atributo que o jogador consegue inflar de
+    // graça — e o custo é conferido pelo total acumulado, não campo a campo.
+    expect(validarAlocacao({ ...atributosZerados(), destreza: 999 }, 5)).toEqual({
+      valida: false,
+      erro: 'PONTOS_INSUFICIENTES',
+    })
+    expect(validarAlocacao({ ...atributosZerados(), destreza: -1 }, 100)).toEqual({
       valida: false,
       erro: 'ATRIBUTO_INVALIDO',
     })

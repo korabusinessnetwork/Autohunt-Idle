@@ -17,12 +17,45 @@
 
 import type { TipoDano } from '../lib/tipos'
 
-/** As 4 famílias físicas. A ordem é a dos arquivos `w-*` do pacote de arte. */
-export const ARMAS_FISICAS = ['espada', 'adaga', 'arco', 'martelo'] as const
-/** As 2 famílias mágicas. */
+// AS TRÊS LISTAS ABAIXO SÃO CARGA, NÃO ESTÉTICA.
+//
+// Até 2026-08-14 havia duas: 4 famílias físicas e 2 mágicas. Com o canal de
+// destreza, arco e adaga saíram do físico — e a família de TODA arma já
+// existente precisava continuar exatamente a mesma, porque ela sai de
+// `embaralhar(id) % familias.length` e o jogador já viu o ícone dela.
+//
+// A conta que preserva a identidade, e que a ordem de `ARMAS_DESTREZA` encarna:
+// a lista física tinha 4 elementos, a nova tem 2, e `h % 2 = (h % 4) % 2`.
+//
+//   h%4 = 0  espada   → h%2 = 0 → ARMAS_FISICAS[0]  = espada    (fica)
+//   h%4 = 3  martelo  → h%2 = 1 → ARMAS_FISICAS[1]  = martelo   (fica)
+//   h%4 = 1  adaga    → h%2 = 1 → ARMAS_DESTREZA[1] = adaga     (muda de canal)
+//   h%4 = 2  arco     → h%2 = 0 → ARMAS_DESTREZA[0] = arco      (muda de canal)
+//
+// Por isso `ARMAS_DESTREZA` é `['arco', 'adaga']` e não a ordem intuitiva:
+// escrever `['adaga', 'arco']` troca a arma de metade dos jogadores EM SILÊNCIO
+// — nenhum tipo muda, nenhum teste genérico reprova. O alarme é o teste de
+// preservação de identidade em `armas.test.ts`, que replica a tabela antiga
+// como oráculo.
+
+/** As 2 famílias físicas — canal de Força. */
+export const ARMAS_FISICAS = ['espada', 'martelo'] as const
+/** As 2 famílias de destreza — canal de Destreza. Ordem = carga (ver acima). */
+export const ARMAS_DESTREZA = ['arco', 'adaga'] as const
+/** As 2 famílias mágicas — canal de Inteligência. */
 export const ARMAS_MAGICAS = ['cajado', 'varinha'] as const
 
-export type FamiliaArma = (typeof ARMAS_FISICAS)[number] | (typeof ARMAS_MAGICAS)[number]
+export type FamiliaArma =
+  | (typeof ARMAS_FISICAS)[number]
+  | (typeof ARMAS_DESTREZA)[number]
+  | (typeof ARMAS_MAGICAS)[number]
+
+/** As famílias possíveis de cada canal de dano. */
+const FAMILIAS_DO_CANAL: Record<TipoDano, readonly FamiliaArma[]> = {
+  fisico: ARMAS_FISICAS,
+  destreza: ARMAS_DESTREZA,
+  magico: ARMAS_MAGICAS,
+}
 
 /**
  * Hash estável do id do item.
@@ -30,6 +63,14 @@ export type FamiliaArma = (typeof ARMAS_FISICAS)[number] | (typeof ARMAS_MAGICAS
  * Precisa ser estável por dois motivos agora: o ícone não pode mudar quando a
  * lista reordena (motivo original), e a arma não pode virar outra no meio da
  * partida (motivo novo).
+ *
+ * DESDE 2026-08-14 ESTA FUNÇÃO TEM UMA GÊMEA EM SQL: `canal_historico_da_arma`
+ * (migration `20260830`), que decide quais armas já concedidas migram para o
+ * canal de destreza. A gêmea NÃO reimplementa o FNV-1a de 32 bits — só os dois
+ * bits baixos importam, e eles sobrevivem sozinhos ao XOR e à multiplicação
+ * (2166136261 mod 4 = 1, 16777619 mod 4 = 3). O contrato entre as duas é
+ * exatamente esse: `embaralhar(id) % 4`. Mudar a semente ou o primo daqui
+ * reclassifica arma de jogador — e `espelhoDeRegra.test.ts` reprova antes.
  */
 export function embaralhar(id: string): number {
   let h = 2166136261
@@ -42,7 +83,11 @@ export function embaralhar(id: string): number {
 
 /** A família de uma arma, a partir do id e do tipo de dano que o servidor deu. */
 export function familiaDaArma(id: string, tipoDano: TipoDano | null): FamiliaArma {
-  const familias = tipoDano === 'magico' ? ARMAS_MAGICAS : ARMAS_FISICAS
+  // Arma sem tipo de dano cai no físico — decisão escrita, não sobra de `else`:
+  // é o mesmo `coalesce(v_arma.tipo_dano, 'fisico')` do Postgres e o mesmo
+  // padrão de `calcularPoderDeAtaque`. Os três precisam concordar, senão o
+  // ícone mostra uma coisa e o poder conta outra.
+  const familias = FAMILIAS_DO_CANAL[tipoDano ?? 'fisico']
   return familias[embaralhar(id) % familias.length]!
 }
 

@@ -59,9 +59,16 @@ no sufixo 0–9, satura fora da faixa, e a cor da moldura vem de
 `--raridade-<nome>` em `tokens.css`.
 
 A **família** do desenho (espada × adaga × arco…) sai de um hash estável do id
-do item, e o **tipo de dano** escolhe o conjunto de famílias: mágico usa cajado e
-varinha; físico usa espada, adaga, arco e martelo. É o que faz o ícone denunciar
-o tipo de dano antes de qualquer tooltip.
+do item, e o **canal de dano** escolhe o conjunto de famílias: físico usa espada
+e martelo, destreza usa arco e adaga, mágico usa cajado e varinha. É o que faz o
+ícone denunciar o canal antes de qualquer tooltip.
+
+> Eram dois canais até 2026-08-14 (mágico com duas famílias, físico com quatro).
+> O **pacote de arte não mudou**: os 60 PNGs `w-*` já cobriam as seis famílias e
+> continuam os mesmos — só o agrupamento canal→família mudou. A ordem das listas
+> em `src/game/armas.ts` é **carga, não estética**: ela foi escolhida para que
+> toda arma já concedida continue com exatamente o mesmo desenho (a conta e a
+> medição estão em `docs/08_DECISOES/adr-005-canais-de-dano-e-destreza.md`).
 
 ## O que a arte NÃO cobre (dívidas registradas)
 
@@ -73,9 +80,23 @@ o tipo de dano antes de qualquer tooltip.
   raridade — só o ícone de slot. Dívida **D16** do backlog.
 - **As três pedras** não têm ícone nenhum; `arteDoItem` devolve `null` e a
   interface mostra o rótulo de texto que já mostrava.
-- **As skins vieram numa pose só**, então equipar uma skin desliga as três
-  poses do personagem base. Resolver é acrescentar `sk-*-attack.png` ao pacote —
-  o motor já pede a pose.
+- **As skins vieram numa pose só.** Até 2026-08-14 isso significava que equipar
+  uma skin **desligava as três poses** do personagem base — e o dono relatou
+  como bug: *"quando eu equipo a skin o boneco fica travado de animação"*. Era
+  literal. Pior: `sk-base.png` é **byte a byte idêntico** a `pose-idle.png`
+  (1928 bytes), e serve as raridades 1–2 — então a primeira skin que o jogador
+  equipava não mudava nada visualmente, só desligava as poses. As 8 skins são
+  160×184, como as 3 poses.
+  **A dívida mudou de forma, não foi fechada.** O movimento do herói passou a
+  ser **procedural** (`deslocamentoDoHeroi`, em `src/game/sprites.ts`): balanço
+  de caminhada, avanço no golpe e pulinho na comemoração, por transformação de
+  canvas sobre o mesmo sprite. Custo zero, funciona com e sem skin, e a função
+  **não recebe a raridade da skin** — é assim que "skin nunca tem stat"
+  continua sendo estrutural em vez de combinado.
+  O que segue em aberto é outra coisa: **a skin não tem variação de silhueta por
+  ação**. Isso é arte dedicada (16 PNGs novos), é trabalho pago, e por
+  `CLAUDE.md` fica adiado até haver receita. É upgrade, não pré-requisito — não
+  encomende arte por causa deste parágrafo sem falar com o dono.
 - **O wordmark** usa a espada como o "I" de IDLE. A pendência 4 da rodada 2
   (espada cobrindo o "T" de AUTOHUNT) foi corrigida; o "I" é leitura de design,
   não bug — mas some no ícone de 16px, onde só o `ic-*` é usado.
@@ -85,4 +106,5 @@ o tipo de dano antes de qualquer tooltip.
 - `src/game/atlas.ts` — o índice, com a regra de cada mapeamento
 - `src/game/atlas.test.ts` — a verificação contra o disco
 - `README.md` (nesta pasta) — a paleta
-- `docs/09_BACKLOG/README.md` — D3 (fechada), D16 (aberta)
+- `docs/09_BACKLOG/README.md` — D3 (fechada), D16 (aberta, mas **não é mais "só arte"**)
+- `src/game/sprites.ts` — `deslocamentoDoHeroi`, o movimento que substituiu as poses da skin

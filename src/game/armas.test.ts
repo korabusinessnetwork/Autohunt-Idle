@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  ARMAS_DESTREZA,
   ARMAS_FISICAS,
   ARMAS_MAGICAS,
   PERFIS_DE_ARMA,
@@ -11,8 +12,12 @@ import {
   type FamiliaArma,
 } from './armas'
 import { arteDoItem } from './atlas'
+import type { TipoDano } from '../lib/tipos'
 
 const IDS = Array.from({ length: 400 }, (_, i) => `item-${i}`)
+
+/** Os três canais. Escrito à mão porque o teste precisa reprovar se um sumir. */
+const CANAIS: readonly TipoDano[] = ['fisico', 'destreza', 'magico']
 
 describe('a tabela que o dono pediu', () => {
   it('espada, adaga e martelo são corpo — e não soltam bolinha nenhuma', () => {
@@ -89,24 +94,96 @@ describe('família da arma', () => {
     }
   })
 
-  it('dano mágico nunca vira arma física, e vice-versa', () => {
-    const fisicas = new Set<string>(ARMAS_FISICAS)
-    const magicas = new Set<string>(ARMAS_MAGICAS)
-    for (const id of IDS) {
-      expect(magicas.has(familiaDaArma(id, 'magico')), id).toBe(true)
-      expect(fisicas.has(familiaDaArma(id, 'fisico')), id).toBe(true)
-      // `null` (item sem tipo de dano vindo do servidor) cai no físico.
-      expect(fisicas.has(familiaDaArma(id, null)), id).toBe(true)
+  it('cada canal só produz arma do próprio canal', () => {
+    const doCanal: Record<TipoDano, Set<string>> = {
+      fisico: new Set<string>(ARMAS_FISICAS),
+      destreza: new Set<string>(ARMAS_DESTREZA),
+      magico: new Set<string>(ARMAS_MAGICAS),
     }
+
+    for (const id of IDS) {
+      for (const canal of CANAIS) {
+        expect(doCanal[canal].has(familiaDaArma(id, canal)), `${id}/${canal}`).toBe(true)
+      }
+      // `null` (item sem tipo de dano vindo do servidor) cai no físico.
+      expect(doCanal.fisico.has(familiaDaArma(id, null)), id).toBe(true)
+    }
+  })
+
+  it('as três listas são disjuntas — nenhuma família serve a dois canais', () => {
+    // Sem isto, `arco` poderia ficar nas listas de destreza E de física durante
+    // uma edição malfeita: o teste acima continuaria verde, e o jogador teria um
+    // arco escalando com Força. A soma dos três tamanhos contra o tamanho da
+    // união é o que prova a disjunção.
+    const todas = [...ARMAS_FISICAS, ...ARMAS_DESTREZA, ...ARMAS_MAGICAS]
+    expect(new Set(todas).size).toBe(todas.length)
   })
 
   it('as seis famílias aparecem', () => {
     const vistas = new Set<FamiliaArma>()
     for (const id of IDS) {
-      vistas.add(familiaDaArma(id, 'fisico'))
-      vistas.add(familiaDaArma(id, 'magico'))
+      for (const canal of CANAIS) vistas.add(familiaDaArma(id, canal))
     }
-    expect(vistas.size).toBe(ARMAS_FISICAS.length + ARMAS_MAGICAS.length)
+    // Os três somados. Antes eram só físicas + mágicas — e quando arco e adaga
+    // mudaram de canal, essa soma caiu de 6 para 4 e o teste continuou VERDE
+    // tendo parado de enxergar duas famílias.
+    expect(vistas.size).toBe(ARMAS_FISICAS.length + ARMAS_DESTREZA.length + ARMAS_MAGICAS.length)
+    expect(vistas.size).toBe(6)
+  })
+})
+
+describe('o canal de destreza não pode trocar a arma de ninguém', () => {
+  /**
+   * A tabela física de ANTES do canal de destreza, na ordem exata em que estava
+   * em `armas.ts`. É o oráculo: para todo item já concedido, `familiaDaArma`
+   * precisa devolver o que esta linha devolvia.
+   */
+  const FAMILIA_ANTES = ['espada', 'adaga', 'arco', 'martelo'] as const
+
+  /**
+   * O canal que a migration atribui a cada arma já existente: `h % 4` em (1, 2)
+   * — adaga e arco — vira `destreza`; o resto continua físico. Precisa ser a
+   * mesma condição do `update` do Postgres, e é isso que amarra os dois lados.
+   */
+  function canalDepois(id: string): TipoDano {
+    const h = embaralhar(id) % 4
+    return h === 1 || h === 2 ? 'destreza' : 'fisico'
+  }
+
+  it('a arma de todo item físico continua exatamente a mesma', () => {
+    // O teste central desta rodada. A família sai de `embaralhar(id) % tamanho`,
+    // e a lista física encolheu de 4 para 2 — então a ORDEM de `ARMAS_DESTREZA`
+    // é carga: `['adaga', 'arco']` em vez de `['arco', 'adaga']` trocaria a arma
+    // de metade dos jogadores sem nenhum outro teste reclamar.
+    const vistas = new Set<string>()
+
+    for (let i = 0; i < 600; i++) {
+      for (const id of [`item-${i}`, `7c9e6679-7425-40de-944b-e07fc1f90a${i % 10}${i % 7}`]) {
+        const antes = FAMILIA_ANTES[embaralhar(id) % 4]!
+        expect(familiaDaArma(id, canalDepois(id)), id).toBe(antes)
+        vistas.add(antes)
+      }
+    }
+
+    // Se a amostra não exercitasse as quatro, a prova valeria pouco.
+    expect(vistas).toEqual(new Set(FAMILIA_ANTES))
+  })
+
+  it('arma mágica não é tocada — a lista dela não mudou', () => {
+    // O `2` é literal de propósito: acrescentar uma terceira família mágica
+    // mudaria `% familias.length` e trocaria o cajado de quem já tem um. É uma
+    // decisão de produto, e é aqui que ela precisa aparecer.
+    expect(ARMAS_MAGICAS).toHaveLength(2)
+    for (const id of IDS) {
+      expect(familiaDaArma(id, 'magico'), id).toBe(ARMAS_MAGICAS[embaralhar(id) % 2])
+    }
+  })
+
+  it('adaga e arco saíram do canal físico, espada e martelo ficaram', () => {
+    // A outra metade da conta: `h % 2 = (h % 4) % 2`. Escrito como asserção para
+    // que reordenar `ARMAS_FISICAS` também precise passar por aqui.
+    expect([...ARMAS_FISICAS]).toEqual(['espada', 'martelo'])
+    expect([...ARMAS_DESTREZA]).toEqual(['arco', 'adaga'])
   })
 })
 
@@ -116,7 +193,7 @@ describe('o ícone não pode mentir sobre o combate', () => {
     // combate de `mundo.ts`, nada impedia um item de MOSTRAR espada e ATIRAR
     // como cajado — e o jogador descobriria antes de nós.
     for (const id of IDS) {
-      for (const tipoDano of ['fisico', 'magico', null] as const) {
+      for (const tipoDano of [...CANAIS, null]) {
         const familia = familiaDaArma(id, tipoDano)
         const caminho = arteDoItem('arma', 5, id, tipoDano)
         expect(caminho, `${id}/${tipoDano}`).toContain(`w-${familia}-`)

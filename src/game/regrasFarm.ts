@@ -48,7 +48,14 @@ export const MOEDA_BASE_POR_ABATE = 2
 export const DANO_BASE_POR_CICLO = 8
 /** Quanto cada ponto de Vitalidade acrescenta à Vitalidade máxima. */
 const VITALIDADE_POR_PONTO = 25
-/** Quantos pontos de Força + Inteligência valem um abate a mais por ciclo. */
+/**
+ * Quantos pontos de poder de ataque valem um abate a mais por ciclo.
+ *
+ * Dizia "Força + Inteligência" e era verdade quando os dois atributos somavam
+ * juntos. Desde 2026-08-14 quem entra é só o atributo do canal da arma
+ * equipada (`regrasEquipamento.ts`, `ATRIBUTO_DO_DANO`) — e, com equipamento, o
+ * que chega aqui já é o poder final do loadout, não atributo cru.
+ */
 export const ATAQUE_POR_ABATE = 8
 
 /**
@@ -87,10 +94,11 @@ export function vitalidadeMaxima(nivel: number, vitalidade = 0): number {
 /**
  * Abates por ciclo.
  *
- * O poder de ataque vem do loadout (`regrasEquipamento.ts`), que já pondera
- * atributo pelo tipo de dano da arma, aplica sinergia de afinidade e o bônus de
- * conjunto. Aqui só entra o número final: o cálculo de recompensa não conhece
- * item, e por isso também não conhece skin.
+ * O poder de ataque vem do loadout (`regrasEquipamento.ts`), que SELECIONA o
+ * atributo pelo tipo de dano da arma — um só conta, os outros não entram —,
+ * aplica sinergia de afinidade e o bônus de conjunto. Aqui só entra o número
+ * final: o cálculo de recompensa não conhece item, e por isso também não
+ * conhece skin.
  */
 export function abatesPorCiclo(nivel: number, poderDeAtaque = 0): number {
   return ABATES_BASE + Math.floor(nivel / 10) + Math.floor(poderDeAtaque / ATAQUE_POR_ABATE)

@@ -1,6 +1,6 @@
 import { nomeDaRaridade, type Raridade } from '../../game/regrasLoot'
 import type { ChaveI18n } from '../../lib/i18n'
-import type { SlotEquipamento, TipoItem } from '../../lib/tipos'
+import type { SlotEquipamento, TipoDano, TipoItem } from '../../lib/tipos'
 
 // Mapas explícitos em vez de template string: assim o TypeScript confere cada
 // chave contra `ChaveI18n`, e o teste de chave órfã enxerga o uso. Ficam num
@@ -41,6 +41,38 @@ export const ROTULO_SLOT: Record<SlotEquipamento, ChaveI18n> = {
   bota: 'mochila.slot.bota',
   acessorio: 'mochila.slot.acessorio',
   skin: 'mochila.slot.skin',
+}
+
+/**
+ * Nome de cada canal de dano — usado para o TIPO DE DANO da arma e para a
+ * AFINIDADE das outras peças, que são a mesma escala.
+ *
+ * Estava copiado em `DetalheItem.tsx` e em `AbaEquipamento.tsx`: duas cópias da
+ * mesma tabela, exatamente o defeito que este módulo existe para impedir. Com
+ * dois canais a duplicata só era feia; com três, uma das cópias ficaria sem o
+ * canal novo e a peça de Destreza apareceria sem tipo de dano numa das telas.
+ */
+export const ROTULO_DANO: Record<TipoDano, ChaveI18n> = {
+  fisico: 'dano.fisico',
+  destreza: 'dano.destreza',
+  magico: 'dano.magico',
+}
+
+/**
+ * Nome de cada conjunto.
+ *
+ * `Record<string, …>` e não `Record<ConjuntoId, …>` porque quem cria conjunto é
+ * o servidor: uma peça pode chegar com um `conjunto_id` que esta versão do
+ * client ainda não conhece, e nesse caso a linha do conjunto simplesmente não
+ * aparece — melhor do que quebrar a tela inteira da mochila.
+ */
+export const ROTULO_CONJUNTO: Record<string, ChaveI18n> = {
+  'bruxa-caramelo': 'conjunto.bruxa-caramelo',
+  'cavaleiro-biscoito': 'conjunto.cavaleiro-biscoito',
+  'feiticeira-menta': 'conjunto.feiticeira-menta',
+  'brutamontes-nougat': 'conjunto.brutamontes-nougat',
+  'arqueira-avela': 'conjunto.arqueira-avela',
+  'ladina-amora': 'conjunto.ladina-amora',
 }
 
 export function chaveDaRaridade(tier: number): ChaveI18n {

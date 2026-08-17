@@ -96,6 +96,16 @@ export interface ResultadoLote {
 
 export interface EstadoAtributos {
   forca: number
+  /**
+   * O atributo do canal de destreza (arco e adaga), criado em 2026-08-14.
+   *
+   * Fica aqui, colado em `forca`, e não no fim: a ordem dos cinco primeiros
+   * campos é a ordem dos canais de dano (físico → destreza → mágico) seguida
+   * dos dois de suporte. O fim desta interface é onde moram o derivado
+   * (`pontosLivres`) e o depreciado (`autoAlocar`) — jogar um atributo real lá
+   * apagaria essa leitura.
+   */
+  destreza: number
   inteligencia: number
   vitalidade: number
   sorte: number
@@ -149,7 +159,25 @@ export type SlotEquipamento = Exclude<
   TipoItem,
   'chave' | 'pedra_fortificacao' | 'pedra_sorte' | 'pedra_garantia'
 >
-export type TipoDano = 'fisico' | 'magico'
+/**
+ * Os três canais de dano. Um atributo por canal, duas famílias de arma por
+ * canal — físico/Força (espada, martelo), destreza/Destreza (arco, adaga),
+ * mágico/Inteligência (cajado, varinha).
+ *
+ * NÃO é rótulo de sabor: é o canal que decide qual atributo entra no poder de
+ * ataque (`game/regrasEquipamento.ts`, `ATRIBUTO_DO_DANO`) e de qual família a
+ * arma pode ser (`game/armas.ts`). Antes de 2026-08-14 arco e adaga escalavam
+ * com Força junto de espada e martelo, e o arqueiro não tinha atributo próprio.
+ *
+ * Esta declaração é a ÚNICA — `regrasEquipamento.ts` tinha uma cópia local, que
+ * morreu na mesma rodada: duas uniões que nunca se encontram num limite de tipo
+ * podem divergir e o `tsc` não tem como reclamar.
+ *
+ * A LINHA ABAIXO É LIDA COMO TEXTO por `game/espelhoDeRegra.test.ts`, que casa
+ * os literais com a lista do `check (tipo_dano in (...))` do Postgres. Mantenha
+ * a união numa linha só.
+ */
+export type TipoDano = 'fisico' | 'destreza' | 'magico'
 
 export interface ItemPossuido {
   id: string

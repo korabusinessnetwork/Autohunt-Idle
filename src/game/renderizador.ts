@@ -22,6 +22,7 @@ import {
   camera,
   intensidadeAtual,
   poseDoHeroi,
+  progressoDaPose,
   type EstadoMundo,
 } from './mundo'
 import { lerPaleta, type Paleta } from './paleta'
@@ -77,6 +78,12 @@ export function criarRenderizadorCanvas(
   let paleta: Paleta = lerPaleta(document.documentElement)
   /** Última zona cujo pacote de arte foi pedido. Evita repedir todo quadro. */
   let biomaAquecido = 0
+  /**
+   * Última skin aquecida. Equipar não troca de bioma, então sem este segundo
+   * gatilho o PNG da skin só seria pedido no primeiro `drawImage` — e o jogador
+   * veria a silhueta geométrica justamente no quadro da troca.
+   */
+  let skinAquecida: number | null = null
 
   /** Pixels de tela por unidade de mundo. */
   let escala = 1
@@ -117,6 +124,9 @@ export function criarRenderizadorCanvas(
       const zona = biomaAtual(estado)
       const bioma = zona.token
       const intensidade = intensidadeAtual(estado)
+      // Lida uma vez por quadro: o aquecimento e o desenho precisam concordar
+      // sobre qual skin está equipada.
+      const skin = raridadeDaSkin()
       const vista = camera(estado, vistaLargura, vistaAltura)
       // Guardada para `paraCoordenadaDoMundo`: a mira do mouse precisa da mesma
       // câmera que acabou de ser desenhada, não da do quadro seguinte.
@@ -126,9 +136,13 @@ export function criarRenderizadorCanvas(
       // Aquece a arte da zona na primeira vez que ela aparece. Sem isto, trocar
       // de mapa mostraria o cenário novo em silhueta justamente no quadro em
       // que o jogador está olhando para a mudança.
-      if (bioma !== biomaAquecido) {
+      // Trocar de skin repete o pedido da zona inteira, e isso é de graça:
+      // `precarregar` é consulta a um Map para o que já está em cache. Um
+      // gatilho só é mais barato de manter que dois caminhos de aquecimento.
+      if (bioma !== biomaAquecido || skin !== skinAquecida) {
         biomaAquecido = bioma
-        precarregarBioma(bioma, zona.assinatura.forma)
+        skinAquecida = skin
+        precarregarBioma(bioma, zona.assinatura.forma, skin)
       }
       const corAssinatura = paleta[`--bioma-${bioma}-assinatura`] ?? paleta['--cor-primaria']
 
@@ -231,6 +245,18 @@ export function criarRenderizadorCanvas(
       const piscando =
         (estado.reinicioCiclo > 0 && Math.floor(estado.reinicioCiclo * 10) % 2 === 0) ||
         (estado.invulneravel > 0 && Math.floor(estado.invulneravel * 12) % 2 === 0)
+      // A fase do passo e o tempo restante da pose chegam ao desenho por aqui:
+      // o herói ganhou movimento PROCEDURAL (`sprites.ts`) porque as 8 skins
+      // vieram numa pose só, e equipar qualquer uma congelava os três estados
+      // num PNG único.
+      //
+      // O deslocamento é EXCLUSIVAMENTE de desenho: `estado.heroiX/Y` continuam
+      // intocados, senão a câmera (que se centra neles) balançaria a tela
+      // inteira, e mira, colisão e agressão passariam a mentir. Como
+      // consequência, o golpe e o projétil nascem na posição real do herói,
+      // sem o offset — e é por isso que o avanço do ataque é de poucos pixels
+      // contra um arco de dezenas: o arco é o feedback de acerto, e descolar
+      // dele seria regressão de leitura.
       desenharHeroi(
         ctx,
         estado.heroiX,
@@ -239,7 +265,9 @@ export function criarRenderizadorCanvas(
         piscando,
         paleta,
         poseDoHeroi(estado),
-        raridadeDaSkin(),
+        skin,
+        estado.faseDoPasso,
+        progressoDaPose(estado),
       )
 
       desenharAvisos(ctx, estado, paleta)

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { atributosZerados, type Atributos } from './regrasAtributos'
+import type { TipoDano } from '../lib/tipos'
+import { ATRIBUTOS as LISTA_DE_ATRIBUTOS, atributosZerados, type Atributos } from './regrasAtributos'
 import {
+  ATRIBUTO_DO_DANO,
   SLOTS_DE_PODER,
   calcularPoderDeAtaque,
   loadoutVazio,
@@ -12,17 +14,23 @@ import {
   type Loadout,
 } from './regrasEquipamento'
 
-const ATRIBUTOS: Atributos = { forca: 20, inteligencia: 10, vitalidade: 5, sorte: 5 }
+// Sempre a partir de `atributosZerados()`, nunca de um literal escrito à mão: o
+// sexto atributo, quando vier, custa uma linha aqui em vez de um erro de `tsc`
+// espalhado por todo teste do projeto.
+const ATRIBUTOS: Atributos = {
+  ...atributosZerados(),
+  forca: 20,
+  destreza: 30,
+  inteligencia: 10,
+  vitalidade: 5,
+  sorte: 5,
+}
 
-function arma(raridade: number, tipoDano: 'fisico' | 'magico', conjuntoId?: string): ItemEquipado {
+function arma(raridade: number, tipoDano: TipoDano, conjuntoId?: string): ItemEquipado {
   return { raridade, tipoDano, conjuntoId: conjuntoId ?? null }
 }
 
-function peca(
-  raridade: number,
-  afinidade?: 'fisico' | 'magico' | null,
-  conjuntoId?: string,
-): ItemEquipado {
+function peca(raridade: number, afinidade?: TipoDano | null, conjuntoId?: string): ItemEquipado {
   return { raridade, afinidade: afinidade ?? null, conjuntoId: conjuntoId ?? null }
 }
 
@@ -63,20 +71,86 @@ describe('stat escala com a raridade', () => {
   })
 })
 
-describe('atributo pondera pelo tipo de dano da arma', () => {
-  it('Força conta inteiro com arma física, Inteligência pela metade', () => {
-    const fisica: Loadout = { arma: arma(1, 'fisico') }
-    expect(calcularPoderDeAtaque(fisica, ATRIBUTOS).atributos).toBe(20 + 5)
+describe('a arma escolhe o atributo — um conta inteiro, os outros contam zero', () => {
+  // O pedido do dono, literal: "se ele usa cajado tem que dar dano mágico, logo
+  // se ele upar força não pode aumentar o dano". Até 2026-08-14 o atributo do
+  // outro canal entrava com metade do valor — e esses dois números (20 + 5 e
+  // 10 + 10) eram exatamente o que os testes daqui mediam.
+
+  it('o atributo do canal da arma conta INTEIRO, nos três canais', () => {
+    expect(calcularPoderDeAtaque({ arma: arma(1, 'fisico') }, ATRIBUTOS).atributos).toBe(20)
+    expect(calcularPoderDeAtaque({ arma: arma(1, 'destreza') }, ATRIBUTOS).atributos).toBe(30)
+    expect(calcularPoderDeAtaque({ arma: arma(1, 'magico') }, ATRIBUTOS).atributos).toBe(10)
   })
 
-  it('a mesma build rende menos com arma mágica', () => {
-    const fisica: Loadout = { arma: arma(1, 'fisico') }
+  it('com cajado, 100 de Força somam ZERO', () => {
     const magica: Loadout = { arma: arma(1, 'magico') }
+    const bruto = { ...atributosZerados(), inteligencia: 7 }
+    const musculoso = { ...bruto, forca: 100 }
 
-    expect(calcularPoderDeAtaque(magica, ATRIBUTOS).atributos).toBe(10 + 10)
-    expect(calcularPoderDeAtaque(fisica, ATRIBUTOS).total).toBeGreaterThan(
-      calcularPoderDeAtaque(magica, ATRIBUTOS).total,
+    expect(calcularPoderDeAtaque(magica, musculoso).atributos).toBe(7)
+    expect(calcularPoderDeAtaque(magica, musculoso).total).toBe(
+      calcularPoderDeAtaque(magica, bruto).total,
     )
+  })
+
+  it('com espada, 100 de Destreza somam ZERO', () => {
+    const fisica: Loadout = { arma: arma(1, 'fisico') }
+    const base = { ...atributosZerados(), forca: 7 }
+
+    expect(calcularPoderDeAtaque(fisica, { ...base, destreza: 100 }).atributos).toBe(7)
+  })
+
+  it('com arma de destreza (arco, adaga), 100 de Inteligência somam ZERO', () => {
+    const destra: Loadout = { arma: arma(1, 'destreza') }
+    const base = { ...atributosZerados(), destreza: 7 }
+
+    expect(calcularPoderDeAtaque(destra, { ...base, inteligencia: 100 }).atributos).toBe(7)
+  })
+
+  it('nenhum canal escapa: para cada um, só o próprio atributo move o poder', () => {
+    // Exaustivo sobre a tabela, e não sobre uma lista escrita à mão: um quarto
+    // canal entra em `ATRIBUTO_DO_DANO` já coberto por este teste.
+    for (const [canal, atributo] of Object.entries(ATRIBUTO_DO_DANO) as [TipoDano, string][]) {
+      const loadout: Loadout = { arma: arma(1, canal) }
+
+      for (const outro of LISTA_DE_ATRIBUTOS) {
+        const so = { ...atributosZerados(), [outro]: 50 } as Atributos
+        const esperado = outro === atributo ? 50 : 0
+        expect(calcularPoderDeAtaque(loadout, so).atributos, `${canal} × ${outro}`).toBe(esperado)
+      }
+    }
+  })
+
+  it('trocar de arma muda o quanto os atributos rendem', () => {
+    // A consequência aceita: a mesma ficha de atributos vale coisas diferentes
+    // conforme a arma na mão. É o que faz o respec existir.
+    const fisica = calcularPoderDeAtaque({ arma: arma(1, 'fisico') }, ATRIBUTOS)
+    const magica = calcularPoderDeAtaque({ arma: arma(1, 'magico') }, ATRIBUTOS)
+
+    expect(fisica.total).toBeGreaterThan(magica.total)
+  })
+
+  it('sem arma equipada o herói é físico — e Força continua contando', () => {
+    // O `?? 'fisico'` de `calcularPoderDeAtaque`, espelho do
+    // `coalesce(v_arma.tipo_dano, 'fisico')` do Postgres. Sem ele, jogador novo
+    // teria atributo nenhum entrando no poder nos primeiros cinco segundos.
+    const semArma = calcularPoderDeAtaque(loadoutVazio(), ATRIBUTOS)
+    const comEspada = calcularPoderDeAtaque({ arma: arma(1, 'fisico') }, ATRIBUTOS)
+
+    expect(semArma.atributos).toBe(20)
+    expect(semArma.atributos).toBe(comEspada.atributos)
+    // E `{ arma: null }` é o mesmo caso que "slot ausente".
+    expect(calcularPoderDeAtaque({ arma: null }, ATRIBUTOS).atributos).toBe(20)
+  })
+
+  it('vitalidade e sorte nunca entram no poder de ataque', () => {
+    // Elas têm consumidor próprio (vida máxima e chance de raridade). Se um dia
+    // vazarem para cá, o jogador upa Sorte e vê o dano subir sem explicação.
+    const so = { ...atributosZerados(), vitalidade: 500, sorte: 500 }
+    for (const canal of Object.keys(ATRIBUTO_DO_DANO) as TipoDano[]) {
+      expect(calcularPoderDeAtaque({ arma: arma(1, canal) }, so).atributos, canal).toBe(0)
+    }
   })
 })
 

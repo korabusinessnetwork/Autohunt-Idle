@@ -29,9 +29,17 @@ Tempo real: **20 a 30 minutos**, quase todo esperando o projeto provisionar.
 
 ## 2. Aplicar o schema
 
-São **17 migrations**, e a ordem importa: várias redefinem funções das anteriores — `iniciar_sessao`
+São **21 migrations**, e a ordem importa: várias redefinem funções das anteriores — `iniciar_sessao`
 foi reescrita cinco vezes ao longo das rodadas. Colar arquivo por arquivo é onde se pula um ou se
 troca a ordem, e o erro aparece muito depois, como comportamento estranho em vez de falha.
+
+> A contagem dizia **17** e estava velha (eram 20 no disco antes desta rodada). Corrigida em
+> 2026-08-17, ao entrar `20260830_destreza_e_canais_de_dano.sql`. **Este número envelhece a cada
+> rodada** — quem for conferir, conte com `ls supabase/migrations`, não confie na frase.
+
+A última aplicada no projeto de produção é `20260830_destreza_e_canais_de_dano.sql`
+(**2026-08-17**), que criou o atributo Destreza, o terceiro canal de dano e a reclassificação
+identidade-preservante do acervo de armas — ver `docs/08_DECISOES/adr-005-canais-de-dano-e-destreza.md`.
 
 Gere o arquivo único:
 

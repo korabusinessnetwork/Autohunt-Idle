@@ -53,6 +53,29 @@ a pedir validação, o servidor nunca credita mais que isso de uma vez.
 - **Vitalidade:** 25 de vida por ponto.
 - **Quem gasta o ponto é o jogador.** Não há auto-alocação: o ponto fica guardado até alguém
   decidir onde pôr.
+- **São cinco atributos:** Força, **Destreza**, Inteligência, Vitalidade e Sorte.
+
+### O atributo que casa com a arma conta inteiro. Os outros contam zero.
+
+Três canais de dano, um atributo cada, duas famílias de arma cada:
+
+| Canal | Atributo | Armas |
+|---|---|---|
+| `fisico` | Força | espada, martelo |
+| `destreza` | Destreza | arco, adaga |
+| `magico` | Inteligência | cajado, varinha |
+
+Com cajado na mão, subir Força **não aumenta o dano em nada**. Não é penalidade: é o que faz a
+escolha de arma significar alguma coisa. Sem arma equipada, o canal é o físico.
+
+> **Mudou em 2026-08-14** (`supabase/migrations/20260830_destreza_e_canais_de_dano.sql`), por
+> decisão do dono: *"se ele usa cajado tem que dar dano mágico, logo se ele upar força não pode
+> aumentar o dano"*. Até então havia dois canais e o atributo do canal errado contribuía com
+> ~~metade~~ — o que tornava a decisão morna: errar custava pouco, e acertar rendia pouco. Como o
+> peso da escolha subiu, o painel de atributos passou a **marcar qual atributo casa com a arma
+> equipada**; sem arma, não marca nenhum (apontar Força para quem está de punho seria mentira de
+> tela). A alocação de todo mundo foi zerada e os pontos devolvidos na mesma migration: quem tinha
+> arco perderia a contribuição inteira sem aviso, e o respec é livre.
 
 > **Mudou em 2026-08-13** (`supabase/migrations/20260829_atributos_manuais.sql`), por decisão do
 > dono. Até então cada level up dava 3 pontos e o servidor os distribuía sozinho, sempre no atributo
@@ -91,8 +114,14 @@ nada — foi o furo de `docs/07_APIS/` §6.
 - **6 slots de poder** (arma, capacete, armadura, luva, bota, acessório) mais **skin**, que é
   puramente cosmética. A função que decide recompensa não sabe o que é skin, e um teste prova.
 - **Sinergia de afinidade:** +20% quando a afinidade do item casa com o tipo de dano da arma.
+  Com três canais desde 2026-08-14, uma peça sorteada casa em **1/3** das vezes, e não em 1/2 —
+  peça de afinidade certa ficou mais rara na mesma medida em que ficou mais valiosa.
 - **Conjunto:** 2 peças → +8%, 4 peças → +20%, 6 peças → +45%. Só o conjunto **mais representado**
-  conta — bônus parcial não empilha entre conjuntos diferentes.
+  conta — bônus parcial não empilha entre conjuntos diferentes. São **seis** conjuntos, dois por
+  canal: `bruxa-caramelo` e `feiticeira-menta` (mágicos), `cavaleiro-biscoito` e
+  `brutamontes-nougat` (físicos), `arqueira-avela` e `ladina-amora` (destreza). Os dois últimos
+  nasceram junto com o canal de destreza — sem eles a build de arqueiro não alcançaria o degrau de
+  seis peças que as outras duas alcançam, e nasceria estruturalmente mais fraca.
 - **Trocar é livre**: sem custo, sem cooldown, sem confirmação.
 - O personagem **nunca fica sem arma**: `garantir_arma_inicial` é idempotente e roda a cada
   crédito e depois de cada síntese.

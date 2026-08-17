@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
+import { ARMAS_DESTREZA, ARMAS_FISICAS, ARMAS_MAGICAS } from './armas'
 import { RARIDADES, TIER_MAXIMO, TIER_MINIMO } from './regrasLoot'
 import type { SlotEquipamento, TipoDano, TipoItem } from '../lib/tipos'
 import {
@@ -101,7 +102,10 @@ describe('todo caminho do atlas existe no disco', () => {
   it('todo item que o jogo pode conceder — tipo × raridade × tipo de dano', () => {
     // Exaustivo de propósito. É a combinação que o servidor pode devolver, e
     // basta um sufixo de arquivo fora da faixa para um tier inteiro sumir.
-    const danos: readonly (TipoDano | null)[] = ['fisico', 'magico', null]
+    // Os três canais mais o `null`. Quando o canal de destreza nasceu, esta
+    // lista era o que decidia se arco e adaga continuariam sendo conferidos
+    // contra o disco — uma lista de dois teria passado verde sem vê-los.
+    const danos: readonly (TipoDano | null)[] = ['fisico', 'destreza', 'magico', null]
 
     for (const tipo of TIPOS) {
       for (let raridade = TIER_MINIMO; raridade <= TIER_MAXIMO; raridade++) {
@@ -217,17 +221,34 @@ describe('regras de desenho do ícone de item', () => {
     for (let i = 0; i < 50; i++) expect(arteDoItem('arma', 5, id, 'fisico')).toBe(primeiro)
   })
 
-  it('arma mágica nunca usa desenho de arma física', () => {
+  it('o ícone denuncia o canal de dano — nenhum canal usa desenho de outro', () => {
     // O ícone precisa denunciar o tipo de dano antes do tooltip.
-    const MAGICAS = ['cajado', 'varinha']
-    const FISICAS = ['espada', 'adaga', 'arco', 'martelo']
+    //
+    // As listas vêm IMPORTADAS de `armas.ts`, nunca copiadas: enquanto estavam
+    // escritas à mão aqui, mover arco e adaga para o canal de destreza deixava
+    // duas cópias divergentes — a de produção certa, a do teste velha — e o
+    // teste continuava verde provando a regra antiga.
+    const POR_CANAL: Record<TipoDano, readonly string[]> = {
+      fisico: ARMAS_FISICAS,
+      destreza: ARMAS_DESTREZA,
+      magico: ARMAS_MAGICAS,
+    }
 
     for (let i = 0; i < 200; i++) {
       const id = `item-${i}`
-      const magica = arteDoItem('arma', 5, id, 'magico')!
-      const fisica = arteDoItem('arma', 5, id, 'fisico')!
-      expect(MAGICAS.some((f) => magica.includes(`w-${f}-`)), magica).toBe(true)
-      expect(FISICAS.some((f) => fisica.includes(`w-${f}-`)), fisica).toBe(true)
+      for (const [canal, familias] of Object.entries(POR_CANAL) as [TipoDano, string[]][]) {
+        const caminho = arteDoItem('arma', 5, id, canal)!
+        expect(familias.some((f) => caminho.includes(`w-${f}-`)), `${canal}: ${caminho}`).toBe(true)
+
+        // E o que o teste antigo não dizia: o desenho de um canal nunca aparece
+        // em outro. Sem isto, listas que se sobrepusessem passariam.
+        for (const [outro, deOutro] of Object.entries(POR_CANAL) as [TipoDano, string[]][]) {
+          if (outro === canal) continue
+          expect(deOutro.some((f) => caminho.includes(`w-${f}-`)), `${canal} vestiu ${outro}`).toBe(
+            false,
+          )
+        }
+      }
     }
   })
 

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { ARMAS_FISICAS, ARMAS_MAGICAS, familiaDaArma } from '../../game/armas'
+import { ARMAS_DESTREZA, ARMAS_FISICAS, ARMAS_MAGICAS, familiaDaArma } from '../../game/armas'
 import { RARIDADES } from '../../game/regrasLoot'
 import { traduzir, type ChaveI18n, type Idioma } from '../../lib/i18n'
-import type { TipoItem } from '../../lib/tipos'
+import type { TipoDano, TipoItem } from '../../lib/tipos'
 import { baseDoItem, nomeDoItem } from './nomeDoItem'
 
 // Traduz de verdade, com o dicionário real: metade do valor deste módulo está
@@ -11,8 +11,11 @@ import { baseDoItem, nomeDoItem } from './nomeDoItem'
 const t = (idioma: Idioma) => (chave: ChaveI18n, valores?: Record<string, string | number>) =>
   traduzir(idioma, chave, valores)
 
+// O parâmetro é `TipoDano`, e não a união escrita à mão que estava aqui antes:
+// com a união fixa, pedir uma adaga (que passou para o canal de destreza)
+// lançaria o erro de força bruta em vez de dar um erro de tipo na hora.
 /** Um id que produz a família pedida, achado por força bruta. */
-function idComFamilia(familia: string, tipoDano: 'fisico' | 'magico'): string {
+function idComFamilia(familia: string, tipoDano: TipoDano): string {
   for (let i = 0; i < 10000; i++) {
     const id = `item-${i}`
     if (familiaDaArma(id, tipoDano) === familia) return id
@@ -65,14 +68,42 @@ describe('nome da peça', () => {
   it('o dano decide de qual conjunto a família sai', () => {
     // Uma arma mágica nunca pode se chamar "Espada": o nome tem de bater com o
     // ícone e com o jeito de atirar, e os três saem do mesmo lugar.
+    //
+    // Os três canais entram aqui juntos de propósito. Enquanto eram dois, um
+    // canal esquecido saltava aos olhos; com três, o esquecido passa calado.
+    const conjuntos: Record<TipoDano, readonly string[]> = {
+      fisico: ARMAS_FISICAS,
+      destreza: ARMAS_DESTREZA,
+      magico: ARMAS_MAGICAS,
+    }
+
     for (let i = 0; i < 200; i++) {
       const id = `prova-${i}`
-      const fisica = baseDoItem({ tipo: 'arma', raridade: 1, id, tipoDano: 'fisico' })
-      const magica = baseDoItem({ tipo: 'arma', raridade: 1, id, tipoDano: 'magico' })
-
-      expect(ARMAS_FISICAS.map((f) => `item.base.${f}`)).toContain(fisica.chave)
-      expect(ARMAS_MAGICAS.map((f) => `item.base.${f}`)).toContain(magica.chave)
+      for (const [canal, familias] of Object.entries(conjuntos) as [
+        TipoDano,
+        readonly string[],
+      ][]) {
+        const base = baseDoItem({ tipo: 'arma', raridade: 1, id, tipoDano: canal })
+        expect(familias.map((f) => `item.base.${f}`)).toContain(base.chave)
+      }
     }
+  })
+
+  it('a arma do arqueiro tem nome de arma do arqueiro', () => {
+    // O canal de destreza é o que esta rodada criou, e o nome é o primeiro
+    // lugar onde o jogador o encontra — antes de qualquer número de dano.
+    const arco = idComFamilia('arco', 'destreza')
+    const adaga = idComFamilia('adaga', 'destreza')
+
+    expect(nomeDoItem({ tipo: 'arma', raridade: 5, id: arco, tipoDano: 'destreza' }, t('pt'))).toBe(
+      'Arco lendário',
+    )
+    expect(nomeDoItem({ tipo: 'arma', raridade: 5, id: adaga, tipoDano: 'destreza' }, t('pt'))).toBe(
+      'Adaga lendária',
+    )
+    expect(nomeDoItem({ tipo: 'arma', raridade: 5, id: arco, tipoDano: 'destreza' }, t('en'))).toBe(
+      'Legendary Bow',
+    )
   })
 
   it('sem id volta a ser o tipo — é o caso da pilha de síntese', () => {

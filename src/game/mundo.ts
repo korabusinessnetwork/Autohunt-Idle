@@ -187,6 +187,21 @@ export interface EstadoMundo {
   heroiY: number
   heroiOlhandoX: number
   /**
+   * Onde o herói está no ciclo de passo, em CICLOS (um passo inteiro = 1).
+   *
+   * O estado não sabia que o herói anda: não havia velocidade guardada, nem
+   * posição anterior, nem relógio — e sem isso o desenho não tinha de onde
+   * tirar um ciclo de caminhada.
+   *
+   * Avança com a DISTÂNCIA percorrida, não com o tempo: assim a cadência
+   * acompanha `heroi_velocidade` sozinha, e andar contra a parede (onde o
+   * `limitar` trava a posição) não produz passo no lugar.
+   *
+   * É dado de DESENHO. Nada aqui entra em cálculo nem sai para o servidor,
+   * como todo o resto deste arquivo.
+   */
+  faseDoPasso: number
+  /**
    * Vitalidade VISUAL do herói.
    *
    * O máximo é copiado do que o servidor publica (`vitalidadeMaxima`, que é
@@ -235,6 +250,24 @@ export interface EstadoMundo {
  */
 const DURACAO_POSE_ATAQUE = 0.18
 const DURACAO_POSE_COMEMORACAO = 0.5
+
+/**
+ * Quantos pixels de MUNDO o herói percorre por passo.
+ *
+ * Com a velocidade padrão (110 px/s) dá pouco mais de quatro passos por
+ * segundo: cadência de caminhada apressada, que é o que o boneco faz. Passo
+ * mais curto vira trotezinho nervoso, mais longo vira arrasto.
+ */
+const COMPRIMENTO_DO_PASSO = 26
+
+/**
+ * Com que velocidade um passo interrompido termina o ciclo, em ciclos/segundo.
+ *
+ * Parar no meio da passada deixaria o herói permanentemente alguns pixels no
+ * ar, numa altura diferente a cada vez. Ele termina o passo e assenta EXATO no
+ * zero — que é o que faz "parado" ser sempre a mesma pose.
+ */
+const ASSENTAMENTO_DO_PASSO = 2.4
 
 // Os números da SENSAÇÃO de jogar deixaram de ser constante e viraram ajuste
 // editável pelo dono (`specs/console-de-ajuste.md`). Continuam sem valer nada
@@ -337,6 +370,7 @@ export function criarMundo(semente = 1, mapaId = 1): EstadoMundo {
     heroiX: entrada.x,
     heroiY: entrada.y,
     heroiOlhandoX: 1,
+    faseDoPasso: 0,
     heroiVida: 110,
     heroiVidaMaxima: 110,
     invulneravel: 0,
@@ -386,6 +420,9 @@ export function definirMapa(estado: EstadoMundo, mapaId: number): void {
   estado.mapaId = alvo.id
   estado.heroiX = entrada.x
   estado.heroiY = entrada.y
+  // Chegar na instância nova é chegar parado: sem isto o herói apareceria na
+  // entrada no meio de uma passada.
+  estado.faseDoPasso = 0
   estado.ninhos = ninhosDoMapa(alvo.id)
   estado.inimigos = []
   estado.projeteis = []
@@ -528,6 +565,13 @@ export function avancarMundo(estado: EstadoMundo, dt: number): void {
 
   estado.recargaTiro -= dt
 
+  // Fotografia da fase ANTES do bloco de modo, e não da posição entre quadros:
+  // `ferirHeroi` devolve o herói à entrada ao zerar a vitalidade e
+  // `definirMapa` faz o mesmo ao trocar de instância, então delta de posição
+  // entre quadros dispararia um ciclo de caminhada gigante na hora da morte.
+  // Comparar dentro do mesmo quadro, antes de qualquer teleporte, é imune.
+  const faseAntes = estado.faseDoPasso
+
   if (estado.modo === 'auto') {
     // O comportamento que o jogo TINHA antes da inversão de premissa: caça o
     // alvo mais próximo, aproxima até ficar em alcance e ataca. Com o inimigo
@@ -567,6 +611,10 @@ export function avancarMundo(estado: EstadoMundo, dt: number): void {
       }
     }
   }
+
+  // Ninguém andou neste quadro — nem o jogador, nem o piloto automático, nem o
+  // herói empurrando a parede. O passo pendente termina e para no zero.
+  if (estado.faseDoPasso === faseAntes) assentarPasso(estado, dt)
 
   avancarInimigos(estado, dt)
   avancarProjeteis(estado, dt)
@@ -709,10 +757,35 @@ function regenerar(estado: EstadoMundo, dt: number): void {
   )
 }
 
-/** Move o herói na direção dada, preso às bordas do MAPA (não da tela). */
+/**
+ * Move o herói na direção dada, preso às bordas do MAPA (não da tela).
+ *
+ * É AQUI que o ciclo de passo avança, e não no bloco de modo: `mover` é o funil
+ * por onde manual e auto passam. Enganchar na intenção do jogador teria
+ * funcionado em todo teste manual e falhado calado no AUTO — que é o modo
+ * vendido —, porque `definirModo` força intenção parada ao ligar o auto e
+ * `definirIntencao` recusa input enquanto ele estiver ligado.
+ */
 function mover(estado: EstadoMundo, dirX: number, dirY: number, dt: number): void {
+  const antesX = estado.heroiX
+  const antesY = estado.heroiY
+
   estado.heroiX = limitar(estado.heroiX + dirX * velocidadeHeroi() * dt, 16, LARGURA_MAPA - 16)
   estado.heroiY = limitar(estado.heroiY + dirY * velocidadeHeroi() * dt, 16, ALTURA_MAPA - 16)
+
+  // Medido DEPOIS do `limitar`: colado na parede, `mover` continua sendo
+  // chamado todo quadro e a posição não muda. Sem esta conta o herói andaria no
+  // lugar contra a borda do mapa.
+  const andou = Math.hypot(estado.heroiX - antesX, estado.heroiY - antesY)
+  if (andou > 0) estado.faseDoPasso = (estado.faseDoPasso + andou / COMPRIMENTO_DO_PASSO) % 1
+}
+
+/** Termina o passo interrompido e para exato no zero. */
+function assentarPasso(estado: EstadoMundo, dt: number): void {
+  if (estado.faseDoPasso === 0) return
+  const restante = 1 - estado.faseDoPasso
+  const avanco = ASSENTAMENTO_DO_PASSO * dt
+  estado.faseDoPasso = avanco >= restante ? 0 : estado.faseDoPasso + avanco
 }
 
 /**
@@ -891,4 +964,24 @@ export function poseDoHeroi(estado: EstadoMundo): PoseHeroi {
   if (estado.poseAtaque > 0) return 'atacando'
   if (estado.poseComemoracao > 0) return 'comemorando'
   return 'parado'
+}
+
+/**
+ * Quanto RESTA da pose que `poseDoHeroi` acabou de escolher, de 1 a 0.
+ *
+ * Existe porque as durações são constantes de módulo e não saem daqui: sem esta
+ * função, quem desenha teria que repetir 0.18 e 0.5 por conta própria, e
+ * passaria a haver duas verdades sobre o mesmo tempo — a primeira a mudar
+ * deixaria a outra para trás em silêncio.
+ *
+ * A precedência é a mesma de `poseDoHeroi`, de propósito: as duas respondem
+ * sobre a MESMA pose, senão o desenho misturaria o tempo de uma com o gesto da
+ * outra.
+ */
+export function progressoDaPose(estado: EstadoMundo): number {
+  if (estado.poseAtaque > 0) return Math.min(1, estado.poseAtaque / DURACAO_POSE_ATAQUE)
+  if (estado.poseComemoracao > 0) {
+    return Math.min(1, estado.poseComemoracao / DURACAO_POSE_COMEMORACAO)
+  }
+  return 0
 }

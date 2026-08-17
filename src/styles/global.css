@@ -43,10 +43,20 @@ h3 {
  * respiro menor, texto de apoio menor, botão menos alto. O conteúdo continua
  * inteiro; o que encolhe é o espaço em volta dele.
  *
- * Os seletores usam `[role='dialog']` para ganhar especificidade de propósito:
- * `global.css` é importado primeiro, então uma regra de classe simples aqui
- * perderia para a regra de classe simples do painel, escrita depois. Media
- * query não ganha peso nenhum por ser media query.
+ * Os seletores usam `[role='dialog']` para ganhar especificidade de propósito
+ * (0,2,0). Media query não ganha peso nenhum por ser media query.
+ *
+ * ATENÇÃO — CORRIGIDO EM 2026-08-14. Este comentário dizia que `global.css` é
+ * importado PRIMEIRO e que por isso precisava do peso extra. É o contrário:
+ * `main.tsx` importa `./App` na linha 4 e `./styles/global.css` só na 6, e
+ * módulo ES avalia em profundidade — então todo CSS de painel entra ANTES
+ * deste arquivo. Medido no navegador: `PainelAtributos.css` na folha 5,
+ * `global.css` na 24.
+ *
+ * A consequência prática inverteu de lado: este bloco vence os painéis por
+ * especificidade E por ordem, e é o PAINEL que precisa de 0,3,0 para
+ * sobrepor qualquer coisa daqui. Quem for compactar um painel abaixo de
+ * `34rem` e vir a regra "não fazer nada" em silêncio, é isto.
  * ========================================================================= */
 @media (max-height: 34rem) {
   [role='dialog'] > [class*='__cartao'] {

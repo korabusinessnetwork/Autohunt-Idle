@@ -94,8 +94,10 @@ export function Jogo() {
   }
 
   const jogador = snapshot?.jogador
-  // Ponto livre sobrando é raro (a auto-alocação gasta quase tudo), mas quando
-  // sobra vale sinalizar — sem transformar em cobrança.
+  // Desde que a auto-alocação saiu (`20260829`), ponto livre sobrando é o caso
+  // COMUM: quem sobe de nível e não abre o painel acumula. Este selo é o que
+  // sustenta o Princípio nº1 no lugar dela — o convite aparece sem exigir
+  // leitura, e ignorá-lo não quebra nada, só deixa ponto guardado.
   const pontosLivres = snapshot?.atributos.pontosLivres ?? 0
   // Chave é o que destrava dungeon — vale sinalizar quando o jogador tem uma.
   const chaves = snapshot?.inventario.chaves ?? 0

@@ -142,14 +142,21 @@ export const en: Record<ChaveI18n, string> = {
   // --- Attributes -----------------------------------------------------------
   'atributos.titulo': 'Attributes',
   'atributos.pontosLivres': '{pontos} points to spend',
+  // The weapon words here are the EXACT ones the bag uses for item names
+  // ('item.base.*'): Sword, Hammer, Bow, Dagger, Staff, Wand. Saying "Bow and
+  // dagger damage" in one panel and "Legendary Bow" in the other only pays off
+  // if the player can see they are the same word.
   'atributos.forca': 'Strength',
-  'atributos.forca.efeito': 'Physical damage',
+  'atributos.forca.efeito': 'Sword and hammer damage',
+  'atributos.destreza': 'Dexterity',
+  'atributos.destreza.efeito': 'Bow and dagger damage',
   'atributos.inteligencia': 'Intelligence',
-  'atributos.inteligencia.efeito': 'Magic damage',
+  'atributos.inteligencia.efeito': 'Staff and wand damage',
   'atributos.vitalidade': 'Vitality',
   'atributos.vitalidade.efeito': 'Takes longer to go down',
   'atributos.sorte': 'Luck',
   'atributos.sorte.efeito': 'Better loot odds (arrives with dungeons)',
+  'atributos.suaArma': 'your weapon',
   'atributos.custoProximo': 'Next: {custo} pt',
   'atributos.subir': 'Raise {atributo}',
   'atributos.descer': 'Lower {atributo}',
@@ -283,14 +290,20 @@ export const en: Record<ChaveI18n, string> = {
   // Set names get their own jokes rather than a word-for-word pass
   // (core, criterion 14): "Nougat Bruiser" keeps the thug, "Biscuit Knight"
   // keeps the crunch.
-  'dano.fisico': 'Physical',
-  'dano.magico': 'Magic',
+  // A damage channel is named after its ATTRIBUTE, not after an adjective —
+  // same reasoning as in `pt.ts`. "Damage type: Dexterity" tells the player
+  // which attribute to raise without a second vocabulary to learn.
+  'dano.fisico': 'Strength',
+  'dano.destreza': 'Dexterity',
+  'dano.magico': 'Intelligence',
   'afinidade.combina': 'Matches your weapon (+20%)',
   'afinidade.naoCombina': 'Does not match your weapon',
   'conjunto.bruxa-caramelo': 'Caramel Witch Set',
   'conjunto.cavaleiro-biscoito': 'Biscuit Knight Set',
   'conjunto.feiticeira-menta': 'Peppermint Sorceress Set',
   'conjunto.brutamontes-nougat': 'Nougat Bruiser Set',
+  'conjunto.arqueira-avela': 'Hazelnut Archer Set',
+  'conjunto.ladina-amora': 'Blackberry Rogue Set',
   'conjunto.pecas': '{pecas} of 6 pieces',
   'conjunto.bonus2': '2-piece bonus active',
   'conjunto.bonus3': 'Full set — complete bonus',

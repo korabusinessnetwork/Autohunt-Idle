@@ -14,8 +14,12 @@ import type { Snapshot } from '../tipos'
 export async function redistribuirAtributos(
   atributos: Atributos,
 ): Promise<Envelope<Snapshot>> {
+  // Um parâmetro por atributo, escritos à mão: a RPC tem assinatura nomeada, e
+  // espalhar `...atributos` aqui mandaria silenciosamente qualquer campo novo
+  // do tipo — inclusive os que não são atributo — para dentro do Postgres.
   const { data, error } = await obterSupabase().rpc('redistribuir_atributos', {
     p_forca: atributos.forca,
+    p_destreza: atributos.destreza,
     p_inteligencia: atributos.inteligencia,
     p_vitalidade: atributos.vitalidade,
     p_sorte: atributos.sorte,

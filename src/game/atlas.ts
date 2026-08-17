@@ -80,8 +80,17 @@ export function arteDaSkin(raridade: number): string {
 /**
  * Sprite do herói: a skin equipada, ou a pose quando não há skin.
  *
- * A pose só sobrevive sem skin porque as skins vieram numa pose única. Trocar
- * isso é acrescentar `sk-*-attack.png` ao pacote — o motor já pede a pose.
+ * As skins vieram numa pose única, então com skin equipada os três estados
+ * apontam para o mesmo arquivo. **Isso deixou de travar o boneco**: desde
+ * 2026-08-14 a pose com skin é resolvida por TRANSFORM, em
+ * `sprites.ts` (`deslocamentoDoHeroi`) — balanço de passo, avanço no golpe e
+ * pulinho na comemoração são gerados, não desenhados. Vale igual com e sem
+ * skin, e é o que consertou o relato "equipei a skin e o boneco travou".
+ *
+ * Arte de pose dedicada por skin (`sk-*-attack.png` e afins) continua sendo
+ * MELHORIA possível — nunca pré-requisito. Enquanto ela não existir no disco,
+ * não adianta apontar para cá: o teste do atlas confere tabela contra disco, e
+ * reprova, corretamente.
  */
 export function arteDoHeroi(pose: PoseHeroi, raridadeDaSkin: number | null): string {
   return raridadeDaSkin === null ? ARTE_POSE[pose] : arteDaSkin(raridadeDaSkin)
@@ -320,8 +329,18 @@ export function precarregar(relativos: Iterable<string>): void {
  * Chamado na troca de bioma: sem isso a subida de nível mostraria o cenário
  * novo em silhueta por um instante, que é justamente o quadro em que o jogador
  * está olhando.
+ *
+ * A SKIN ENTRA AQUI desde 2026-08-14, e é conserto de um defeito real: o
+ * aquecimento cobria props, inimigos e as três poses, e NENHUMA skin. Quem
+ * equipava caía na silhueta geométrica até o PNG decodificar — no exato quadro
+ * em que a única coisa que o jogador quer ver é a skin nova. O parâmetro é
+ * opcional para quem só quer a zona (e `null` significa "sem skin equipada").
  */
-export function precarregarBioma(bioma: number, assinatura: FormaInimigo): void {
+export function precarregarBioma(
+  bioma: number,
+  assinatura: FormaInimigo,
+  raridadeDaSkin: number | null = null,
+): void {
   precarregar([
     // `arteDoCenario` saiu do pré-carregamento junto com o uso: desde o mundo
     // aberto o chão é procedural, e o PNG de cenário era um fundo de tela fixa
@@ -331,6 +350,9 @@ export function precarregarBioma(bioma: number, assinatura: FormaInimigo): void 
     ...Object.values(ARTE_INIMIGO),
     ...Object.values(ARTE_INIMIGO_DANO),
     ...Object.values(ARTE_POSE),
+    // Só a equipada: aquecer as 8 seria baixar sete arquivos que o jogador não
+    // tem nenhum direito de ver.
+    ...(raridadeDaSkin === null ? [] : [arteDaSkin(raridadeDaSkin)]),
   ])
 }
 

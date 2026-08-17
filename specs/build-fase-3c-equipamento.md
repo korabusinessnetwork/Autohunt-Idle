@@ -49,9 +49,16 @@ de 3 peças. Sem tela de classe, em lugar nenhum.
    muito.
 7. **Skin nunca tem stat, em nenhuma raridade.** Verificação estrutural: a função que calcula
    poder não recebe nem consulta skin.
-8. Arma carrega **tipo de dano**: `fisico` ou `magico`.
+8. Arma carrega **tipo de dano**: ~~`fisico` ou `magico`~~ → **`fisico`, `destreza` ou `magico`**
+   (2026-08-14, ADR-005).
 9. **Força escala dano físico e Inteligência escala dano mágico** — o atributo que casa com a arma
-   conta inteiro, o outro conta pela metade.
+   conta inteiro, ~~o outro conta pela metade~~ → **os outros contam ZERO**, e há um terceiro canal
+   (Destreza, para arco e adaga).
+
+   > **Revertido pelo dono em 2026-08-14:** *"se ele usa cajado tem que dar dano mágico, logo se ele
+   > upar força não pode aumentar o dano"*. A meia-contribuição tornava a escolha de atributo morna
+   > — errar custava pouco, acertar rendia pouco. Ver `docs/08_DECISOES/adr-005-canais-de-dano-e-destreza.md`
+   > e `specs/destreza-canais-de-dano-e-heroi-animado.md`.
 10. Acessório pode ter **afinidade** com um tipo de dano; quando ela bate com a arma equipada,
     aquele acessório rende um **bônus mensurável**.
 11. O poder resultante entra no **mesmo cálculo de ciclo** que já credita XP e moeda — não existe
@@ -108,7 +115,7 @@ que a soma dos de 2**, e **bônus parcial não empilha entre conjuntos diferente
 | 6 | sim | `poder_do_item` cresce mais que linear; teste confirma o salto do topo maior que o da base |
 | 7 | sim | `Loadout` não tem campo de skin — teste estrutural; e `poder_de_ataque` filtra `slot in ('arma','acessorio1','acessorio2')` |
 | 8 | sim | coluna `tipo_dano` na arma, sorteada em `conceder_item` |
-| 9 | sim | atributo que casa conta inteiro, o outro pela metade; dois testes com o número exato |
+| 9 | sim | atributo que casa conta inteiro, ~~o outro pela metade~~ → **os outros zero** (2026-08-14); os dois testes que mediam a metade foram reescritos, e entraram os três canais |
 | 10 | sim | `+20%` no acessório cuja afinidade bate; teste comparando com e sem |
 | 11 | sim | o poder entra em `resolver_ciclos`, que já é o único caminho de crédito |
 | 12 | sim | conjunto sorteado só a partir de raridade 4 (épico) |

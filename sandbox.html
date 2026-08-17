@@ -29,8 +29,14 @@
       }
       h1 { margin: 0; font-size: 0.95rem; font-weight: 700; }
       #placar { font-size: 0.78rem; opacity: 0.8; font-variant-numeric: tabular-nums; }
+      /*
+        A margem automática saiu do seletor de botão e foi para o PRIMEIRO
+        botão. Valendo para todos, o segundo controle empurrava o primeiro para
+        longe e o cabeçalho se partia em dois blocos. Aplicada só ao primeiro,
+        ela empurra o grupo inteiro para a direita, que era a intenção original.
+      */
+      header > button:first-of-type { margin-inline-start: auto; }
       button {
-        margin-inline-start: auto;
         padding: 0.4rem 0.9rem;
         font: inherit;
         font-size: 0.8rem;
@@ -56,6 +62,14 @@
       <h1>Sandbox do mundo</h1>
       <span id="placar">…</span>
       <button id="modo" type="button">Você no comando</button>
+      <!--
+        O rótulo é reescrito por `rotularSkin()` no carregamento; o texto daqui é
+        só o estado inicial (`RARIDADES_DE_SKIN[0]` é `null`). Sem ESTE botão o
+        sandbox inteiro morria na linha do `addEventListener`, porque
+        `sandbox.ts` usa `!` no `querySelector` — e aí o placar ficava em "…"
+        para sempre, sem nada na tela dizendo o motivo.
+      -->
+      <button id="skin" type="button">Sem skin</button>
     </header>
 
     <main><canvas id="mundo"></canvas></main>

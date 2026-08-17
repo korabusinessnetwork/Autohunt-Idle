@@ -76,8 +76,9 @@ publicá-lo permitia prever o loot — ver `docs/07_APIS/` §6.
 
 ### `atributo_jogador`
 
-`forca`, `inteligencia`, `vitalidade`, `sorte`, mais `auto_alocar` — este último **morto desde
-2026-08-13**, sempre `false`. A auto-alocação saiu do jogo (ver `docs/03_REGRAS_DE_NEGOCIO/` §3), e
+`forca`, `destreza`, `inteligencia`, `vitalidade`, `sorte`, mais `auto_alocar` — este último
+**morto desde 2026-08-13**, sempre `false`. `destreza` entrou em 2026-08-14 com o canal de dano do
+arqueiro (`docs/03_REGRAS_DE_NEGOCIO/` §3), no mesmo formato das outras quatro. A auto-alocação saiu do jogo (ver `docs/03_REGRAS_DE_NEGOCIO/` §3), e
 a coluna ficou porque `montar_snapshot` e `exportar_meus_dados` a publicam; derrubá-la obrigaria a
 reescrever as duas por nada. `auto_alocar_atributos()` continua existindo pelo mesmo tipo de motivo
 — três RPCs a chamam com `perform` no level up —, mas o corpo dela hoje só garante que a linha de
@@ -91,7 +92,8 @@ atributo existe.
 | `raridade` | 1 (comum) a 10 (cósmico) |
 | `slot` | ocupado, ou `null` quando guardado. **O slot é sempre igual ao tipo** |
 | `fortificacao` | 0 a 15. **Nunca decresce** — não existe caminho no schema que reduza |
-| `tipo_dano`, `afinidade`, `conjunto_id` | sinergia e conjunto |
+| `tipo_dano`, `afinidade` | `fisico`, `destreza` ou `magico` — os três canais. `tipo_dano` decide qual atributo soma; `afinidade` decide a sinergia de +20% |
+| `conjunto_id` | um dos seis conjuntos, dois por canal. Só item épico (5) ou superior pertence a um |
 | `origem` | `mundo`, `mini_boss`, `dungeon`, `sintese`, `passe` |
 | `exclusivo_do_passe` | marcado por **um único insert** no schema inteiro |
 

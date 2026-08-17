@@ -135,11 +135,16 @@ begin
                         'XP coletado entra no total');
   perform public.checar((v_snap #>> '{jogador,nivel}')::bigint > 1, 'jogador subiu de nível');
 
-  -- Auto-alocação: quem nunca abriu a tela de atributos tem build coerente.
-  perform public.checar((v_snap #>> '{atributos,forca}')::integer > 0,
-                        'pontos foram auto-alocados');
-  perform public.checar((v_snap #>> '{atributos,pontosLivres}')::integer < 4,
-                        'quase nenhum ponto sobra sem gastar');
+  -- Quem nunca abriu a tela de atributos NÃO tem nada gasto: a auto-alocação
+  -- saiu do jogo em `20260829` e quem distribui é o jogador. Estas duas linhas
+  -- afirmavam o contrário e estavam vermelhas desde então — a fumaça só serve
+  -- se falhar quando o jogo muda, e não quando ela mesma envelhece.
+  perform public.checar((v_snap #>> '{atributos,forca}')::integer = 0,
+                        'nada é alocado sem o jogador mandar');
+  perform public.checar((v_snap #>> '{atributos,destreza}')::integer = 0,
+                        'a Destreza também nasce zerada');
+  perform public.checar((v_snap #>> '{atributos,pontosLivres}')::integer > 0,
+                        'subir de nível deixa ponto na mão');
 end $$;
 
 -- ---------------------------------------------------------------------------
@@ -396,6 +401,52 @@ begin
   -- A skin mais rara do jogo, equipada, não muda um único ponto de poder.
   perform public.checar(public.poder_de_ataque(v_uid) = v_antes,
                         'skin cósmica equipada não altera o poder de ataque');
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- O atributo casa com a arma, ou não conta
+--
+-- O pedido do dono desta rodada, exercitado contra o Postgres de verdade: com
+-- cajado na mão, Força não pode somar nada. Até `20260830` ela somava metade, e
+-- o espelho em TypeScript não prova isto — quem credita é esta função.
+-- ---------------------------------------------------------------------------
+\echo '== canal de dano =='
+do $$
+declare
+  v_uid   uuid := '99999999-9999-9999-9999-999999999999';
+  v_arma  uuid;
+  v_nu    integer;
+  v_errado integer;
+  v_certo  integer;
+begin
+  insert into auth.users (id, email) values (v_uid, 'c@exemplo.com');
+  perform set_config('autohunt.uid', v_uid::text, false);
+  perform public.iniciar_sessao();
+
+  delete from public.item_jogador where player_id = v_uid;
+  update public.atributo_jogador
+     set forca = 0, destreza = 0, inteligencia = 0 where player_id = v_uid;
+
+  -- Arma do canal de destreza: é a build do arqueiro que esta rodada criou.
+  insert into public.item_jogador (player_id, tipo, raridade, origem, tipo_dano)
+  values (v_uid, 'arma', 6, 'dungeon', 'destreza') returning id into v_arma;
+  perform public.equipar_item(v_arma);
+  v_nu := public.poder_de_ataque(v_uid);
+
+  update public.atributo_jogador set forca = 300, inteligencia = 300 where player_id = v_uid;
+  v_errado := public.poder_de_ataque(v_uid);
+  perform public.checar(v_errado = v_nu,
+                        'com arco na mão, Força e Inteligência somam exatamente zero');
+
+  update public.atributo_jogador
+     set forca = 0, inteligencia = 0, destreza = 300 where player_id = v_uid;
+  v_certo := public.poder_de_ataque(v_uid);
+  perform public.checar(v_certo > v_nu, 'com arco na mão, Destreza soma');
+
+  -- E o inverso, para o canal novo não virar o único que funciona.
+  update public.item_jogador set tipo_dano = 'fisico' where id = v_arma;
+  perform public.checar(public.poder_de_ataque(v_uid) = v_nu,
+                        'com espada na mão, Destreza some do mesmo jeito');
 end $$;
 
 -- ---------------------------------------------------------------------------

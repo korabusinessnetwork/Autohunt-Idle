@@ -8,7 +8,18 @@
 // spec e a fórmula dela discordavam em uma unidade; o critério 12 desempata com
 // um exemplo ("subir de 10 pra 11 custou 2 pontos"), e é a fórmula que vale.
 
-export const ATRIBUTOS = ['forca', 'inteligencia', 'vitalidade', 'sorte'] as const
+/**
+ * Os cinco atributos, na ordem em que a tela os lista.
+ *
+ * `forca` PRECISA vir antes de `destreza`: o andaime `distribuir` dos testes
+ * gasta saldo sempre no primeiro atributo empatado em menor nível, então a
+ * ordem desta lista é o que decide para onde vai o ponto quando todos valem o
+ * mesmo — e há teste ancorado nesse desempate.
+ *
+ * Os três primeiros são os canais de dano, na ordem de `TipoDano`
+ * (`lib/tipos.ts`); vitalidade e sorte são de suporte e fecham a lista.
+ */
+export const ATRIBUTOS = ['forca', 'destreza', 'inteligencia', 'vitalidade', 'sorte'] as const
 
 export type Atributo = (typeof ATRIBUTOS)[number]
 export type Atributos = Record<Atributo, number>
@@ -24,8 +35,16 @@ export type Atributos = Record<Atributo, number>
  */
 export const PONTOS_POR_NIVEL = 1
 
+/**
+ * A alocação vazia — e a forma recomendada de fabricar qualquer alocação
+ * (`{ ...atributosZerados(), forca: 10 }`), inclusive em teste.
+ *
+ * O literal é escrito à mão de propósito: como o retorno é tipado `Atributos`,
+ * acrescentar um atributo à lista acima e esquecer esta linha é erro de `tsc`,
+ * não bug de runtime. `Object.fromEntries` compilaria com a chave faltando.
+ */
 export function atributosZerados(): Atributos {
-  return { forca: 0, inteligencia: 0, vitalidade: 0, sorte: 0 }
+  return { forca: 0, destreza: 0, inteligencia: 0, vitalidade: 0, sorte: 0 }
 }
 
 /** Total de pontos que um jogador daquele nível já ganhou na vida. */

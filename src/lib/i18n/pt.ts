@@ -146,14 +146,25 @@ export const pt = {
   // --- Atributos ----------------------------------------------------------
   'atributos.titulo': 'Atributos',
   'atributos.pontosLivres': '{pontos} pontos livres',
+  // O efeito de cada atributo de dano cita as ARMAS, não o adjetivo do canal.
+  // "Dano físico" obrigava o jogador a descobrir sozinho que o martelo dele é
+  // físico; "Dano de espada e martelo" responde a pergunta que ele realmente
+  // tem — *este atributo mexe na minha arma?* — sem vocabulário novo. Isso
+  // passou a ser decisivo quando o atributo que não casa deixou de contar
+  // metade e passou a contar zero.
   'atributos.forca': 'Força',
-  'atributos.forca.efeito': 'Dano físico',
+  'atributos.forca.efeito': 'Dano de espada e martelo',
+  'atributos.destreza': 'Destreza',
+  'atributos.destreza.efeito': 'Dano de arco e adaga',
   'atributos.inteligencia': 'Inteligência',
-  'atributos.inteligencia.efeito': 'Dano mágico',
+  'atributos.inteligencia.efeito': 'Dano de cajado e varinha',
   'atributos.vitalidade': 'Vitalidade',
   'atributos.vitalidade.efeito': 'Aguenta mais antes de cair',
   'atributos.sorte': 'Sorte',
   'atributos.sorte.efeito': 'Chance de item melhor (chega com as dungeons)',
+  // Selo da linha do atributo que casa com a arma EQUIPADA. Minúsculo porque é
+  // aposto do nome ("Destreza · sua arma"), não título.
+  'atributos.suaArma': 'sua arma',
   'atributos.custoProximo': 'Próximo: {custo} pt',
   'atributos.subir': 'Subir {atributo}',
   'atributos.descer': 'Descer {atributo}',
@@ -283,14 +294,25 @@ export const pt = {
   'mochila.semStat': 'Skin não muda nenhum número — é só aparência.',
 
   // --- Tipo de dano, afinidade e conjunto ---------------------------------
-  'dano.fisico': 'Físico',
-  'dano.magico': 'Mágico',
+  // O canal de dano é chamado pelo NOME DO ATRIBUTO, não por um adjetivo. Com
+  // dois canais dava para conviver com dois vocabulários ("Físico" na peça,
+  // "Força" no painel); com três, o jogador teria de decorar uma tabela de
+  // tradução para saber o que upar. Assim "Tipo de dano: Destreza" já é a
+  // resposta inteira.
+  'dano.fisico': 'Força',
+  'dano.destreza': 'Destreza',
+  'dano.magico': 'Inteligência',
   'afinidade.combina': 'Combina com sua arma (+20%)',
   'afinidade.naoCombina': 'Não combina com sua arma',
   'conjunto.bruxa-caramelo': 'Conjunto da Bruxa Caramelo',
   'conjunto.cavaleiro-biscoito': 'Conjunto do Cavaleiro Biscoito',
   'conjunto.feiticeira-menta': 'Conjunto da Feiticeira Menta',
   'conjunto.brutamontes-nougat': 'Conjunto do Brutamontes Nougá',
+  // Os dois conjuntos de Destreza. Existem para que o arqueiro alcance o
+  // degrau de 6 peças igual às outras builds — sem eles, o canal novo nasceria
+  // com metade do teto de poder dos antigos.
+  'conjunto.arqueira-avela': 'Conjunto da Arqueira de Avelã',
+  'conjunto.ladina-amora': 'Conjunto da Ladina de Amora',
   'conjunto.pecas': '{pecas} de 6 peças',
   'conjunto.bonus2': 'Bônus de 2 peças ativo',
   'conjunto.bonus3': 'Conjunto completo — bônus cheio',

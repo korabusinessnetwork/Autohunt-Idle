@@ -363,6 +363,118 @@ function alturaDoSprite(raio: number): number {
  */
 const ALTURA_HEROI = 42
 
+// ---------------------------------------------------------------------------
+// Movimento procedural do herói
+//
+// POR QUE ISTO EXISTE: a arte veio com TRÊS poses de herói e UMA pose por skin.
+// Enquanto não havia skin equipada, trocar de PNG dava a ilusão de animação;
+// equipar qualquer skin colapsava os três estados num arquivo só e o boneco
+// parava de reagir — e a skin mais barata do jogo (`sk-base.png`) é byte a byte
+// igual à pose parada, então ela só desligava a animação sem trocar nada.
+//
+// A saída é movimento gerado por transform, que independe de quantos PNGs a
+// skin tem: o mesmo balanço vale com skin e sem skin. Arte de pose dedicada por
+// skin continua sendo melhoria possível, nunca pré-requisito (CLAUDE.md manda
+// adiar gasto enquanto o projeto é pré-receita).
+//
+// AS AMPLITUDES SÃO PEQUENAS DE PROPÓSITO, e vivem aqui em vez de `ajustes.ts`
+// (que exigiria migration por paridade) ou de `regras*.ts` (que cobraria um par
+// no Postgres que não deve existir): nada disto vale economicamente, é desenho.
+// ---------------------------------------------------------------------------
+
+/**
+ * Quanto o corpo sobe no meio do passo, em pixels de MUNDO.
+ *
+ * Três, e não mais: o balanço é referência de que o herói está andando, não
+ * acrobacia. Acima disso o boneco descola do chão e a leitura vira "flutuando".
+ */
+const AMPLITUDE_DO_BOB = 3
+
+/**
+ * Quanto o herói avança na direção do golpe, em pixels de MUNDO.
+ *
+ * DECISÃO CONSCIENTE, e o motivo de o número ser tão baixo: o golpe e o
+ * projétil nascem e são desenhados na posição REAL do herói (`mundo.ts`), que
+ * este deslocamento não toca. Manter o avanço em 3 px contra um arco de dezenas
+ * de pixels deixa a diferença abaixo do perceptível — o arco continua saindo da
+ * mão. A alternativa (empurrar o mesmo offset para dentro do golpe) foi
+ * descartada por duplicar a conta em dois arquivos para ganhar nada.
+ */
+const AVANCO_DO_ATAQUE = 3
+
+/** Pulinho da comemoração, em pixels de MUNDO. É o que dá o tom pastelão. */
+const ALTURA_DO_PULO = 4
+
+/**
+ * O que o herói está fazendo agora, para efeito de DESENHO.
+ *
+ * NÃO TEM CAMPO DE SKIN, e isso não é descuido: "skin nunca tem stat" é
+ * estrutural neste projeto, e a forma mais fácil de furar essa regra seria uma
+ * skin cósmica que pula mais alto que a comum. Sem o argumento, a regressão é
+ * impossível por construção — não há o que ler.
+ */
+export interface MovimentoDoHeroi {
+  pose: PoseHeroi
+  /**
+   * Quanto RESTA da pose corrente, de 1 (acabou de começar) a 0 (terminou).
+   *
+   * É "restante" e não "decorrido" para falar a mesma língua de
+   * `desenharGolpe`, que já recebe `vida / duração` com esse nome. Duas
+   * convenções de progresso no mesmo arquivo seria a próxima armadilha.
+   */
+  progresso: number
+  /** Onde o herói está no ciclo de passo, em CICLOS. Um passo inteiro = 1. */
+  faseDoPasso: number
+  /** Para que lado o herói olha. Só o sinal importa. */
+  olhandoX: number
+}
+
+/**
+ * Deslocamento de DESENHO do herói, em pixels de mundo.
+ *
+ * Puro e sem estado: quem guarda a fase é `mundo.ts`, quem guarda o tempo da
+ * pose também. Aqui só se converte "o que está acontecendo" em "quantos pixels
+ * para o lado e para cima".
+ *
+ * O resultado é INTEIRO por contrato. A escala do renderizador já é fracionária
+ * e `imageSmoothingEnabled` está desligado, então offset fracionário muda quais
+ * linhas do sprite somem a cada quadro e o detalhe interno "anda" sozinho — lê
+ * como sprite quebrado, que é pior que sprite parado.
+ */
+export function deslocamentoDoHeroi(movimento: MovimentoDoHeroi): { dx: number; dy: number } {
+  const { pose, progresso, faseDoPasso, olhandoX } = movimento
+
+  const restante = Number.isFinite(progresso) ? Math.min(1, Math.max(0, progresso)) : 0
+  // A onda nasce e morre em zero ao longo da pose, e por isso entrar e sair
+  // dela não produz salto — o pico fica no meio, onde o golpe acerta.
+  const arcoDaPose = Math.sin(Math.PI * (1 - restante))
+
+  // Valor absoluto do seno: o corpo sobe uma vez por passo e volta ao chão,
+  // nunca afunda. Como o seno é periódico, qualquer fase serve de entrada e o
+  // fim do ciclo emenda no começo sem descontinuidade.
+  const balanco = Number.isFinite(faseDoPasso)
+    ? Math.abs(Math.sin(Math.PI * faseDoPasso)) * AMPLITUDE_DO_BOB
+    : 0
+
+  const pulo = pose === 'comemorando' ? arcoDaPose * ALTURA_DO_PULO : 0
+  // O avanço é assinado por `olhandoX`, e NÃO pelo espelhamento do sprite: o
+  // espelho é interno a `desenharSprite` e acontece depois deste offset.
+  const avanco = pose === 'atacando' ? arcoDaPose * AVANCO_DO_ATAQUE * (olhandoX < 0 ? -1 : 1) : 0
+
+  return { dx: paraPixelDeMundo(avanco), dy: paraPixelDeMundo(-(balanco + pulo)) }
+}
+
+/**
+ * Arredonda para pixel de mundo inteiro.
+ *
+ * O `+ 0` não é enfeite: `Math.round` devolve `-0` para qualquer negativo
+ * pequeno, e `-0` faz "herói parado devolve exatamente zero" falhar num teste
+ * de igualdade estrita sem nada estar errado no desenho.
+ */
+function paraPixelDeMundo(valor: number): number {
+  return Number.isFinite(valor) ? Math.round(valor) + 0 : 0
+}
+
 export function desenharInimigo(
   ctx: CanvasRenderingContext2D,
   forma: FormaInimigo,
@@ -403,6 +515,12 @@ export function desenharInimigo(
 /**
  * Herói — corpo arredondado com a antena de estrela que o brief cita como a
  * camada trocável de skin.
+ *
+ * O deslocamento procedural entra nos DOIS ramos. O da silhueta geométrica não
+ * é enfeite: é ele que aparece nos primeiros quadros depois de equipar uma
+ * skin, enquanto o PNG novo ainda decodifica. Animar só o ramo do sprite faria
+ * o boneco travar exatamente no instante em que o jogador está olhando para a
+ * troca.
  */
 export function desenharHeroi(
   ctx: CanvasRenderingContext2D,
@@ -413,20 +531,33 @@ export function desenharHeroi(
   paleta: Paleta,
   pose: PoseHeroi = 'parado',
   raridadeDaSkin: number | null = null,
+  faseDoPasso = 0,
+  progressoDaPose = 0,
 ): void {
+  const { dx, dy } = deslocamentoDoHeroi({
+    pose,
+    progresso: progressoDaPose,
+    faseDoPasso,
+    olhandoX,
+  })
+
   const img = imagem(arteDoHeroi(pose, raridadeDaSkin))
   if (img) {
     // O sprite olha para a direita; espelhar é o que dá as duas direções sem
     // um segundo desenho.
     ctx.save()
     if (piscando) ctx.globalAlpha = 0.5
+    // O offset vai ANTES do sprite e por FORA do espelhamento (que mora dentro
+    // de `desenharSprite`): assim o avanço do ataque continua saindo do lado
+    // para onde o herói olha, e não do lado para onde o desenho foi virado.
+    ctx.translate(dx, dy)
     desenharSprite(ctx, img, x, y, ALTURA_HEROI, olhandoX < 0)
     ctx.restore()
     return
   }
 
   ctx.save()
-  ctx.translate(x, y)
+  ctx.translate(x + dx, y + dy)
   ctx.scale(olhandoX >= 0 ? 1 : -1, 1)
   if (piscando) ctx.globalAlpha = 0.5
 

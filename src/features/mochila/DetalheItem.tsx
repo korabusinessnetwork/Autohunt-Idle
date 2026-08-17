@@ -4,11 +4,10 @@ import { useSessao } from '../../context/SessaoContext'
 import { poderDoItem } from '../../game/regrasEquipamento'
 import { bonusDeFortificacao, FORTIFICACAO_MAXIMA } from '../../game/regrasFortificacao'
 import { nomeDaRaridade } from '../../game/regrasLoot'
-import type { ChaveI18n } from '../../lib/i18n'
-import type { ItemPossuido, TipoDano } from '../../lib/tipos'
+import type { ItemPossuido } from '../../lib/tipos'
 import { formatarNumero } from '../../utils/formato'
 import { nomeDoItem } from './nomeDoItem'
-import { chaveDaRaridade } from './rotulos'
+import { chaveDaRaridade, ROTULO_CONJUNTO, ROTULO_DANO } from './rotulos'
 import './DetalheItem.css'
 
 // "Ver atributos" de UMA peça (pedido do dono, 2026-08-13).
@@ -27,17 +26,9 @@ import './DetalheItem.css'
 // não uma fórmula paralela só para mostrar na tela. Número de tela que diverge
 // do número de jogo é pior do que número nenhum.
 
-const ROTULO_DANO: Record<TipoDano, ChaveI18n> = {
-  fisico: 'dano.fisico',
-  magico: 'dano.magico',
-}
-
-const ROTULO_CONJUNTO: Record<string, ChaveI18n> = {
-  'bruxa-caramelo': 'conjunto.bruxa-caramelo',
-  'cavaleiro-biscoito': 'conjunto.cavaleiro-biscoito',
-  'feiticeira-menta': 'conjunto.feiticeira-menta',
-  'brutamontes-nougat': 'conjunto.brutamontes-nougat',
-}
+// As tabelas de canal de dano e de conjunto moram em `rotulos.ts`, junto com as
+// de raridade, tipo e slot: eram cópias locais aqui e em `AbaEquipamento.tsx`, e
+// a mesma peça corria o risco de ser descrita de dois jeitos nas duas telas.
 
 interface Props {
   item: ItemPossuido

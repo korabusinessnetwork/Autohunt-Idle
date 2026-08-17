@@ -14,12 +14,12 @@ import {
 } from '../../game/regrasFortificacao'
 import type { ChaveI18n } from '../../lib/i18n'
 import { equiparItem, fortificarItem } from '../../lib/services/itemService'
-import type { ItemPossuido, SlotEquipamento, TipoDano } from '../../lib/tipos'
+import type { ItemPossuido, SlotEquipamento } from '../../lib/tipos'
 import { formatarNumero } from '../../utils/formato'
 import { useTelaEstreita } from '../../utils/useTelaEstreita'
 import { useArrasteDeItem } from './ArrasteDeItem'
 import { nomeDoItem } from './nomeDoItem'
-import { chaveDaRaridade, ROTULO_SLOT } from './rotulos'
+import { chaveDaRaridade, ROTULO_CONJUNTO, ROTULO_DANO, ROTULO_SLOT } from './rotulos'
 import './AbaEquipamento.css'
 
 // Equipamento: 6 slots por parte do corpo (arma, capacete, armadura, luva,
@@ -38,10 +38,10 @@ import './AbaEquipamento.css'
 // A skin aparece no mesmo lugar, mas com o aviso de que não muda número: é
 // justamente o ponto que o critério 5 protege.
 
-const ROTULO_DANO: Record<TipoDano, ChaveI18n> = {
-  fisico: 'dano.fisico',
-  magico: 'dano.magico',
-}
+// `ROTULO_DANO` e `ROTULO_CONJUNTO` vinham copiados aqui e em `DetalheItem.tsx`.
+// Passaram para `rotulos.ts`, que existe exatamente para a mochila e o painel de
+// equipamento não divergirem — com três canais de dano, uma cópia esquecida
+// deixaria a peça de Destreza sem tipo de dano só em uma das duas telas.
 
 const ERRO_FORT: Record<string, ChaveI18n> = {
   TETO_ATINGIDO: 'fort.erro.TETO_ATINGIDO',
@@ -49,13 +49,6 @@ const ERRO_FORT: Record<string, ChaveI18n> = {
   SEM_PEDRA: 'fort.erro.SEM_PEDRA',
   ITEM_NAO_FORTIFICAVEL: 'fort.erro.ITEM_NAO_FORTIFICAVEL',
   FORTIFICACAO_FALHOU: 'fort.erro.FORTIFICACAO_FALHOU',
-}
-
-const ROTULO_CONJUNTO: Record<string, ChaveI18n> = {
-  'bruxa-caramelo': 'conjunto.bruxa-caramelo',
-  'cavaleiro-biscoito': 'conjunto.cavaleiro-biscoito',
-  'feiticeira-menta': 'conjunto.feiticeira-menta',
-  'brutamontes-nougat': 'conjunto.brutamontes-nougat',
 }
 
 // A lista canônica de slots de poder vive nas regras; a skin é acrescentada

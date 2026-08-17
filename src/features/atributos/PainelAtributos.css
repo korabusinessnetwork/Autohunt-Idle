@@ -66,6 +66,37 @@
 .atributos__info {
   display: flex;
   flex-direction: column;
+  /* Sem isto, um nome longo empurra a coluna dos botões para fora do cartão em
+     vez de quebrar — a coluna `1fr` do grid tem largura mínima automática. */
+  min-width: 0;
+}
+
+/* Nome e selo na MESMA linha: o selo é aposto do nome ("Destreza · sua arma"),
+   e pôr ele numa linha própria custaria altura em cinco linhas de uma vez. */
+.atributos__nome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--espaco-1) var(--espaco-2);
+}
+
+/*
+ * O selo da arma equipada. Usa a cor de recompensa, a mesma de ouro e XP, porque
+ * é isso que ele diz: o ponto gasto nesta linha rende: o das outras, não.
+ */
+.atributos__selo {
+  padding: 0 var(--espaco-1);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: lowercase;
+  color: var(--cor-recompensa);
+  border: 2px solid var(--cor-recompensa);
+  border-radius: var(--raio);
+  white-space: nowrap;
+}
+
+.atributos__linha--daArma {
+  border-color: var(--cor-recompensa);
 }
 
 .atributos__efeito {
@@ -124,10 +155,31 @@
   gap: var(--espaco-2);
 }
 
+/* =========================================================================
+ * ADAPTAÇÕES DE TELA
+ *
+ * Todo `@media` mora aqui no fim, na ordem do menos para o mais restritivo:
+ * media query não ganha especificidade por ser media query, então uma
+ * compactação escrita antes da regra larga da mesma classe simplesmente perde
+ * (docs/02_DESIGN_SYSTEM/menus-sem-rolagem.md).
+ *
+ * Os cinco atributos precisam estar TODOS visíveis ao mesmo tempo: decidir onde
+ * gastar ponto é uma comparação, e comparar exige ver os cinco de uma vez. Por
+ * isso nada aqui esconde linha, e em lugar nenhum se paga com `overflow-y`.
+ * ========================================================================= */
+
 /*
- * Telas baixas: comprime, não rola. São cinco atributos e eles precisam estar
- * TODOS visíveis ao mesmo tempo — a decisão de onde gastar ponto é uma
- * comparação, e comparar exige ver os cinco de uma vez.
+ * Telas baixas: comprime, não rola.
+ *
+ * A PRIMEIRA saída de `menus-sem-rolagem.md` ("vira largura"), aplicada aqui
+ * DENTRO da linha e não à lista: o `Próximo: N pt` ocupava uma faixa de largura
+ * inteira embaixo das duas colunas, enquanto ao lado do stepper sobravam
+ * 112×39px vazios em CADA linha. Subindo o custo para a coluna do stepper, a
+ * linha cai de 68px para 59px — e ela é o item que mais se repete no cartão.
+ * De quebra fica mais claro: o preço do `+` passa a morar embaixo do `+`.
+ *
+ * Vale para toda tela baixa, com ou sem largura para a grade de duas colunas:
+ * no celular deitado a grade já está em uso e ainda assim faltava altura.
  */
 @media (max-height: 52rem) {
   .atributos__cartao {
@@ -141,6 +193,23 @@
 
   .atributos__linha {
     padding: var(--espaco-1) var(--espaco-2);
+  }
+
+  /* `span 2` e não `1 / -1`: índice negativo conta a partir do fim do grid
+     EXPLÍCITO, e a linha não declara `grid-template-rows`. Ali `-1` resolve para
+     a própria linha 1, o item ocupa uma faixa só, e a regra não faz nada — em
+     silêncio, sem erro no console. (No custo o `1 / -1` funciona porque
+     `grid-template-columns` existe.) Sem este `span`, o custo desce para uma
+     faixa nova e a economia acima não acontece. */
+  .atributos__info {
+    grid-row: 1 / span 2;
+  }
+
+  /* `nowrap` porque a coluna é `auto`: se o custo quebrasse em duas linhas, ele
+     devolveria de volta a altura que esta regra veio economizar. */
+  .atributos__custo {
+    grid-column: 2;
+    white-space: nowrap;
   }
 
   .atributos__explicacao,
@@ -162,15 +231,28 @@
   .atributos__valor {
     font-size: 1.1rem;
   }
+
+  .atributos__selo {
+    font-size: 0.65rem;
+  }
 }
 
 /*
- * Celular deitado: sobra largura e falta altura. Então o painel USA a largura —
- * fica mais largo, os cinco atributos vão para duas colunas e os botões para
- * uma fileira. Os cinco continuam visíveis ao mesmo tempo, que é o ponto: a
- * decisão de onde gastar ponto é uma comparação.
+ * SOBRA LARGURA E FALTA ALTURA — notebook comum, monitor baixo, celular
+ * deitado. A primeira das três saídas de `menus-sem-rolagem.md`: lista de
+ * tamanho fechado (e o documento cita literalmente "5 atributos") vira GRADE, e
+ * o que ia crescer na vertical passa a usar a horizontal.
+ *
+ * Duas colunas cortam a lista de cinco linhas para três — quase metade da
+ * altura. Isto vale a partir de 52rem, e não só no celular deitado, porque o
+ * estouro não começou com o quinto atributo: com quatro, um notebook de 700px
+ * já ficava a poucos pixels de cortar os botões dentro do `overflow: hidden` do
+ * cartão — e cartão cortado num `aria-modal` prende o jogador sem saída.
+ *
+ * O `min-width` não é enfeite: sem ele, a mesma regra cairia no celular EM PÉ,
+ * onde duas colunas espremem o nome do atributo até sobrar uma letra.
  */
-@media (max-height: 34rem) {
+@media (max-height: 52rem) and (min-width: 40rem) {
   .atributos__cartao {
     width: min(42rem, 100%);
   }
@@ -187,5 +269,90 @@
 
   .atributos__acoes > * {
     flex: 1;
+  }
+}
+
+/*
+ * FALTA LARGURA E ALTURA — celular em pé (o iPhone SE é o caso limite: ~553px
+ * de área útil). A grade de duas colunas não é saída aqui: não há largura, e é
+ * por isso que a regra de cima pede `min-width: 40rem`.
+ *
+ * MEDIDO, não estimado. Os três botões numa fileira só devolvem 43px — e a
+ * conta real a 375×553 era 563px de conteúdo dentro de um cartão de 521px. Ou
+ * seja: os botões em fileira sozinhos NÃO davam conta, e como o cartão é
+ * `overflow: hidden` dentro de um `aria-modal`, o que sobrava cortado eram
+ * justamente Salvar / Zerar / Fechar — o jogador ficava preso sem saída.
+ *
+ * Os 42px que faltavam saíram de duas fontes: o custo virando largura (regra
+ * geral de tela baixa, lá em cima) e o respiro cedendo mais 4px por junta,
+ * aqui. Medido depois: 491px de conteúdo em 521px de cartão.
+ *
+ * Nada some: nome, selo, efeito, valor, custo e os cinco atributos continuam
+ * todos na tela ao mesmo tempo — decidir onde gastar ponto é uma comparação, e
+ * comparar exige ver os cinco de uma vez.
+ */
+@media (max-height: 52rem) and (max-width: 40rem) {
+  .atributos__cartao {
+    gap: var(--espaco-1);
+    padding: var(--espaco-2);
+  }
+
+  .atributos__acoes {
+    flex-direction: row;
+    gap: var(--espaco-1);
+  }
+
+  .atributos__acoes > * {
+    flex: 1;
+  }
+
+  /* Vence `.botao` por especificidade (0,2,0 contra 0,1,0). Não disputa com o
+     bloco "modo apertado" de `global.css`: aquele só vale de `34rem` para
+     baixo, e o celular EM PÉ tem 553px. Quem disputa com ele é o último bloco
+     deste arquivo — ver a nota de especificidade lá. */
+  .atributos__acoes .botao {
+    padding: var(--espaco-2) var(--espaco-1);
+  }
+}
+
+/*
+ * CELULAR DEITADO — o caso mais apertado do jogo (812×375: sobram 343px de
+ * cartão). Aqui a grade de duas colunas JÁ está em uso e o custo JÁ subiu para
+ * a coluna do stepper, e ainda faltavam 53px. É a terceira saída, e ela cede a
+ * moldura na ordem em que ela dói menos: o respiro entre os blocos, a altura
+ * dos três botões de ação (que ficam com ~220px de largura cada nesta tela, e
+ * portanto não perdem alvo de toque útil ao encolher só na vertical) e o
+ * respiro interno de cada linha.
+ *
+ * A folga fica em ~23px, e ela é proposital: `.atributos__erro` só existe
+ * quando o salvamento é recusado, e ele precisa caber sem cortar os botões
+ * justamente na hora em que o jogador mais precisa deles.
+ *
+ * O que NÃO cede, deliberadamente: o `−`/`+` continua com 1,75rem (encolher o
+ * alvo de toque de um botão que se aperta muitas vezes seguidas é o pior lugar
+ * para economizar pixel), e o texto de efeito de cada atributo continua na
+ * tela. `menus-sem-rolagem.md` permite tirar subtítulo neste degrau, mas o
+ * efeito aqui não é enfeite: é o dado que responde "para que serve Destreza?"
+ * na única tela onde essa pergunta se decide.
+ *
+ * ESPECIFICIDADE DE 3, e não de 1: o bloco "modo apertado" de `global.css`
+ * usa `[role='dialog'] > [class*='__cartao']` (0,2,0) nesta MESMA consulta de
+ * `34rem`, e ele não perde nem por ordem — ao contrário do que dizem o
+ * comentário dele e `menus-sem-rolagem.md`, `global.css` é o ÚLTIMO a entrar,
+ * porque `main.tsx` importa `./App` antes de `./styles/global.css` e módulo ES
+ * avalia em profundidade. Medido no navegador: painel na folha 5, global na 24.
+ * Uma regra de classe simples aqui seria vencida em silêncio.
+ */
+@media (max-height: 34rem) {
+  .atributos[role='dialog'] > .atributos__cartao {
+    gap: var(--espaco-1);
+  }
+
+  .atributos[role='dialog'] .atributos__linha {
+    padding: 2px var(--espaco-2);
+  }
+
+  .atributos[role='dialog'] .atributos__acoes .botao {
+    padding: var(--espaco-1) var(--espaco-2);
   }
 }

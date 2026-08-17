@@ -14,6 +14,8 @@ import {
   definirVitalidadeMaxima,
   mapaAtual,
   ninhosDoMapa,
+  poseDoHeroi,
+  progressoDaPose,
   proporcaoDeVida,
   type EstadoMundo,
   type Inimigo,
@@ -433,6 +435,116 @@ describe('o auto continua sendo auto', () => {
     }
 
     expect(acertou).toBe(true)
+  })
+
+  it('o ciclo de passo avança nos DOIS modos', () => {
+    // O caso que regride calado: a fase é o que anima o boneco, e enganchá-la
+    // na intenção do jogador funcionaria em todo teste manual e falharia no
+    // auto — que é o modo vendido —, porque `definirModo` força intenção parada
+    // e `definirIntencao` recusa input enquanto o auto está ligado.
+    for (const modo of ['manual', 'auto'] as const) {
+      const estado = criarMundo(8, 1)
+      definirModo(estado, modo)
+      // A mesma intenção nos dois: no manual ela move o herói, no auto ela é
+      // recusada de propósito e quem move é o piloto.
+      definirIntencao(estado, { dx: 1, dy: 0, miraX: null, miraY: null, atirando: false })
+
+      let balancou = false
+      for (let t = 0; t < 3; t += 1 / 60) {
+        avancarMundo(estado, 1 / 60)
+        if (estado.faseDoPasso > 0) balancou = true
+      }
+
+      expect(balancou, modo).toBe(true)
+    }
+  })
+})
+
+describe('o boneco anda quando anda, e para quando para', () => {
+  /** Um mapa vazio: sem inimigo, ninguém empurra nem fere o herói. */
+  function mundoSemNinguem(): EstadoMundo {
+    const estado = criarMundo(8, 1)
+    estado.inimigos = []
+    estado.ninhos = []
+    return estado
+  }
+
+  const PARADA = { dx: 0, dy: 0, miraX: null, miraY: null, atirando: false }
+
+  it('parar no meio da passada assenta o ciclo no zero', () => {
+    // Sem isto o herói ficaria permanentemente alguns pixels no ar, numa altura
+    // diferente a cada vez que parasse — e "parado" deixaria de ser uma pose só.
+    const estado = mundoSemNinguem()
+    definirIntencao(estado, { dx: 1, dy: 0, miraX: null, miraY: null, atirando: false })
+    correr(estado, 0.5)
+    expect(estado.faseDoPasso, 'o herói nem chegou a andar').toBeGreaterThan(0)
+
+    definirIntencao(estado, PARADA)
+    correr(estado, 2)
+
+    expect(estado.faseDoPasso).toBe(0)
+  })
+
+  it('empurrar a parede não faz o herói andar no lugar', () => {
+    // `mover` continua sendo chamado todo quadro contra a borda: é o `limitar`
+    // que trava a posição, não o chamador. Se a fase avançasse pela intenção em
+    // vez do deslocamento real, o boneco pisaria eternamente no canto do mapa.
+    const estado = mundoSemNinguem()
+    estado.heroiX = 16
+    estado.heroiY = 16
+    definirIntencao(estado, { dx: -1, dy: -1, miraX: null, miraY: null, atirando: false })
+
+    correr(estado, 2)
+
+    expect(estado.faseDoPasso).toBe(0)
+    expect(estado.heroiX).toBe(16)
+    expect(estado.heroiY).toBe(16)
+  })
+
+  it('morrer não dispara um ciclo de caminhada', () => {
+    // Zerar a vitalidade devolve o herói à entrada. Um ciclo de passo derivado
+    // de delta de posição entre quadros leria esse teleporte como uma corrida
+    // gigante, e o boneco surtaria justamente no quadro da volta.
+    const estado = criarMundo(3, 1)
+    definirIntencao(estado, PARADA)
+    encostarInimigoNoHeroi(estado)
+    estado.heroiVida = 1
+
+    avancarMundo(estado, 1 / 60)
+
+    expect(estado.heroiX).toBe(entradaDoMapa().x)
+    expect(estado.faseDoPasso).toBe(0)
+  })
+
+  it('trocar de mapa chega parado', () => {
+    const estado = mundoSemNinguem()
+    definirIntencao(estado, { dx: 1, dy: 0, miraX: null, miraY: null, atirando: false })
+    correr(estado, 0.5)
+    expect(estado.faseDoPasso).toBeGreaterThan(0)
+
+    definirMapa(estado, 4)
+
+    expect(estado.faseDoPasso).toBe(0)
+  })
+
+  it('o tempo restante da pose acompanha a pose escolhida', () => {
+    // Duas verdades sobre o mesmo tempo é o defeito que esta função existe para
+    // impedir: quem desenha não pode repetir as durações por conta própria.
+    const estado = criarMundo(4, 1)
+    expect(progressoDaPose(estado)).toBe(0)
+
+    estado.poseComemoracao = 0.5
+    expect(progressoDaPose(estado)).toBeCloseTo(1, 5)
+
+    // Ataque em cima de comemoração: a precedência é a mesma de `poseDoHeroi`,
+    // senão o desenho misturaria o tempo de uma pose com o gesto da outra.
+    estado.poseAtaque = 0.09
+    expect(poseDoHeroi(estado)).toBe('atacando')
+    expect(progressoDaPose(estado)).toBeCloseTo(0.5, 5)
+
+    // E nunca passa de 1, mesmo com um temporizador maior que a duração.
+    estado.poseAtaque = 99
+    expect(progressoDaPose(estado)).toBe(1)
   })
 })
 

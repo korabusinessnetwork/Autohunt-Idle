@@ -8,10 +8,28 @@
 // Skin não aparece em nenhuma função deste arquivo, de propósito: é assim que
 // "skin nunca tem stat" deixa de ser promessa e vira propriedade estrutural.
 
-import type { Atributos } from './regrasAtributos'
+import type { TipoDano } from '../lib/tipos'
+import type { Atributo, Atributos } from './regrasAtributos'
 import { bonusDeFortificacao } from './regrasFortificacao'
 
-export type TipoDano = 'fisico' | 'magico'
+// `TipoDano` era declarado AQUI também, com os dois canais antigos. As duas
+// uniões nunca se encontravam num limite de tipo — nada neste arquivo recebia a
+// de `lib/tipos` —, então widenar uma e esquecer a outra compilava, rodava e
+// passava nos testes. Agora existe uma só, e a divergência virou impossível.
+
+/**
+ * O atributo que escala cada canal de dano.
+ *
+ * Tabela, e não `if`/ternário: com três canais um ternário aninhado esconderia
+ * o caso que falta, enquanto o `Record<TipoDano, …>` não compila se um canal
+ * novo entrar em `TipoDano` sem ganhar atributo aqui. É o mesmo motivo pelo
+ * qual o `case` do Postgres cobre os três explicitamente.
+ */
+export const ATRIBUTO_DO_DANO: Record<TipoDano, Atributo> = {
+  fisico: 'forca',
+  destreza: 'destreza',
+  magico: 'inteligencia',
+}
 
 /**
  * Os seis slots que contribuem para o poder, um por parte do corpo
@@ -121,7 +139,7 @@ export interface DetalhePoder {
   arma: number
   /** Contribuição somada das outras peças, já com sinergia. */
   pecas: number
-  /** Contribuição dos atributos, já ponderada pelo tipo de dano da arma. */
+  /** Contribuição dos atributos — só a do atributo que casa com a arma. */
   atributos: number
   multiplicadorConjunto: number
   /** Quantas peças tiveram a afinidade batendo com a arma. */
@@ -132,17 +150,24 @@ export interface DetalhePoder {
 /**
  * Poder de ataque a partir do loadout e dos atributos.
  *
- * Força escala dano físico e Inteligência escala dano mágico (critério 12 da
- * spec de origem): o atributo que casa com a arma conta inteiro, o outro conta
- * pela metade — o suficiente para uma build auto-alocada continuar viável sem
- * apagar a diferença de quem monta o loadout de propósito.
+ * **O atributo que casa com a arma conta inteiro; os outros contam ZERO.** Até
+ * 2026-08-14 o atributo do outro canal ainda entrava pela metade, herança da
+ * época em que os pontos eram distribuídos automaticamente e uma build precisava
+ * sobreviver sozinha. Com alocação manual isso virou o oposto do que o jogador
+ * espera: quem empunhava cajado via o dano subir ao upar Força, e a tela dizia
+ * que o cajado era mágico. Meio ponto de dano não paga uma regra que mente.
+ *
+ * A consequência aceita: trocar de arma para outro canal zera a contribuição de
+ * atributo até o respec. O respec é livre e sem penalidade, e é justamente por
+ * isso que dá para ser tão duro aqui.
  */
 export function calcularPoderDeAtaque(loadout: Loadout, atributos: Atributos): DetalhePoder {
   const arma = loadout.arma ?? null
+  // Sem arma o herói soca, e soco é físico — o mesmo `coalesce(…, 'fisico')` do
+  // Postgres. Sem este padrão, jogador novo teria atributo nenhum contando.
   const tipoDano: TipoDano = arma?.tipoDano ?? 'fisico'
 
-  const principal = tipoDano === 'fisico' ? atributos.forca : atributos.inteligencia
-  const secundario = tipoDano === 'fisico' ? atributos.inteligencia : atributos.forca
+  const poderAtributos = atributos[ATRIBUTO_DO_DANO[tipoDano]]
 
   const poderArma = arma ? poderDoItem(arma.raridade, arma.fortificacao) : 0
 
@@ -162,7 +187,6 @@ export function calcularPoderDeAtaque(loadout: Loadout, atributos: Atributos): D
     }
   }
 
-  const poderAtributos = principal + Math.floor(secundario / 2)
   const multiplicador = multiplicadorDeConjunto(loadout)
 
   return {

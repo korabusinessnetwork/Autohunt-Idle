@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { atributosZerados } from './regrasAtributos'
 import {
   TETO_ANUNCIO_DIARIO_MIN,
   TETO_ASSINANTE_MIN,
@@ -87,7 +88,10 @@ describe('resolução de ciclos', () => {
 })
 
 describe('efeito dos atributos no farm (specs/ranking-global.md, critério 8)', () => {
-  const zerados = { forca: 0, inteligencia: 0, vitalidade: 0, sorte: 0 }
+  // Da função, nunca de um literal à mão: um atributo novo na lista não pode
+  // exigir edição em cada teste — e um literal incompleto vira `undefined`
+  // dentro da conta, que o vitest sozinho não denuncia.
+  const zerados = atributosZerados()
 
   it('Vitalidade aumenta a Vitalidade máxima', () => {
     expect(vitalidadeMaxima(1, 0)).toBe(110)
@@ -104,29 +108,26 @@ describe('efeito dos atributos no farm (specs/ranking-global.md, critério 8)', 
     expect(comVitalidade.ciclosPerdidos).toBeLessThan(semVitalidade.ciclosPerdidos)
   })
 
-  it('Força e Inteligência aumentam o rendimento por ciclo', () => {
+  it('o atributo de ataque aumenta o rendimento por ciclo', () => {
     const semAtaque = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, zerados)
-    const comAtaque = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, {
-      ...zerados,
-      forca: 16,
-      inteligencia: 16,
-    })
+    const comAtaque = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, { ...zerados, forca: 16 })
 
     expect(comAtaque.xp).toBeGreaterThan(semAtaque.xp)
     expect(comAtaque.moeda).toBeGreaterThan(semAtaque.moeda)
   })
 
-  it('sem arma equipada, Força pesa mais que Inteligência', () => {
-    // A separação chegou com `specs/equipamento-e-poder.md`: o atributo que
-    // casa com o tipo de dano conta inteiro, o outro conta pela metade. Sem
-    // arma, o tipo padrão é físico — então Força é o principal.
+  it('sem arma equipada, só Força rende — Destreza e Inteligência rendem NADA', () => {
+    // Sem arma o herói soca, e soco é físico. Desde 2026-08-14 o atributo do
+    // canal conta inteiro e os outros contam ZERO (antes entravam pela metade),
+    // então isto deixou de ser "pesa mais" e virou "é o único que pesa".
+    const base = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, zerados)
     const soForca = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, { ...zerados, forca: 16 })
-    const soInteligencia = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, {
-      ...zerados,
-      inteligencia: 16,
-    })
 
-    expect(soForca.xp).toBeGreaterThan(soInteligencia.xp)
+    for (const atributo of ['destreza', 'inteligencia'] as const) {
+      const so = resolverCiclos(1, vitalidadeMaxima(1, 0), 10, 1, { ...zerados, [atributo]: 16 })
+      expect(so.xp, atributo).toBe(base.xp)
+      expect(soForca.xp).toBeGreaterThan(so.xp)
+    }
   })
 
   it('o poder de ataque do loadout substitui a conta por atributo', () => {

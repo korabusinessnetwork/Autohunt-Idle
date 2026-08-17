@@ -49,9 +49,22 @@ vaze por omissão reprova.
 
 | RPC | Parâmetros | Por que pode ter parâmetro |
 |---|---|---|
-| `redistribuir_atributos(forca, inteligencia, vitalidade, sorte)` | a distribuição desejada | É escolha, e o servidor confere o custo total contra os pontos ganhos |
+| `redistribuir_atributos(forca, destreza, inteligencia, vitalidade, sorte)` | a distribuição desejada | É escolha, e o servidor confere o custo total contra os pontos ganhos |
 | `definir_apelido(apelido)` | o apelido | Exige `identidade_verificada`; colisão é decidida pelo índice único |
 | `ranking_global()` | — | Devolve o top e a própria linha. **Nunca `player_id` de terceiro** |
+
+> **`redistribuir_atributos` mudou de aridade em 2026-08-14** (4 → 5 parâmetros, com a Destreza).
+> A migration **derruba a versão de quatro** antes de criar a de cinco, e isso não é limpeza: no
+> Postgres, `create or replace` com aridade diferente cria uma **sobrecarga**, e a antiga
+> continuaria concedida a `authenticated`. Daria para alocar Destreza pela RPC nova e em seguida
+> chamar a de quatro — que soma o custo de só quatro atributos, aprova, e não zera a Destreza no
+> upsert. Pontos de atributo de graça, repetível, por uma chamada REST direta. O `grant` é **por
+> assinatura**: sem reconceder a de cinco, salvar atributo pararia de funcionar inteiro.
+
+`canal_historico_da_arma(id)` existe no schema mas **não é alcançável pelo jogador** — é a gêmea em
+SQL do hash de `src/game/armas.ts`, usada uma única vez pela migration de reclassificação. O
+`revoke` dela é obrigatório: as *default privileges* do Supabase concedem `execute` por omissão, e
+a lista fechada de RPCs de `scripts/conferir-supabase.sql` reprova qualquer nome a mais.
 
 ### Itens
 

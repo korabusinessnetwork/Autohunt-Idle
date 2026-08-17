@@ -80,11 +80,15 @@ with verificacoes as (
          'farm_state.contador_sorteio'
 
   union all
+  -- Vinte, e não vinte e uma: `reativar_auto_alocacao` foi derrubada junto com a
+  -- auto-alocação (`20260829`) e este número ficou para trás, contradizendo a
+  -- lista nominal da checagem 3 logo acima. Contagem e lista precisam bater —
+  -- se divergirem, uma das duas passa a aprovar o que a outra reprova.
   select 7, 'EXECUTE não é concedido por omissão',
          (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
            where n.nspname = 'public'
-             and has_function_privilege('authenticated', p.oid, 'execute')) = 21,
-         'só as 21 do contrato'
+             and has_function_privilege('authenticated', p.oid, 'execute')) = 20,
+         'só as 20 do contrato'
 
   -- ---- Progressão e admin não são escritos pelo jogador --------------------
   union all
