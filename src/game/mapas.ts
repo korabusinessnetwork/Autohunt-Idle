@@ -19,14 +19,29 @@
 import { BIOMAS, TOTAL_BIOMAS, type Bioma } from './biomas'
 import type { EspecieInimigo } from './mundo'
 
-/** Um mapa a cada 10 níveis. */
-export const NIVEIS_POR_MAPA = 10
+/**
+ * Um mapa a cada 5 níveis.
+ *
+ * ERA 10, e o número não foi escolhido de novo quando o catálogo dobrou — foi
+ * essa omissão que o dono viu na tela como "os mapas não mudam". Com 8 mapas, 10
+ * níveis cada, o jogo inteiro aparecia até o nível 80. Com 16 e o mesmo passo, o
+ * nível 80 passou a mostrar METADE, e a fábrica morta só começava no 81.
+ *
+ * A 5, os dezesseis voltam a caber nos mesmos 80 níveis que a primeira leva
+ * cobria. O alcance é o que foi preservado; o passo é o que cedeu.
+ *
+ * E não há nada a proteger aqui: mapa não credita, e o cadeado existe para dar
+ * ritmo de descoberta, não para impedir trapaça (ver `PainelMapa.tsx`). Quando a
+ * escolha é entre ritmo e o jogador não ver a arte que existe, o Princípio nº1
+ * decide — a tela precisa entregar o jogo, não racioná-lo.
+ */
+export const NIVEIS_POR_MAPA = 5
 
 /**
- * A primeira leva: 8 mapas, cobrindo até o nível 80.
+ * Os dezesseis mapas, cobrindo até o nível 80.
  *
  * Nível continua infinito (core): passar de 80 não trava nada, o jogador
- * simplesmente segue no mapa 8 até a próxima leva de mapas entrar. É conteúdo
+ * simplesmente segue no mapa 16 até a próxima leva de mapas entrar. É conteúdo
  * que falta, não teto que existe.
  */
 export const TOTAL_MAPAS = TOTAL_BIOMAS
@@ -146,6 +161,50 @@ export function poolDoMapa(
   mapa: Mapa,
 ): readonly EspecieInimigo[] {
   return [...base, mapa.bioma.assinatura]
+}
+
+/**
+ * Que fatia dos que nascem é o assinatura do bioma.
+ *
+ * SORTEIO IGUAL NÃO SERVE, e a conta mostra por quê: com 5 base mais 1
+ * assinatura, o bicho exclusivo do lugar saía em 16% dos nascimentos — ou seja,
+ * **84% do que aparecia na tela era idêntico nos dezesseis mapas**. Medido, não
+ * estimado. Viajar trocava o chão e as paredes e deixava a fauna igual, que é a
+ * metade da queixa "os monstros não mudam".
+ *
+ * A 45% o assinatura passa a ser, sozinho, o mais comum da tela por larga
+ * margem (45% contra 11% de cada base), e o mapa ganha cara própria sem perder
+ * o pool compartilhado — que é o que dá continuidade entre zonas e é o motivo
+ * de ele ser soma, e não troca.
+ *
+ * Continua sem valer nada: quem credita é o servidor, e ele não sabe qual bicho
+ * caiu nem onde.
+ */
+export const FATIA_DO_ASSINATURA = 0.45
+
+/**
+ * Quem nasce neste ninho, dado um sorteio de 0 a 1.
+ *
+ * UM SORTEIO SÓ, de propósito. O mundo inteiro sai de um gerador com semente, e
+ * a posição, o ângulo e a recarga de cada inimigo vêm dos sorteios seguintes na
+ * mesma sequência. Gastar dois números aqui deslocaria todos os outros e mudaria
+ * cada mapa já gerado — o chão, os ninhos, tudo — só para escolher um bicho.
+ *
+ * Função pura, e é o que permite conferir a proporção em teste de nó: o desenho
+ * não é testável neste projeto, a distribuição é.
+ */
+export function especieQueNasce(
+  base: readonly EspecieInimigo[],
+  mapa: Mapa,
+  sorteio: number,
+): EspecieInimigo | null {
+  if (!Number.isFinite(sorteio)) return mapa.bioma.assinatura
+  const valor = Math.min(0.999999, Math.max(0, sorteio))
+  if (valor < FATIA_DO_ASSINATURA) return mapa.bioma.assinatura
+  if (base.length === 0) return mapa.bioma.assinatura
+
+  const restante = (valor - FATIA_DO_ASSINATURA) / (1 - FATIA_DO_ASSINATURA)
+  return base[Math.min(base.length - 1, Math.floor(restante * base.length))] ?? null
 }
 
 /**

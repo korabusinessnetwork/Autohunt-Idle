@@ -39,8 +39,14 @@ direção herói → inimigo.
 Hoje existe um mapa único de 5120×1440 dividido em 8 regiões: o bioma sai de
 onde o herói está. Passa a existir **8 mapas instanciados**, um por bioma.
 
-- `NIVEIS_POR_MAPA = 10`, `TOTAL_MAPAS = 8` → o mapa 8 abre no nível 71 e a
-  primeira leva cobre **até o nível 80**.
+- `NIVEIS_POR_MAPA = 5`, `TOTAL_MAPAS = 16` → o mapa 16 abre no nível 76 e a
+  leva cobre **até o nível 80**.
+
+  > Era `10` e `8`, e o alcance também era 80. Quando o catálogo dobrou para 16,
+  > o passo não foi recalculado, e o mesmo nível 80 passou a mostrar metade do
+  > jogo — a fábrica morta só começava no 81, os dezesseis só no 151. Corrigido
+  > em 2026-08-19 baixando o passo para 5: o alcance é o que foi preservado, e o
+  > passo é o que cedeu. Ver `specs/fabrica-morta-biomas-9-a-16.md` §12.
 - Nível infinito continua existindo: acima de 80 o jogador fica no mapa 8 até a
   próxima leva de mapas. Isso é conteúdo, não teto.
 - Cada mapa é um retângulo próprio (1920×1080), com o tema do seu bioma.
@@ -136,7 +142,7 @@ Os ajustes do console continuam mandando: cada perfil é multiplicador sobre
 4. Inimigo que perde o herói de vista volta para perto do ninho.
 5. O painel de mapa lista 8 mapas; o de nível maior que o do jogador está
    bloqueado e diz qual nível falta.
-6. O mapa 8 exige nível 71; nível 80 continua nele, e nível 999 também.
+6. O mapa 16 exige nível 76; nível 80 continua nele, e nível 999 também.
 7. Em qualquer tela de 320px a 2560px de largura, o jogo cabe sem rolagem.
 8. Todos os painéis são acessíveis por ícone sobre o canvas.
 9. Existe botão de login, e ele autentica com e-mail e senha.

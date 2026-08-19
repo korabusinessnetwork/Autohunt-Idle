@@ -6,6 +6,7 @@ import { useSessao } from '../../context/SessaoContext'
 import { QUADROS_CENA, arteDaCenaAnimada, urlDaArte } from '../../game/atlas'
 import {
   MAPAS,
+  NIVEIS_POR_MAPA,
   NIVEL_DA_ULTIMA_LEVA,
   mapaLiberado,
   niveisParaLiberar,
@@ -126,7 +127,7 @@ export function PainelMapa({ mapaAtual, aoViajar, aoFechar }: Props) {
                   <span className="mapa__faixa">
                     {t('mapa.faixaDeNivel', {
                       de: formatarNumero(mapa.nivelMinimo, idioma),
-                      ate: formatarNumero(mapa.nivelMinimo + 9, idioma),
+                      ate: formatarNumero(mapa.nivelMinimo + NIVEIS_POR_MAPA - 1, idioma),
                     })}
                   </span>
                 </div>

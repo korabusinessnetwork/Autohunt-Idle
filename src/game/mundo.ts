@@ -42,7 +42,7 @@ import {
   escalaDoMapa,
   intensidadeDaPosicao,
   mapaPorId,
-  poolDoMapa,
+  especieQueNasce,
 } from './mapas'
 
 /**
@@ -549,8 +549,9 @@ function surgirNoNinho(estado: EstadoMundo, ninho: Ninho): void {
   const escala = escalaDoMapa(mapa)
 
   // O pool do MAPA: os 5 base MAIS o assinatura do bioma — soma, não troca.
-  const pool = poolDoMapa(POOL_INIMIGOS, mapa)
-  const base = pool[Math.floor(proximoAleatorio(estado) * pool.length)]
+  // O sorteio é PONDERADO: o assinatura pesa 45%, e os 5 base dividem o resto.
+  // Igual, ele saía em 1 de 6 e a fauna ficava idêntica nos dezesseis mapas.
+  const base = especieQueNasce(POOL_INIMIGOS, mapa, proximoAleatorio(estado))
   if (!base) return
 
   // Os multiplicadores de espécie do console entram aqui, uma vez, no

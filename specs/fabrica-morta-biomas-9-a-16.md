@@ -217,7 +217,7 @@ o jogador está **lendo** faixa de nível para decidir para onde ir.
 
 ## 9. Critérios de aceite
 
-1. Existem 16 biomas e 16 mapas; `mapaSugerido` cobre nível 1 a 160 e satura no 16.
+1. Existem 16 biomas e 16 mapas; `mapaSugerido` cobre nível 1 a 80 e satura no 16.
 2. Nenhum arquivo de regra importa `biomas.ts` nem `mapas.ts`; nenhuma migration menciona bioma ou
    mapa; `mapaId` não sai para o servidor. (Os três testes já existentes, agora com 16.)
 3. Cada bioma tem assinatura exclusivo, e nenhuma silhueta geométrica repete outra.
@@ -237,7 +237,8 @@ o jogador está **lendo** faixa de nível para decidir para onde ir.
 ## 10. O que ficou sabido e não resolvido
 
 - **`escalaDoMapa` no mapa 16 é 6,25×**, contra 3,45× no mapa 8. Salto grande de dificuldade
-  visual. Não afeta recompensa. Fica registrado para o dono decidir com dado na mão.
+  visual. Não afeta recompensa. Fica registrado para o dono decidir com dado na mão. **E o §12
+  encurtou o caminho até lá**: o mapa 16 agora abre no nível 76, não no 151.
 - **Bioma 9 e bioma 14 têm o mesmo trio de cor** (`#0e0b14` / `#5c5566` / `#c93a6e`), como vieram
   do pacote. A miniatura com a cena resolve o sintoma no painel; os tokens seguem iguais.
 - **O pool base não tem folha de dano** — ver §11. É a única assimetria que sobrou do arco.
@@ -261,3 +262,55 @@ parado.
 
 Pedir cinco `-hit` de dois quadros resolveria de vez, e é melhoria, nunca pré-requisito. Não valia
 segurar o pacote por ela.
+
+## 12. A arte que ninguém via
+
+Entregue o pacote, o dono foi jogar e voltou com uma frase: *"os mapas não estão mudando e nem os
+monstros"*. Não era bug — o motor troca o cenário inteiro ao viajar (medido: 100% dos pixels
+mudam entre mapa 1 e mapa 2, contra 0% no controle). Eram **dois números de ritmo que nunca
+tinham sido recalculados**, e juntos eles escondiam a arte que acabava de chegar.
+
+### O portão: 10 níveis por mapa, com 16 mapas
+
+`NIVEIS_POR_MAPA = 10` foi escolhido quando existiam **oito** mapas, e cobria o jogo inteiro até
+o nível 80. O catálogo dobrou no arco da fábrica morta e o passo ficou parado, então o mesmo
+nível 80 passou a mostrar metade: a fábrica só começava no 81, e os dezesseis só terminavam de
+abrir no **151**. No nível 1 o painel tinha **15 cadeados**.
+
+Passou a **5**. Os dezesseis voltam a caber nos mesmos 80 níveis que os oito cobriam — o alcance
+é o que foi preservado, o passo é o que cedeu. Não há o que proteger: mapa não credita nada, e o
+cadeado existe para dar ritmo de descoberta, não para impedir trapaça. Entre ritmo e o jogador
+não ver a arte que existe, o Princípio nº1 decide.
+
+| | antes | depois |
+|---|---|---|
+| todos os 16 abertos em | nível 151 | **nível 76** |
+| a fábrica morta começa em | nível 81 | **nível 41** |
+
+### O pool: assinatura em 1 de 6
+
+`poolDoMapa` devolve os 5 base **mais** o assinatura, e `surgirNoNinho` sorteava igual entre os
+seis. Medido em 300 sementes por mapa: o bicho exclusivo do lugar era **16,0%** dos que nasciam,
+e a distribuição saía **idêntica nos dezesseis mapas** — 84% do que aparecia na tela era o mesmo
+em toda parte. Viajar trocava o chão e as paredes e deixava a fauna igual.
+
+O sorteio virou ponderado, com `FATIA_DO_ASSINATURA = 0.45`. O assinatura passou a **46,8%** do
+que nasce, contra 10–11% de cada base: sozinho, é o mais comum da tela por quatro vezes. O pool
+compartilhado continua lá, porque é ele que dá continuidade entre zonas — a soma nunca virou
+troca.
+
+`especieQueNasce` gasta **um sorteio só**, e isso não é economia: o mundo sai de um gerador com
+semente, e a posição, o ângulo e a recarga de cada inimigo vêm dos números seguintes na mesma
+sequência. Gastar dois deslocaria todos os outros e mudaria cada mapa já gerado, chão e ninhos
+inclusive, só para escolher um bicho.
+
+Ela é pura de propósito: o desenho não é testável neste projeto (os testes rodam em nó, sem
+canvas), mas a distribuição é — e a varredura do sorteio inteiro em `mapas.test.ts` mede a fatia
+exata, sem margem de amostragem.
+
+### O que ficou de fora
+
+**Separar o pool base por universo.** Os 5 base são todos doces (`pudim`, `minhoca`, `pirulito`,
+`rosquinha`, `casquinha`), então a fábrica morta é povoada de bala — problema temático que pesar
+o assinatura ameniza mas não resolve. A solução de verdade é um pool base industrial, e isso é
+arte nova: 5 inimigos que o pacote não trouxe.

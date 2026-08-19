@@ -16,6 +16,8 @@ import {
   mapaPorId,
   mapaSugerido,
   niveisParaLiberar,
+  FATIA_DO_ASSINATURA,
+  especieQueNasce,
   poolDoMapa,
 } from './mapas'
 import { POOL_INIMIGOS } from './mundo'
@@ -26,13 +28,17 @@ describe('as duas levas de mapas', () => {
     // escritos à mão de propósito: derivar de `TOTAL_MAPAS` faria o teste
     // concordar com qualquer valor, inclusive com uma leva pela metade.
     expect(TOTAL_MAPAS).toBe(16)
-    expect(NIVEL_DA_ULTIMA_LEVA).toBe(160)
+    expect(NIVEL_DA_ULTIMA_LEVA).toBe(80)
     expect(MAPAS).toHaveLength(16)
   })
 
-  it('os mapas abrem de 10 em 10, começando no nível 1', () => {
+  it('os mapas abrem de 5 em 5, começando no nível 1', () => {
+    // Era de 10 em 10, e os dezesseis só terminavam de abrir no nível 151. O
+    // dono viu isso na tela como "os mapas não mudam", e estava certo: no nível
+    // 1 o painel tinha 15 cadeados. A 5, os dezesseis cabem nos mesmos 80
+    // níveis que a primeira leva de oito já cobria.
     expect(MAPAS.map((mapa) => mapa.nivelMinimo)).toEqual([
-      1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111, 121, 131, 141, 151,
+      1, 6, 11, 16, 21, 26, 31, 36, 41, 46, 51, 56, 61, 66, 71, 76,
     ])
   })
 
@@ -61,8 +67,9 @@ describe('destravamento por nível', () => {
   })
 
   it('niveisParaLiberar conta certo e nunca fica negativo', () => {
-    expect(niveisParaLiberar(MAPAS[3]!, 25)).toBe(6)
-    expect(niveisParaLiberar(MAPAS[3]!, 31)).toBe(0)
+    // O mapa 4 abre no nível 16 desde que o passo caiu de 10 para 5.
+    expect(niveisParaLiberar(MAPAS[3]!, 10)).toBe(6)
+    expect(niveisParaLiberar(MAPAS[3]!, 16)).toBe(0)
     expect(niveisParaLiberar(MAPAS[3]!, 900)).toBe(0)
   })
 
@@ -88,21 +95,21 @@ describe('mapaSugerido', () => {
 
   it('vira de mapa exatamente na virada da faixa', () => {
     expect(mapaSugerido(1).id).toBe(1)
-    expect(mapaSugerido(10).id).toBe(1)
-    expect(mapaSugerido(11).id).toBe(2)
-    expect(mapaSugerido(20).id).toBe(2)
-    expect(mapaSugerido(71).id).toBe(8)
-    // A virada para a fábrica morta: o nível 81 é onde o universo doce acaba.
-    expect(mapaSugerido(80).id).toBe(8)
-    expect(mapaSugerido(81).id).toBe(9)
-    expect(mapaSugerido(151).id).toBe(16)
+    expect(mapaSugerido(5).id).toBe(1)
+    expect(mapaSugerido(6).id).toBe(2)
+    expect(mapaSugerido(10).id).toBe(2)
+    expect(mapaSugerido(36).id).toBe(8)
+    // A virada para a fábrica morta: o nível 41 é onde o universo doce acaba.
+    expect(mapaSugerido(40).id).toBe(8)
+    expect(mapaSugerido(41).id).toBe(9)
+    expect(mapaSugerido(76).id).toBe(16)
   })
 
-  it('passar de 160 não trava nada — segue no último mapa', () => {
+  it('passar de 80 não trava nada — segue no último mapa', () => {
     // Nível infinito é core do produto. Faltar mapa novo é conteúdo pendente,
     // não teto: o nível 999 continua jogando.
     expect(mapaSugerido(NIVEL_DA_ULTIMA_LEVA).id).toBe(TOTAL_MAPAS)
-    expect(mapaSugerido(161).id).toBe(TOTAL_MAPAS)
+    expect(mapaSugerido(81).id).toBe(TOTAL_MAPAS)
     expect(mapaSugerido(999).id).toBe(TOTAL_MAPAS)
   })
 
@@ -181,6 +188,48 @@ describe('população do mapa', () => {
       for (const base of POOL_INIMIGOS) expect(pool).toContain(base)
       expect(pool).toContain(mapa.bioma.assinatura)
     }
+  })
+
+  it('o assinatura é a maior fatia do que nasce, e o base divide o resto', () => {
+    // A conta que motivou a mudança: com sorteio igual entre 5 base e 1
+    // assinatura, o bicho exclusivo saía em 16% dos nascimentos, e 84% do que
+    // aparecia era idêntico nos dezesseis mapas. Viajar trocava o chão e
+    // deixava a fauna igual.
+    //
+    // Varre o sorteio inteiro em vez de amostrar: a função é pura e a
+    // distribuição é exata, então não há por que aceitar margem de ruído.
+    const PASSOS = 100000
+    for (const mapa of [MAPAS[0]!, MAPAS[8]!, MAPAS[15]!]) {
+      const conta = new Map<string, number>()
+      for (let i = 0; i < PASSOS; i++) {
+        const especie = especieQueNasce(POOL_INIMIGOS, mapa, i / PASSOS)
+        const forma = especie!.forma
+        conta.set(forma, (conta.get(forma) ?? 0) + 1)
+      }
+
+      const assinatura = mapa.bioma.assinatura.forma
+      const fatia = (conta.get(assinatura) ?? 0) / PASSOS
+      expect(fatia, `assinatura do mapa ${mapa.id}`).toBeCloseTo(FATIA_DO_ASSINATURA, 2)
+
+      // Nenhum base pode chegar perto do assinatura: é isso que dá cara ao mapa.
+      for (const base of POOL_INIMIGOS) {
+        const dele = (conta.get(base.forma) ?? 0) / PASSOS
+        expect(dele, `${base.forma} no mapa ${mapa.id}`).toBeLessThan(fatia / 2)
+        // E nenhum some: o pool compartilhado é o que dá continuidade.
+        expect(dele, `${base.forma} sumiu do mapa ${mapa.id}`).toBeGreaterThan(0.05)
+      }
+    }
+  })
+
+  it('sorteio fora da faixa não devolve nada nulo', () => {
+    // O sorteio vem do gerador com semente. Um valor estranho não pode deixar
+    // o ninho sem nascer ninguém — isso esvaziaria o mapa em silêncio.
+    for (const sorteio of [0, 1, -3, 99, Number.NaN, Number.POSITIVE_INFINITY]) {
+      const especie = especieQueNasce(POOL_INIMIGOS, MAPAS[0]!, sorteio)
+      expect(especie, `sorteio ${sorteio}`).toBeTruthy()
+    }
+    // Pool base vazio ainda nasce o assinatura, em vez de devolver nulo.
+    expect(especieQueNasce([], MAPAS[0]!, 0.99)).toBe(MAPAS[0]!.bioma.assinatura)
   })
 
   it('a escala sobe com o mapa e começa em 1', () => {
