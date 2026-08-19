@@ -88,32 +88,153 @@
   height: 2.75rem;
   border: 2px solid var(--cor-texto);
   border-radius: var(--raio);
+
+  /*
+   * O que o componente entrega, com o padrão de quem não entregou nada.
+   *
+   * DECLARADOS AQUI, e não só no JSX, por dois motivos. O primeiro é defesa:
+   * sem o padrão, um item sem `style` herdaria `--cena` do ancestral mais
+   * próximo que tivesse uma — e mostraria a cena do vizinho. O segundo é que
+   * este arquivo passa a DIZER o que espera receber, em vez de deixar isso
+   * implícito num componente noutra pasta.
+   */
+  --cena: none;
+  --cena-quadros: 1;
+  --bioma-fundo: var(--cor-fundo);
+  --bioma-assinatura: var(--cor-primaria);
+
+  /*
+   * A cena da zona por cima do degradê de cor, nunca no lugar dele: o degradê
+   * é o que preenche o quadrado enquanto o PNG viaja, e some sozinho quando a
+   * imagem cobre. Sem ele, abrir o mapa mostraria dezesseis buracos vazios.
+   *
+   * `--cena` e `--cena-quadros` chegam do componente. Uma zona sem folha
+   * animada manda 1 quadro, e aí a conta abaixo vira "a imagem inteira".
+   */
+  background-image: var(--cena),
+    linear-gradient(135deg, var(--bioma-fundo), var(--bioma-assinatura));
+  background-repeat: no-repeat;
+  background-size: calc(var(--cena-quadros, 1) * 100%) 100%, 100% 100%;
+  background-position: 0 0, 0 0;
+
+  /*
+   * Pixel art não interpola: a cena é de 608×352 e cai num quadrado de 44px,
+   * e a suavização padrão do navegador transformaria o desenho em borrão.
+   */
+  image-rendering: pixelated;
 }
 
-/* A identidade de cada zona sai dos mesmos tokens que o canvas lê. */
+/*
+ * A zona que veio com folha animada respira na miniatura.
+ *
+ * `steps()` é o ponto todo: sem ele o navegador INTERPOLA entre os quadros e a
+ * folha desliza como um panorama, em vez de trocar de quadro. Com ele, a mesma
+ * animação de quatro quadros que o motor recorta no canvas roda aqui de graça,
+ * sem uma linha de JavaScript.
+ */
+.mapa__amostra--viva {
+  animation: mapa-cena 0.66s steps(var(--cena-quadros, 1)) infinite;
+}
+
+@keyframes mapa-cena {
+  /*
+   * As duas pontas são explícitas, e movem só a PRIMEIRA camada: a segunda é o
+   * degradê de cor, que fica parado. Uma lista de uma posição só valeria para
+   * as duas, e o degradê sairia deslizando junto com a cena.
+   */
+  from {
+    background-position: 0 0, 0 0;
+  }
+
+  to {
+    background-position: calc(var(--cena-quadros, 1) * -100%) 0, 0 0;
+  }
+}
+
+/*
+ * Quem pediu menos movimento fica com o primeiro quadro.
+ *
+ * Uma tira de dezesseis miniaturas piscando ao mesmo tempo é exatamente o tipo
+ * de animação em laço que a preferência do sistema existe para desligar.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .mapa__amostra--viva {
+    animation: none;
+  }
+}
+
+/*
+ * A identidade de cada zona sai dos mesmos tokens que o canvas lê.
+ *
+ * Cada regra declara a COR, e não o fundo. Era `background: linear-gradient(...)`
+ * — e o atalho `background` zera `background-image` e `background-size` junto,
+ * então a cena da zona, declarada acima em `.mapa__amostra`, nunca chegava a
+ * pintar: as duas regras têm a mesma especificidade e esta vem depois. O sintoma
+ * era a miniatura antiga, idêntica à de antes, sem erro nenhum em lugar nenhum.
+ */
 .mapa__amostra--1 {
-  background: linear-gradient(135deg, var(--bioma-1-fundo), var(--bioma-1-assinatura));
+  --bioma-fundo: var(--bioma-1-fundo);
+  --bioma-assinatura: var(--bioma-1-assinatura);
 }
 .mapa__amostra--2 {
-  background: linear-gradient(135deg, var(--bioma-2-fundo), var(--bioma-2-assinatura));
+  --bioma-fundo: var(--bioma-2-fundo);
+  --bioma-assinatura: var(--bioma-2-assinatura);
 }
 .mapa__amostra--3 {
-  background: linear-gradient(135deg, var(--bioma-3-fundo), var(--bioma-3-assinatura));
+  --bioma-fundo: var(--bioma-3-fundo);
+  --bioma-assinatura: var(--bioma-3-assinatura);
 }
 .mapa__amostra--4 {
-  background: linear-gradient(135deg, var(--bioma-4-fundo), var(--bioma-4-assinatura));
+  --bioma-fundo: var(--bioma-4-fundo);
+  --bioma-assinatura: var(--bioma-4-assinatura);
 }
 .mapa__amostra--5 {
-  background: linear-gradient(135deg, var(--bioma-5-fundo), var(--bioma-5-assinatura));
+  --bioma-fundo: var(--bioma-5-fundo);
+  --bioma-assinatura: var(--bioma-5-assinatura);
 }
 .mapa__amostra--6 {
-  background: linear-gradient(135deg, var(--bioma-6-fundo), var(--bioma-6-assinatura));
+  --bioma-fundo: var(--bioma-6-fundo);
+  --bioma-assinatura: var(--bioma-6-assinatura);
 }
 .mapa__amostra--7 {
-  background: linear-gradient(135deg, var(--bioma-7-fundo), var(--bioma-7-assinatura));
+  --bioma-fundo: var(--bioma-7-fundo);
+  --bioma-assinatura: var(--bioma-7-assinatura);
 }
 .mapa__amostra--8 {
-  background: linear-gradient(135deg, var(--bioma-8-fundo), var(--bioma-8-assinatura));
+  --bioma-fundo: var(--bioma-8-fundo);
+  --bioma-assinatura: var(--bioma-8-assinatura);
+}
+.mapa__amostra--9 {
+  --bioma-fundo: var(--bioma-9-fundo);
+  --bioma-assinatura: var(--bioma-9-assinatura);
+}
+.mapa__amostra--10 {
+  --bioma-fundo: var(--bioma-10-fundo);
+  --bioma-assinatura: var(--bioma-10-assinatura);
+}
+.mapa__amostra--11 {
+  --bioma-fundo: var(--bioma-11-fundo);
+  --bioma-assinatura: var(--bioma-11-assinatura);
+}
+.mapa__amostra--12 {
+  --bioma-fundo: var(--bioma-12-fundo);
+  --bioma-assinatura: var(--bioma-12-assinatura);
+}
+.mapa__amostra--13 {
+  --bioma-fundo: var(--bioma-13-fundo);
+  --bioma-assinatura: var(--bioma-13-assinatura);
+}
+.mapa__amostra--14 {
+  --bioma-fundo: var(--bioma-14-fundo);
+  --bioma-assinatura: var(--bioma-14-assinatura);
+}
+.mapa__amostra--15 {
+  --bioma-fundo: var(--bioma-15-fundo);
+  --bioma-assinatura: var(--bioma-15-assinatura);
+}
+.mapa__amostra--16 {
+  --bioma-fundo: var(--bioma-16-fundo);
+  --bioma-assinatura: var(--bioma-16-assinatura);
 }
 
 .mapa__info {

@@ -12,8 +12,8 @@ vai ler tutorial para entender, o que está escondido não existe.
 
 Quando o conteúdo não cabe, ele vira uma destas coisas — nunca rolagem.
 
-**1. Vira largura.** Lista de tamanho conhecido e fechado (8 mapas, 5
-atributos, 6 itens da loja) vira grade. `repeat(auto-fit, minmax(Xrem, 1fr))`
+**1. Vira largura.** Lista de tamanho conhecido e fechado (5 atributos, 6
+itens da loja) vira grade. `repeat(auto-fit, minmax(Xrem, 1fr))`
 usa a tela que sobra na horizontal em vez de crescer na vertical.
 
 **2. Vira página.** Lista de tamanho imprevisível (mochila, peças

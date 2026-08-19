@@ -14,7 +14,8 @@
 
 import { criarEntrada } from '../game/entrada'
 import { criarMotor } from '../game/motor'
-import { biomaAtual, definirModo, poseDoHeroi, type ModoDeJogo } from '../game/mundo'
+import { TOTAL_MAPAS } from '../game/mapas'
+import { biomaAtual, definirModo, mapaAtual, poseDoHeroi, type ModoDeJogo } from '../game/mundo'
 import { criarRenderizadorCanvas } from '../game/renderizador'
 import '../styles/tokens.css'
 
@@ -22,6 +23,7 @@ const canvas = document.querySelector<HTMLCanvasElement>('#mundo')!
 const placar = document.querySelector<HTMLElement>('#placar')!
 const botaoModo = document.querySelector<HTMLButtonElement>('#modo')!
 const botaoSkin = document.querySelector<HTMLButtonElement>('#skin')!
+const botaoMapa = document.querySelector<HTMLButtonElement>('#mapa')!
 
 /**
  * Uma raridade por skin desenhada, mais o "sem skin".
@@ -72,6 +74,25 @@ botaoSkin.addEventListener('click', () => {
 })
 rotularSkin()
 
+/**
+ * Ciclador de mapa — os 16, em ordem, sem cadeado de nível.
+ *
+ * O sandbox não tem sessão e mapa não credita nada, então não há o que
+ * respeitar aqui: `mapaLiberado` existe para dar ritmo de descoberta ao
+ * JOGADOR, e quem calibra cenário precisa do contrário disso.
+ */
+function rotularMapa(): void {
+  const mapa = mapaAtual(motor.estado)
+  botaoMapa.textContent = `Mapa ${mapa.id}`
+}
+
+botaoMapa.addEventListener('click', () => {
+  const proximo = (mapaAtual(motor.estado).id % TOTAL_MAPAS) + 1
+  motor.definirMapa(proximo)
+  rotularMapa()
+})
+rotularMapa()
+
 window.addEventListener('resize', () => renderizador.redimensionar())
 
 motor.iniciar()
@@ -83,7 +104,7 @@ window.setInterval(() => {
   const { heroiX, heroiY, inimigos, projeteis, faseDoPasso } = motor.estado
   const zona = biomaAtual(motor.estado)
   placar.textContent = [
-    `região ${zona.id} · ${zona.nome}`,
+    `mapa ${mapaAtual(motor.estado).id} · ${zona.nome}`,
     `x ${Math.round(heroiX)} · y ${Math.round(heroiY)}`,
     `${inimigos.length} inimigos · ${projeteis.length} tiros`,
     `assinatura: ${zona.assinatura.forma}`,

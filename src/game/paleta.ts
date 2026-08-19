@@ -4,6 +4,8 @@
 // vez na inicialização. É o que permite `src/styles/tokens.css` ser a única
 // fonte da paleta — nenhum hex é repetido em TypeScript.
 
+import { TOTAL_BIOMAS } from './biomas'
+
 export const TOKENS_PALETA = [
   '--cor-primaria',
   '--cor-secundaria',
@@ -16,11 +18,20 @@ export const TOKENS_PALETA = [
 ] as const
 
 /**
- * Os três papéis de cor de cada um dos 8 biomas. Gerados a partir do índice em
- * vez de escritos à mão: uma lista literal de 24 nomes daria margem a um token
- * existir no CSS e faltar aqui, ou o contrário.
+ * Os três papéis de cor de cada bioma. Gerados a partir do índice em vez de
+ * escritos à mão: uma lista literal de 48 nomes daria margem a um token existir
+ * no CSS e faltar aqui, ou o contrário.
+ *
+ * O tamanho vem de `TOTAL_BIOMAS`, e não de um literal, porque já divergiu uma
+ * vez: quando a leva dobrou para 16, um `{ length: 8 }` esquecido aqui não
+ * quebraria nada — os oito biomas novos simplesmente cairiam no fallback e
+ * apareceriam todos com a cor da marca, sem erro em lugar nenhum. É o tipo de
+ * defeito que só aparece se alguém viajar até o mapa 9 e reparar.
+ *
+ * O import não cria ciclo: `biomas.ts` só tem imports de TIPO, então em runtime
+ * este módulo continua sendo folha.
  */
-export const TOKENS_BIOMA = Array.from({ length: 8 }, (_, i) => i + 1).flatMap(
+export const TOKENS_BIOMA = Array.from({ length: TOTAL_BIOMAS }, (_, i) => i + 1).flatMap(
   (n) => [`--bioma-${n}-fundo`, `--bioma-${n}-detalhe`, `--bioma-${n}-assinatura`] as const,
 )
 

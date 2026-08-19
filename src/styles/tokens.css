@@ -42,7 +42,7 @@
   --cor-campo: #211c26;
 
   /*
-   * Biomas — 8 temas de cenário, 125 níveis cada (specs/mapa-mundo-e-dungeon.md).
+   * Biomas — 16 temas de cenário, um mapa cada (specs/fabrica-morta-biomas-9-a-16.md).
    *
    * Ficam aqui, e não em TypeScript, pelo mesmo motivo das 7 cores da marca: o
    * canvas lê estes custom properties em runtime, então trocar a cor de um
@@ -84,6 +84,57 @@
   --bioma-8-fundo: #0e0b14;      /* Céu de Confete Cósmico — vazio estrelado, endgame */
   --bioma-8-detalhe: #312837;
   --bioma-8-assinatura: #ff3fa4;
+
+  /*
+   * A FÁBRICA MORTA — biomas 9 a 16 (2026-08-19).
+   *
+   * A leva anterior era toda de COMIDA. Esta é a fábrica que fazia a comida,
+   * depois que ela parou — e ruína industrial não se pinta com paleta de doce.
+   * Daí as QUATRO cores novas do arco, e só quatro:
+   *
+   *   #5c5566  metal desligado  — mesma família do --cor-fundo, duas casas mais
+   *                               claro. É o dominante de 5 dos 8 cenários.
+   *   #c9a176  marzipã          — pálido quente, a cor da arquitetura (pedra,
+   *                               coluna, caixa, sombra de açúcar).
+   *   #a8d8de  gelo             — o único chão CLARO do jogo. Em preto e branco
+   *                               inverte o valor de todos os outros biomas.
+   *   #7a4e2e  chocolate        — o marrom de caldeira, mais escuro e mais sujo
+   *                               que o #9a6636 das Montanhas.
+   *
+   * O resto reaproveita a paleta da marca de propósito: um bioma que estreia
+   * cor nova sem precisar é um bioma que não combina com o jogo.
+   */
+  --bioma-9-fundo: #0e0b14;      /* Fábrica de Refrigerante — chapa rebitada */
+  --bioma-9-detalhe: #5c5566;
+  --bioma-9-assinatura: #c93a6e;
+
+  --bioma-10-fundo: #0e0b14;     /* Pântano de Melaço — lama e musgo */
+  --bioma-10-detalhe: #6ba83f;
+  --bioma-10-assinatura: #c1453f;
+
+  --bioma-11-fundo: #0e0b14;     /* Catedral de Marzipã — pedra pálida e vitral */
+  --bioma-11-detalhe: #e0a32e;
+  --bioma-11-assinatura: #c9a176;
+
+  --bioma-12-fundo: #0e0b14;     /* Câmara Fria — o único chão claro-frio */
+  --bioma-12-detalhe: #5c5566;
+  --bioma-12-assinatura: #a8d8de;
+
+  --bioma-13-fundo: #0e0b14;     /* Silo de Açúcar — duna clara, deserto doce */
+  --bioma-13-detalhe: #5c5566;
+  --bioma-13-assinatura: #f0e6d8;
+
+  --bioma-14-fundo: #0e0b14;     /* Linha de Embalagem — esteiras cruzando em T */
+  --bioma-14-detalhe: #5c5566;
+  --bioma-14-assinatura: #c93a6e;
+
+  --bioma-15-fundo: #0e0b14;     /* Caldeiraria de Chocolate — grade e transbordo */
+  --bioma-15-detalhe: #5c5566;
+  --bioma-15-assinatura: #7a4e2e;
+
+  --bioma-16-fundo: #0e0b14;     /* Forno Central — a grelha acesa, fim do arco */
+  --bioma-16-detalhe: #7a4e2e;
+  --bioma-16-assinatura: #e0a32e;
 
   /*
    * Raridade — os 10 tiers de `regrasLoot.ts`.

@@ -125,10 +125,11 @@ export const ARTE_INIMIGO_DANO: Record<FormaBase, string> = {
 }
 
 /**
- * O apelido de cada bioma nos arquivos de arte, na ordem dos ids 1–8 de
+ * O apelido de cada bioma nos arquivos de arte, na ordem dos ids 1–16 de
  * `BIOMAS`. Não é chave de tradução: é nome de arquivo.
  */
 export const APELIDO_BIOMA: readonly string[] = [
+  // O universo doce.
   'floresta',
   'geleia',
   'deserto',
@@ -137,6 +138,15 @@ export const APELIDO_BIOMA: readonly string[] = [
   'geleira',
   'vulcao',
   'cosmico',
+  // A fábrica morta.
+  'refri',
+  'melaco',
+  'marzipa',
+  'freezer',
+  'silo',
+  'esteira',
+  'caldeira',
+  'forno',
 ]
 
 /** Inimigo assinatura — um por bioma, na ordem das formas de `biomas.ts`. */
@@ -149,6 +159,81 @@ export const ARTE_ASSINATURA: Record<FormaAssinatura, string> = {
   floco: `${RAIZ}/biomas/en-geleira.png`,
   brasa: `${RAIZ}/biomas/en-vulcao.png`,
   confete: `${RAIZ}/biomas/en-cosmico.png`,
+  latinha: `${RAIZ}/biomas/en-refri.png`,
+  tronco: `${RAIZ}/biomas/en-melaco.png`,
+  sino: `${RAIZ}/biomas/en-marzipa.png`,
+  picole: `${RAIZ}/biomas/en-freezer.png`,
+  torrao: `${RAIZ}/biomas/en-silo.png`,
+  bala: `${RAIZ}/biomas/en-esteira.png`,
+  gota: `${RAIZ}/biomas/en-caldeira.png`,
+  caramelo: `${RAIZ}/biomas/en-forno.png`,
+}
+
+/**
+ * De que bioma cada forma assinatura veio — e, por tabela, o nome dos arquivos
+ * de animação dela.
+ *
+ * UM MAPA SÓ PARA AS TRÊS FOLHAS, e não um por folha. As três (repouso, dano,
+ * morte) usam exatamente as mesmas oito chaves e o mesmo apelido; escritas
+ * separadas, seriam três tabelas para manter em sincronia e uma para esquecer
+ * no dia em que chegar a nona forma. Aqui, a forma nova entra numa linha e
+ * ganha as três de uma vez.
+ *
+ * Só os oito assinatura da fábrica morta têm folha. É assimetria DELIBERADA, e
+ * ela segue a regra 2 deste arquivo: animação é melhoria, nunca pré-requisito.
+ * Quem não tem continua desenhado a partir do PNG parado, no mesmo código, sem
+ * ramo especial.
+ *
+ * `Partial` de propósito: um `Record` completo obrigaria a inventar apelido para
+ * as treze formas que não têm folha, e caminho inventado é 404 esperando a hora.
+ */
+const APELIDO_DA_FORMA: Partial<Record<FormaInimigo, string>> = {
+  latinha: 'refri',
+  tronco: 'melaco',
+  sino: 'marzipa',
+  picole: 'freezer',
+  torrao: 'silo',
+  bala: 'esteira',
+  gota: 'caldeira',
+  caramelo: 'forno',
+}
+
+/** Quadros de cada folha. O de dano tem DOIS, e os outros dois têm quatro. */
+export const QUADROS_IDLE = 4
+export const QUADROS_MORTE = 4
+export const QUADROS_LAMPEJO = 2
+
+function folhaDaForma(forma: FormaInimigo, sufixo: string): string | null {
+  const apelido = APELIDO_DA_FORMA[forma]
+  return apelido ? `${RAIZ}/biomas/anim-${apelido}-${sufixo}.png` : null
+}
+
+/** A folha de repouso da forma, quando ela existe. `null` é resposta válida. */
+export function arteDaAnimacaoDoInimigo(forma: FormaInimigo): string | null {
+  return folhaDaForma(forma, 'idle')
+}
+
+/**
+ * A folha de DANO — 2 quadros: o vulto branco do impacto e o corpo de volta.
+ *
+ * O primeiro quadro é a silhueta que `sprites.ts` gerava sozinho, agora
+ * desenhada à mão. Onde existe, ela vence a gerada: o artista sabe onde o
+ * contorno engorda, e a gerada só sabe pintar de branco o que já estava opaco.
+ */
+export function arteDoLampejoDoInimigo(forma: FormaInimigo): string | null {
+  return folhaDaForma(forma, 'hit')
+}
+
+/**
+ * A folha de MORTE — 4 quadros: o bicho achata contra o chão e vira risco.
+ *
+ * O desabamento está DESENHADO DENTRO DO QUADRO: os quatro têm a mesma caixa de
+ * 160×184 e o corpo escorre para a base dela. Por isso quem desenha trata esta
+ * folha como qualquer outra, centrada na posição do bicho — encolher a caixa
+ * por fora achataria duas vezes.
+ */
+export function arteDaMorteDoInimigo(forma: FormaInimigo): string | null {
+  return folhaDaForma(forma, 'die')
 }
 
 /**
@@ -183,9 +268,106 @@ export function arteDoCenario(bioma: number): string {
   return `${RAIZ}/biomas/sc-${apelidoDoBioma(bioma)}.png`
 }
 
+/**
+ * A CENA ANIMADA da zona — 4 quadros de 608×352, lado a lado.
+ *
+ * NÃO É ARTE DE MUNDO, e confundir as duas custaria caro. A folha traz a
+ * composição inteira já montada — chão, props e inimigos juntos, respirando —
+ * que é exatamente o que o motor desenha ao vivo. Usá-la no jogo desenharia
+ * tudo duas vezes, uma delas num enquadramento que não é o da câmera.
+ *
+ * O lugar dela é onde o jogador ESCOLHE para onde ir. `null` fora da fábrica
+ * morta — a leva doce não veio com cena animada.
+ */
+export function arteDaCenaAnimada(bioma: number): string | null {
+  const apelido = apelidoDoBioma(bioma)
+  return APELIDOS_DA_FABRICA.has(apelido) ? `${RAIZ}/biomas/anim-${apelido}-scene.png` : null
+}
+
+/** Quadros da cena animada. */
+export const QUADROS_CENA = 4
+
 /** O elemento de mundo espalhado sobre o cenário (árvore, duna, plataforma). */
 export function arteDoProp(bioma: number): string {
   return `${RAIZ}/biomas/prop-${apelidoDoBioma(bioma)}.png`
+}
+
+/**
+ * Ladrilhos de chão — 4 variantes de 64×64 por bioma, que EMENDAM.
+ *
+ * São a resposta para a limitação que `sprites.ts` documenta desde o mundo
+ * aberto: `sc-*.png` é cenário de fundo com horizonte, e ladrilhar horizonte num
+ * jogo visto de cima vira papel de parede. Estes não têm horizonte — são piso
+ * visto de cima, desenhados para emendar nos quatro lados.
+ *
+ * A variante 1 é a BASE lisa e as 2–4 são acento (rebite, musgo, rachadura,
+ * brasa). Quem escolhe qual cai onde é `sprites.ts`, com a mesma regra de
+ * sempre: derivada da célula, nunca sorteada, senão o chão ferve quando o
+ * jogador anda.
+ *
+ * Só a fábrica morta tem ladrilho. Bioma sem ladrilho continua com o chão
+ * procedural que sempre teve, e isso não é pendência disfarçada: a malha
+ * hexagonal foi desenhada para o universo doce e continua sendo o certo lá.
+ */
+export const VARIANTES_LADRILHO = 4
+
+/**
+ * Os apelidos que vieram com o PACOTE COMPLETO: ladrilho de chão e prop
+ * animado, e não só o trio `sc-`/`prop-`/`en-` das levas anteriores.
+ *
+ * É uma lista só, e não uma por recurso, de propósito: as duas coisas
+ * chegaram juntas, no mesmo pacote, e três listas idênticas são três listas
+ * que divergem no dia em que alguém acrescenta um bioma a duas delas. No dia em
+ * que um bioma tiver ladrilho e não tiver prop animado, este é o lugar de
+ * quebrar em duas — e aí a divisão será verdade, não precaução.
+ */
+const APELIDOS_DA_FABRICA: ReadonlySet<string> = new Set([
+  'refri',
+  'melaco',
+  'marzipa',
+  'freezer',
+  'silo',
+  'esteira',
+  'caldeira',
+  'forno',
+])
+
+/** Se o bioma tem piso desenhado, e não só a malha procedural. */
+export function biomaTemLadrilho(bioma: number): boolean {
+  return APELIDOS_DA_FABRICA.has(apelidoDoBioma(bioma))
+}
+
+/**
+ * A folha de animação do prop — 4 quadros de 176×176, o mesmo tamanho do
+ * `prop-*.png` parado. `null` quando aquele bioma não tem prop animado.
+ *
+ * Mesma regra do inimigo: quem não tem folha continua com o PNG parado, sem
+ * ramo especial em quem desenha.
+ */
+export function arteDaAnimacaoDoProp(bioma: number): string | null {
+  const apelido = apelidoDoBioma(bioma)
+  return APELIDOS_DA_FABRICA.has(apelido) ? `${RAIZ}/biomas/anim-${apelido}-prop.png` : null
+}
+
+/**
+ * Um ladrilho do bioma. `null` quando aquele bioma não tem piso desenhado.
+ *
+ * A variante satura em vez de estourar: ela vem de um hash, e um hash que
+ * escape da faixa não pode virar 404 no chão inteiro da tela.
+ */
+export function arteDoLadrilho(bioma: number, variante: number): string | null {
+  if (!biomaTemLadrilho(bioma)) return null
+  const n = Math.min(VARIANTES_LADRILHO, Math.max(1, Math.trunc(variante) || 1))
+  return `${RAIZ}/biomas/tile-${apelidoDoBioma(bioma)}-${n}.png`
+}
+
+/** Todos os ladrilhos de um bioma, para pré-carregar de uma vez. */
+export function ladrilhosDoBioma(bioma: number): readonly string[] {
+  if (!biomaTemLadrilho(bioma)) return []
+  return Array.from(
+    { length: VARIANTES_LADRILHO },
+    (_, i) => arteDoLadrilho(bioma, i + 1)!,
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -346,7 +528,20 @@ export function precarregarBioma(
     // aberto o chão é procedural, e o PNG de cenário era um fundo de tela fixa
     // (608×352, com horizonte) que não ladrilha num jogo visto de cima.
     arteDoProp(bioma),
+    // Os ladrilhos SIM — e são o item mais urgente da lista. Prop que chega
+    // atrasado aparece; chão que chega atrasado é a tela inteira mudando de
+    // cara no quadro em que o jogador acabou de viajar.
+    ...ladrilhosDoBioma(bioma),
+    ...(arteDaAnimacaoDoProp(bioma) ? [arteDaAnimacaoDoProp(bioma)!] : []),
     arteDoInimigo(assinatura),
+    // A folha de repouso do assinatura, quando ele tem uma. Sem isto o bicho
+    // nasce parado e só começa a respirar quando o PNG decodifica.
+    ...(arteDaAnimacaoDoInimigo(assinatura) ? [arteDaAnimacaoDoInimigo(assinatura)!] : []),
+    // Dano e morte também, e por um motivo mais forte que o repouso: as duas só
+    // aparecem no instante em que o jogador acerta, e baixar a folha NAQUELE
+    // quadro perderia justamente o quadro que ela existe para mostrar.
+    ...(arteDoLampejoDoInimigo(assinatura) ? [arteDoLampejoDoInimigo(assinatura)!] : []),
+    ...(arteDaMorteDoInimigo(assinatura) ? [arteDaMorteDoInimigo(assinatura)!] : []),
     ...Object.values(ARTE_INIMIGO),
     ...Object.values(ARTE_INIMIGO_DANO),
     ...Object.values(ARTE_POSE),

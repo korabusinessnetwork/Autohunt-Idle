@@ -32,6 +32,7 @@ import {
   desenharGolpe,
   desenharHeroi,
   desenharInimigo,
+  desenharMorte,
   desenharProjetil,
 } from './sprites'
 
@@ -188,6 +189,14 @@ export function criarRenderizadorCanvas(
         )
       }
 
+      // Os abatidos vêm ANTES dos vivos: o corpo está no chão, e um vivo que
+      // passa por cima dele tem que passar por cima mesmo. Sem recorte de tela
+      // aqui — a lista dura um terço de segundo e nunca passa de alguns corpos,
+      // então o teste de visibilidade custaria mais do que economiza.
+      for (const morte of estado.mortes) {
+        desenharMorte(ctx, morte.forma, morte.x, morte.y, morte.raio, morte.tempo)
+      }
+
       for (const inimigo of estado.inimigos) {
         // Fora da tela não se desenha. Com o mapa grande, a lista tem inimigos
         // que o jogador não vê.
@@ -208,6 +217,11 @@ export function criarRenderizadorCanvas(
           inimigo.flash,
           paleta,
           corAssinatura,
+          tempo,
+          // O id desencontra a fase de repouso de cada bicho. Sem ele, um ninho
+          // inteiro respira no mesmo compasso — e um bando pulsando em uníssono
+          // lê como falha de renderização, não como vida.
+          inimigo.id,
         )
         if (inimigo.vida < inimigo.especie.vida) {
           desenharBarraDoInimigo(

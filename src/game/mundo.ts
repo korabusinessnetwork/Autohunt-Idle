@@ -133,6 +133,28 @@ export interface Inimigo {
   vagarTempo: number
 }
 
+/**
+ * Um inimigo que JÁ morreu e ainda está caindo.
+ *
+ * LISTA SEPARADA, e não um `Inimigo` com vida zero esperando a vez. É a
+ * diferença entre um cadáver e um inimigo quase morto: mantido na lista de
+ * inimigos, ele continuaria sendo mirado pela auto-mira, contando para a
+ * população do ninho, empurrando o herói e podendo levar um segundo tiro. Aqui
+ * ele só existe para o desenho, que é tudo o que sobrou dele.
+ *
+ * E por isso o abate continua imediato: o loot, o XP e a pose de comemoração
+ * saem no MESMO quadro de sempre. A animação não atrasa recompensa nenhuma —
+ * ela só mostra o que já aconteceu.
+ */
+export interface Morte {
+  x: number
+  y: number
+  forma: FormaInimigo
+  raio: number
+  /** Segundos desde o abate. A folha de morte é lida a partir dele. */
+  tempo: number
+}
+
 export interface Projetil {
   x: number
   y: number
@@ -220,6 +242,8 @@ export interface EstadoMundo {
   alvoId: number | null
   ninhos: Ninho[]
   inimigos: Inimigo[]
+  /** Os abatidos que ainda estão caindo. Só desenho — ver `Morte`. */
+  mortes: Morte[]
   projeteis: Projetil[]
   golpes: Golpe[]
   avisos: Aviso[]
@@ -250,6 +274,26 @@ export interface EstadoMundo {
  */
 const DURACAO_POSE_ATAQUE = 0.18
 const DURACAO_POSE_COMEMORACAO = 0.5
+
+/**
+ * Quanto dura o lampejo de dano do inimigo, em segundos.
+ *
+ * Virou constante EXPORTADA porque quem desenha precisa do mesmo número: a
+ * folha de dano tem dois quadros, e escolher entre eles exige saber onde a
+ * contagem começou. Com o valor solto nos dois arquivos, mudar a duração aqui
+ * deixaria o desenho preso no quadro errado sem erro nenhum de compilação.
+ */
+export const DURACAO_LAMPEJO = 0.12
+
+/**
+ * Quanto dura a queda de um abatido, em segundos.
+ *
+ * Curto de propósito. Abate é o que este jogo mais produz — dezenas por minuto
+ * — e cadáver que demora vira lixo acumulado na tela em vez de peso do golpe.
+ * A um terço de segundo o corpo achata, o jogador registra o abate e o campo
+ * fica limpo antes do próximo.
+ */
+export const DURACAO_MORTE = 0.34
 
 /**
  * Quantos pixels de MUNDO o herói percorre por passo.
@@ -380,6 +424,7 @@ export function criarMundo(semente = 1, mapaId = 1): EstadoMundo {
     ninhos: ninhosDoMapa(mapaId),
     inimigos: [],
     projeteis: [],
+    mortes: [],
     golpes: [],
     avisos: [],
     recargaTiro: 0,
@@ -425,6 +470,10 @@ export function definirMapa(estado: EstadoMundo, mapaId: number): void {
   estado.faseDoPasso = 0
   estado.ninhos = ninhosDoMapa(alvo.id)
   estado.inimigos = []
+  // O cadáver também fica para trás. Ele guarda coordenada de mundo, e mundo
+  // novo não herda o corpo do anterior — apareceria um abate fantasma na
+  // instancia recém-aberta, no lugar onde ninguém morreu.
+  estado.mortes = []
   estado.projeteis = []
   estado.golpes = []
   estado.avisos = []
@@ -624,6 +673,22 @@ export function avancarMundo(estado: EstadoMundo, dt: number): void {
   // Quem ficou para trás é esquecido: o jogador saiu daquela área, e o ninho
   // repovoa sozinho quando ele voltar.
   const abateu = estado.inimigos.some((i) => i.vida <= 0)
+
+  // O cadáver nasce ANTES do filtro, e só para quem morreu de fato: quem sai
+  // por distância não deixa corpo. Sumir por distância acontece fora da tela e
+  // não é vitória de ninguém — marcar aquilo com uma animação de abate seria
+  // creditar ao jogador um abate que ele não fez.
+  for (const morto of estado.inimigos) {
+    if (morto.vida > 0) continue
+    estado.mortes.push({
+      x: morto.x,
+      y: morto.y,
+      forma: morto.especie.forma,
+      raio: morto.especie.raio,
+      tempo: 0,
+    })
+  }
+
   estado.inimigos = estado.inimigos.filter(
     (i) => i.vida > 0 && Math.hypot(i.x - estado.heroiX, i.y - estado.heroiY) < RAIO_DESCARTE,
   )
@@ -729,6 +794,9 @@ function avancarProjeteis(estado: EstadoMundo, dt: number): void {
 }
 
 function avancarEfeitos(estado: EstadoMundo, dt: number): void {
+  for (const morte of estado.mortes) morte.tempo += dt
+  estado.mortes = estado.mortes.filter((m) => m.tempo < DURACAO_MORTE)
+
   for (const golpe of estado.golpes) golpe.vida -= dt
   estado.golpes = estado.golpes.filter((g) => g.vida > 0)
 
@@ -860,7 +928,7 @@ function disparar(estado: EstadoMundo, dirX: number, dirY: number): void {
 
 function ferirInimigo(estado: EstadoMundo, inimigo: Inimigo, dano: number): void {
   inimigo.vida -= dano
-  inimigo.flash = 0.12
+  inimigo.flash = DURACAO_LAMPEJO
   anunciar(estado, inimigo.x, inimigo.y - inimigo.especie.raio, dano, 'inimigo')
 }
 

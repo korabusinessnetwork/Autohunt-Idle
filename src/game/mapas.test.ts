@@ -20,15 +20,20 @@ import {
 } from './mapas'
 import { POOL_INIMIGOS } from './mundo'
 
-describe('a primeira leva de mapas', () => {
-  it('são 8 mapas cobrindo até o nível 80', () => {
-    expect(TOTAL_MAPAS).toBe(8)
-    expect(NIVEL_DA_ULTIMA_LEVA).toBe(80)
-    expect(MAPAS).toHaveLength(8)
+describe('as duas levas de mapas', () => {
+  it('são 16 mapas cobrindo até o nível 160', () => {
+    // Dobrou em 2026-08-19 com o arco da fábrica morta. Os números ficam
+    // escritos à mão de propósito: derivar de `TOTAL_MAPAS` faria o teste
+    // concordar com qualquer valor, inclusive com uma leva pela metade.
+    expect(TOTAL_MAPAS).toBe(16)
+    expect(NIVEL_DA_ULTIMA_LEVA).toBe(160)
+    expect(MAPAS).toHaveLength(16)
   })
 
   it('os mapas abrem de 10 em 10, começando no nível 1', () => {
-    expect(MAPAS.map((mapa) => mapa.nivelMinimo)).toEqual([1, 11, 21, 31, 41, 51, 61, 71])
+    expect(MAPAS.map((mapa) => mapa.nivelMinimo)).toEqual([
+      1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111, 121, 131, 141, 151,
+    ])
   })
 
   it('cada mapa tem um tema só dele', () => {
@@ -75,7 +80,7 @@ describe('mapaSugerido', () => {
     // O defeito que este teste existe para impedir já aconteceu: a primeira
     // versão era `floor(nivel / 10) + 1`, que no nível 10 sugeria o mapa 2 —
     // que só abre no 11. O jogo abriria travado.
-    for (let nivel = 1; nivel <= 200; nivel++) {
+    for (let nivel = 1; nivel <= 400; nivel++) {
       const mapa = mapaSugerido(nivel)
       expect(mapaLiberado(mapa, nivel), `nível ${nivel} → mapa ${mapa.id}`).toBe(true)
     }
@@ -87,13 +92,17 @@ describe('mapaSugerido', () => {
     expect(mapaSugerido(11).id).toBe(2)
     expect(mapaSugerido(20).id).toBe(2)
     expect(mapaSugerido(71).id).toBe(8)
+    // A virada para a fábrica morta: o nível 81 é onde o universo doce acaba.
+    expect(mapaSugerido(80).id).toBe(8)
+    expect(mapaSugerido(81).id).toBe(9)
+    expect(mapaSugerido(151).id).toBe(16)
   })
 
-  it('passar de 80 não trava nada — segue no mapa 8', () => {
+  it('passar de 160 não trava nada — segue no último mapa', () => {
     // Nível infinito é core do produto. Faltar mapa novo é conteúdo pendente,
     // não teto: o nível 999 continua jogando.
     expect(mapaSugerido(NIVEL_DA_ULTIMA_LEVA).id).toBe(TOTAL_MAPAS)
-    expect(mapaSugerido(81).id).toBe(TOTAL_MAPAS)
+    expect(mapaSugerido(161).id).toBe(TOTAL_MAPAS)
     expect(mapaSugerido(999).id).toBe(TOTAL_MAPAS)
   })
 

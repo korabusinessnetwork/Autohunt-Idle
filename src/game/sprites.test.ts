@@ -9,7 +9,9 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { deslocamentoDoHeroi, type MovimentoDoHeroi } from './sprites'
+import { QUADROS_LAMPEJO, QUADROS_MORTE } from './atlas'
+import { DURACAO_LAMPEJO, DURACAO_MORTE } from './mundo'
+import { deslocamentoDoHeroi, quadroDaMorte, quadroDoLampejo, type MovimentoDoHeroi } from './sprites'
 
 const PARADO: MovimentoDoHeroi = { pose: 'parado', progresso: 0, faseDoPasso: 0, olhandoX: 1 }
 
@@ -151,5 +153,61 @@ describe('cada pose se move do seu jeito', () => {
 
     expect(comemorando.dx).toBe(0)
     expect(comemorando.dy).toBeLessThan(0)
+  })
+})
+
+describe('apanhar e cair escolhem o quadro certo da folha', () => {
+  // As duas contas correm em sentidos OPOSTOS — o lampejo é contagem
+  // regressiva, a morte é tempo decorrido — e nenhuma das duas dá erro quando
+  // inverte. O sintoma seria um bicho apanhando de trás para a frente, ou um
+  // cadáver que começa achatado e se levanta. Coisa que só se vê olhando o
+  // quadro exato, num evento que dura décimos de segundo.
+
+  it('o lampejo começa no vulto branco e termina no corpo', () => {
+    // Recém-atingido, `flash` vale a duração inteira: quadro 0, o vulto.
+    expect(quadroDoLampejo(DURACAO_LAMPEJO)).toBe(0)
+    // Acabando, sobra quase nada: o último quadro, o corpo de volta.
+    expect(quadroDoLampejo(0.0001)).toBe(QUADROS_LAMPEJO - 1)
+  })
+
+  it('o lampejo avança, e nunca volta, ao longo de toda a duração', () => {
+    let anterior = -1
+    for (let flash = DURACAO_LAMPEJO; flash > 0; flash -= DURACAO_LAMPEJO / 60) {
+      const quadro = quadroDoLampejo(flash)
+      expect(quadro, `flash ${flash}`).toBeGreaterThanOrEqual(anterior)
+      expect(quadro, `flash ${flash}`).toBeLessThan(QUADROS_LAMPEJO)
+      anterior = quadro
+    }
+  })
+
+  it('a morte começa de pé e termina no chão', () => {
+    expect(quadroDaMorte(0)).toBe(0)
+    expect(quadroDaMorte(DURACAO_MORTE * 0.99)).toBe(QUADROS_MORTE - 1)
+  })
+
+  it('a morte SATURA no último quadro em vez de dar a volta', () => {
+    // Um `%` aqui faria o cadáver ressuscitar em laço no quadro em que o tempo
+    // passa da duração e a lista ainda não foi filtrada.
+    for (const tempo of [DURACAO_MORTE, DURACAO_MORTE * 2, 999]) {
+      expect(quadroDaMorte(tempo), `tempo ${tempo}`).toBe(QUADROS_MORTE - 1)
+    }
+  })
+
+  it('nenhuma das duas devolve quadro fora da folha — nem com lixo na entrada', () => {
+    // As duas leem estado de simulação. Um quadro fora da faixa não estoura:
+    // `drawImage` recorta fora da imagem e desenha NADA, e o bicho pisca para
+    // fora de existência sem erro nenhum no console.
+    const lixo = [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, -5, 1e9]
+    for (const valor of lixo) {
+      const lampejo = quadroDoLampejo(valor)
+      expect(Number.isInteger(lampejo), `lampejo ${valor}`).toBe(true)
+      expect(lampejo, `lampejo ${valor}`).toBeGreaterThanOrEqual(0)
+      expect(lampejo, `lampejo ${valor}`).toBeLessThan(QUADROS_LAMPEJO)
+
+      const morte = quadroDaMorte(valor)
+      expect(Number.isInteger(morte), `morte ${valor}`).toBe(true)
+      expect(morte, `morte ${valor}`).toBeGreaterThanOrEqual(0)
+      expect(morte, `morte ${valor}`).toBeLessThan(QUADROS_MORTE)
+    }
   })
 })

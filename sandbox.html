@@ -70,12 +70,20 @@
         para sempre, sem nada na tela dizendo o motivo.
       -->
       <button id="skin" type="button">Sem skin</button>
+      <!--
+        Ciclador de mapa. Nasceu com o arco da fábrica morta (biomas 9–16):
+        no jogo, mapa é destravado por nível, então ver o bioma 16 exigiria uma
+        conta de nível 151 — e a ferramenta feita para calibrar cenário não
+        alcançava metade dos cenários. Aqui não há nível para respeitar: o
+        sandbox não tem sessão, e mapa nunca creditou nada.
+      -->
+      <button id="mapa" type="button">Mapa 1</button>
     </header>
 
     <main><canvas id="mundo"></canvas></main>
 
     <footer>
-      WASD ou setas para andar · mouse para mirar · o mapa tem 5120×1440, com 8 regiões
+      WASD ou setas para andar · mouse para mirar · cada mapa é uma instância de 1920×1080
     </footer>
 
     <script type="module" src="/src/dev/sandbox.ts"></script>

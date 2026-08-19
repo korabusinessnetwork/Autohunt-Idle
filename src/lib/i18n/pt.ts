@@ -50,13 +50,13 @@ export const pt = {
   // texto daqui promete recompensa maior. O que ele vende é lugar novo.
   'mapa.titulo': 'Mapa',
   'mapa.explicacao':
-    'Oito lugares pra explorar, um por tema. O que muda é a paisagem e o bicho que mora lá — o que você ganha continua saindo do tempo que você joga.',
+    'Dezesseis lugares pra explorar, um por tema — oito no universo doce, oito na fábrica que parou. O que muda é a paisagem e o bicho que mora lá; o que você ganha continua saindo do tempo que você joga.',
   'mapa.faixaDeNivel': 'Nível {de} a {ate}',
   'mapa.viajar': 'Ir pra lá',
   'mapa.vocEstaAqui': 'Você está aqui',
   'mapa.faltamNiveis': 'Faltam {niveis} níveis',
   'mapa.alemDaUltimaLeva':
-    'Você já passou do nível {nivel} — os mapas novos ainda estão sendo desenhados. Até lá, o Céu de Confete é a sua casa.',
+    'Você já passou do nível {nivel} — os mapas novos ainda estão sendo desenhados. Até lá, o Forno Central é a sua casa.',
 
   // --- Login --------------------------------------------------------------
   'login.titulo': 'Entrar na sua conta',
@@ -436,6 +436,17 @@ export const pt = {
   'mundo.bioma6': 'Geleira de Menta',
   'mundo.bioma7': 'Vulcão de Goma',
   'mundo.bioma8': 'Céu de Confete Cósmico',
+
+  // A fábrica morta — biomas 9 a 16. O universo doce é o lugar onde a comida
+  // MORA; estes oito são o lugar onde ela era FEITA, depois que a linha parou.
+  'mundo.bioma9': 'Fábrica de Refrigerante',
+  'mundo.bioma10': 'Pântano de Melaço',
+  'mundo.bioma11': 'Catedral de Marzipã',
+  'mundo.bioma12': 'Câmara Fria',
+  'mundo.bioma13': 'Silo de Açúcar',
+  'mundo.bioma14': 'Linha de Embalagem',
+  'mundo.bioma15': 'Caldeiraria de Chocolate',
+  'mundo.bioma16': 'Forno Central',
   'inimigo.casquinha': 'Casquinha',
   'inimigo.minhoca': 'Minhoca Azeda',
   'inimigo.rosquinha': 'Rosquinha Brutamontes',
@@ -451,6 +462,17 @@ export const pt = {
   'inimigo.floco': 'Floco Afiado',
   'inimigo.brasa': 'Brasa de Goma',
   'inimigo.confete': 'Confete Cósmico',
+
+  // Os oito da fábrica morta. Cada nome diz a SILHUETA antes do sabor — é o que
+  // o jogador lê na lista de mapa e no rótulo de alvo.
+  'inimigo.latinha': 'Latinha Debochada',
+  'inimigo.tronco': 'Tronco Atolado',
+  'inimigo.sino': 'Sino Rachado',
+  'inimigo.picole': 'Picolé Derretido',
+  'inimigo.torrao': 'Torrão Bruto',
+  'inimigo.bala': 'Bala Perdida',
+  'inimigo.gota': 'Gota Grossa',
+  'inimigo.caramelo': 'Caramelo Queimado',
 
   // --- Console de ajuste (tela do dono, não do jogador) --------------------
   // Está no bundle de todo mundo de propósito: esconder a rota seria segurança

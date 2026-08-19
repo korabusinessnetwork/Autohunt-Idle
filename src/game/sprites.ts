@@ -9,14 +9,24 @@
 // mudaram uma linha por causa da arte.
 
 import {
+  QUADROS_IDLE,
+  QUADROS_LAMPEJO,
+  QUADROS_MORTE,
+  VARIANTES_LADRILHO,
+  arteDaAnimacaoDoInimigo,
+  arteDaAnimacaoDoProp,
+  arteDaMorteDoInimigo,
   arteDoDanoDoInimigo,
   arteDoHeroi,
   arteDoInimigo,
+  arteDoLadrilho,
+  arteDoLampejoDoInimigo,
   arteDoProp,
+  biomaTemLadrilho,
   imagem,
   type PoseHeroi,
 } from './atlas'
-import type { FormaInimigo } from './mundo'
+import { DURACAO_LAMPEJO, DURACAO_MORTE, type FormaInimigo } from './mundo'
 import type { Paleta } from './paleta'
 
 function contornar(ctx: CanvasRenderingContext2D, paleta: Paleta): void {
@@ -83,6 +93,68 @@ function desenharSprite(
   if (espelhar) ctx.scale(-1, 1)
   ctx.drawImage(img, -largura / 2, -altura / 2, largura, altura)
   ctx.restore()
+}
+
+/**
+ * Um quadro de uma folha de animação, centrado, com a grade de pixel intacta.
+ *
+ * As folhas vieram na horizontal (N quadros lado a lado, todos do mesmo
+ * tamanho), então o recorte é uma divisão e nada mais. Vale para folha de
+ * inimigo e de prop — as duas têm o mesmo formato, e um segundo recortador
+ * seria a segunda chance de errar a conta.
+ *
+ * O índice dÁ A VOLTA em vez de saturar: quem chama passa um contador que só
+ * cresce, e travar no último quadro pararia a animação em vez de repeti-la.
+ */
+function desenharQuadro(
+  ctx: CanvasRenderingContext2D,
+  img: Desenhavel,
+  quadros: number,
+  indice: number,
+  x: number,
+  y: number,
+  altura: number,
+  espelhar = false,
+): void {
+  const total = Math.max(1, Math.trunc(quadros) || 1)
+  const larguraTotal = img instanceof HTMLCanvasElement ? img.width : img.naturalWidth
+  const alturaTotal = img instanceof HTMLCanvasElement ? img.height : img.naturalHeight
+  const larguraQuadro = larguraTotal / total
+  const n = ((Math.trunc(indice) % total) + total) % total
+
+  const largura = altura * (larguraQuadro / alturaTotal)
+  ctx.save()
+  ctx.imageSmoothingEnabled = false
+  ctx.translate(x, y)
+  if (espelhar) ctx.scale(-1, 1)
+  ctx.drawImage(
+    img,
+    n * larguraQuadro,
+    0,
+    larguraQuadro,
+    alturaTotal,
+    -largura / 2,
+    -altura / 2,
+    largura,
+    altura,
+  )
+  ctx.restore()
+}
+
+/**
+ * O quadro em que uma animação de repouso está, no instante `tempo`.
+ *
+ * A `semente` desencontra os atores de propósito: sem ela, todo bicho da tela
+ * respira no mesmo compasso, e um bando inteiro pulsando junto lê como falha de
+ * renderização, não como vida. Ela é estável por ator (vem do id), então o
+ * mesmo bicho nunca salta de fase no meio do passo.
+ */
+const QUADROS_POR_SEGUNDO_IDLE = 6
+
+export function quadroDeRepouso(tempo: number, semente: number, quadros: number): number {
+  if (!Number.isFinite(tempo)) return 0
+  const deslocamento = Number.isFinite(semente) ? Math.abs(Math.trunc(semente)) % quadros : 0
+  return Math.floor(tempo * QUADROS_POR_SEGUNDO_IDLE) + deslocamento
 }
 
 /**
@@ -185,7 +257,7 @@ function desenharPudim(ctx: CanvasRenderingContext2D, r: number, paleta: Paleta)
 }
 
 // ---------------------------------------------------------------------------
-// Inimigos assinatura — um por bioma, oito no total.
+// Inimigos assinatura — um por bioma, dezesseis no total.
 //
 // Cada um usa `cor`, que é o token `--bioma-N-assinatura` da zona corrente. É
 // isso que permite ter identidade própria por bioma sem 40 desenhos: a
@@ -317,6 +389,243 @@ function desenharConfete(ctx: CanvasRenderingContext2D, r: number, paleta: Palet
   ctx.fill()
 }
 
+// ---------------------------------------------------------------------------
+// Os oito da fábrica morta.
+//
+// A restrição de leitura do briefing vale AQUI TAMBÉM, e não só nos PNGs:
+// nenhuma das oito repete a silhueta de outra, nem das oito doces. É o que
+// mantém o primeiro quadro (antes da arte decodificar) tão legível quanto o
+// segundo — se as silhuetas de reserva fossem genéricas, todo mapa novo abriria
+// com um bando de bolhas iguais.
+// ---------------------------------------------------------------------------
+
+/** Latinha Debochada — cilindro amassado, com o lacre torto por cima. */
+function desenharLatinha(ctx: CanvasRenderingContext2D, r: number, paleta: Paleta, cor: string): void {
+  ctx.beginPath()
+  ctx.roundRect(-r * 0.68, -r * 0.95, r * 1.36, r * 1.9, r * 0.22)
+  ctx.fillStyle = cor
+  ctx.fill()
+  contornar(ctx, paleta)
+
+  // A mossa: o corte que faz "lata amassada" e não "lata".
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.68, -r * 0.1)
+  ctx.lineTo(-r * 0.15, r * 0.15)
+  ctx.lineTo(-r * 0.68, r * 0.4)
+  ctx.closePath()
+  ctx.fillStyle = paleta['--cor-contorno']
+  ctx.fill()
+
+  // O lacre.
+  ctx.beginPath()
+  ctx.ellipse(r * 0.1, -r * 0.95, r * 0.3, r * 0.12, 0.4, 0, Math.PI * 2)
+  ctx.fillStyle = paleta['--cor-texto']
+  ctx.fill()
+}
+
+/** Tronco Atolado — coluna maciça, meio afundada. */
+function desenharTronco(ctx: CanvasRenderingContext2D, r: number, paleta: Paleta, cor: string): void {
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.62, r)
+  ctx.lineTo(-r * 0.72, -r * 0.75)
+  ctx.lineTo(r * 0.72, -r * 0.75)
+  ctx.lineTo(r * 0.62, r)
+  ctx.closePath()
+  ctx.fillStyle = cor
+  ctx.fill()
+  contornar(ctx, paleta)
+
+  // A copa cortada, mais clara: é ela que diz "toco" em vez de "poste".
+  ctx.beginPath()
+  ctx.ellipse(0, -r * 0.75, r * 0.72, r * 0.24, 0, 0, Math.PI * 2)
+  ctx.fillStyle = paleta['--cor-texto']
+  ctx.fill()
+  contornar(ctx, paleta)
+
+  // O galhinho.
+  ctx.beginPath()
+  ctx.moveTo(r * 0.66, -r * 0.5)
+  ctx.lineTo(r * 1.15, -r * 0.85)
+  ctx.strokeStyle = cor
+  ctx.lineWidth = 4
+  ctx.stroke()
+}
+
+/** Sino Rachado — triângulo largo embaixo, com a fenda em zigue-zague. */
+function desenharSino(ctx: CanvasRenderingContext2D, r: number, paleta: Paleta, cor: string): void {
+  ctx.beginPath()
+  ctx.moveTo(0, -r)
+  ctx.quadraticCurveTo(r * 0.95, -r * 0.5, r, r * 0.55)
+  ctx.lineTo(-r, r * 0.55)
+  ctx.quadraticCurveTo(-r * 0.95, -r * 0.5, 0, -r)
+  ctx.closePath()
+  ctx.fillStyle = cor
+  ctx.fill()
+  contornar(ctx, paleta)
+
+  // A rachadura.
+  ctx.beginPath()
+  ctx.moveTo(r * 0.15, -r * 0.6)
+  ctx.lineTo(-r * 0.1, -r * 0.15)
+  ctx.lineTo(r * 0.2, r * 0.1)
+  ctx.lineTo(-r * 0.05, r * 0.55)
+  ctx.strokeStyle = paleta['--cor-contorno']
+  ctx.lineWidth = 3
+  ctx.stroke()
+
+  // O badalo, aparecendo sob a borda.
+  ctx.beginPath()
+  ctx.arc(0, r * 0.78, r * 0.2, 0, Math.PI * 2)
+  ctx.fillStyle = paleta['--cor-texto']
+  ctx.fill()
+}
+
+/** Picolé Derretido — cabeça com haste, mordida no canto. */
+function desenharPicole(ctx: CanvasRenderingContext2D, r: number, paleta: Paleta, cor: string): void {
+  // O palito primeiro: por baixo da laje, como no objeto real.
+  ctx.beginPath()
+  ctx.roundRect(-r * 0.16, r * 0.35, r * 0.32, r * 0.95, r * 0.12)
+  ctx.fillStyle = paleta['--cor-texto']
+  ctx.fill()
+  contornar(ctx, paleta)
+
+  ctx.beginPath()
+  ctx.roundRect(-r * 0.8, -r * 0.95, r * 1.6, r * 1.5, r * 0.45)
+  ctx.fillStyle = cor
+  ctx.fill()
+  contornar(ctx, paleta)
+
+  // A mordida: o que separa "picolé derretido" de "picolé".
+  ctx.beginPath()
+  ctx.arc(r * 0.7, -r * 0.85, r * 0.34, 0, Math.PI * 2)
+  ctx.fillStyle = paleta['--cor-fundo']
+  ctx.fill()
+}
+
+/** Torrão Bruto — cubo atarracado de topo lascado. */
+function desenharTorrao(ctx: CanvasRenderingContext2D, r: number, paleta: Paleta, cor: string): void {
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.9, r * 0.85)
+  ctx.lineTo(-r * 0.9, -r * 0.5)
+  ctx.lineTo(-r * 0.35, -r * 0.85)
+  ctx.lineTo(r * 0.2, -r * 0.55)
+  ctx.lineTo(r * 0.9, -r * 0.8)
+  ctx.lineTo(r * 0.9, r * 0.85)
+  ctx.closePath()
+  ctx.fillStyle = cor
+  ctx.fill()
+  contornar(ctx, paleta)
+
+  // Os punhos soltos nas laterais — e são eles que dizem que o cubo ANDA.
+  for (const lado of [-1, 1]) {
+    ctx.beginPath()
+    ctx.arc(lado * r * 1.15, r * 0.35, r * 0.26, 0, Math.PI * 2)
+    ctx.fillStyle = cor
+    ctx.fill()
+    contornar(ctx, paleta)
+  }
+}
+
+/** Bala Perdida — horizontal, com as pontas torcidas do embrulho. */
+function desenharBala(ctx: CanvasRenderingContext2D, r: number, paleta: Paleta, cor: string): void {
+  ctx.beginPath()
+  ctx.ellipse(0, 0, r * 0.72, r * 0.62, 0, 0, Math.PI * 2)
+  ctx.fillStyle = cor
+  ctx.fill()
+  contornar(ctx, paleta)
+
+  // As pontas: a única silhueta do elenco que alarga no meio e afina nas duas
+  // laterais, que é o que a torna reconhecível de longe.
+  for (const lado of [-1, 1]) {
+    ctx.beginPath()
+    ctx.moveTo(lado * r * 0.6, -r * 0.2)
+    ctx.lineTo(lado * r * 1.25, -r * 0.55)
+    ctx.lineTo(lado * r * 1.1, 0)
+    ctx.lineTo(lado * r * 1.25, r * 0.55)
+    ctx.lineTo(lado * r * 0.6, r * 0.2)
+    ctx.closePath()
+    ctx.fillStyle = cor
+    ctx.fill()
+    contornar(ctx, paleta)
+  }
+
+  // A listra do papel.
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.35, -r * 0.5)
+  ctx.lineTo(r * 0.15, r * 0.5)
+  ctx.strokeStyle = paleta['--cor-texto']
+  ctx.lineWidth = 3
+  ctx.stroke()
+}
+
+/** Gota Grossa — pêra pesada de crista fina, com a poça na base. */
+function desenharGota(ctx: CanvasRenderingContext2D, r: number, paleta: Paleta, cor: string): void {
+  // A poça vem primeiro: ela fica por baixo, e é o que ancora a gota no chão.
+  ctx.beginPath()
+  ctx.ellipse(0, r * 0.95, r * 0.85, r * 0.2, 0, 0, Math.PI * 2)
+  ctx.fillStyle = cor
+  ctx.globalAlpha = 0.55
+  ctx.fill()
+  ctx.globalAlpha = 1
+
+  ctx.beginPath()
+  ctx.moveTo(0, -r * 1.1)
+  ctx.bezierCurveTo(r * 0.35, -r * 0.35, r * 0.95, r * 0.05, r * 0.8, r * 0.5)
+  ctx.arc(0, r * 0.5, r * 0.8, 0, Math.PI)
+  ctx.bezierCurveTo(-r * 0.95, r * 0.05, -r * 0.35, -r * 0.35, 0, -r * 1.1)
+  ctx.closePath()
+  ctx.fillStyle = cor
+  ctx.fill()
+  contornar(ctx, paleta)
+
+  // O brilho de calda: sem ele a gota lê como pedra escura.
+  ctx.beginPath()
+  ctx.ellipse(-r * 0.3, r * 0.25, r * 0.18, r * 0.3, -0.4, 0, Math.PI * 2)
+  ctx.fillStyle = paleta['--cor-texto']
+  ctx.globalAlpha = 0.45
+  ctx.fill()
+  ctx.globalAlpha = 1
+}
+
+/** Caramelo Queimado — massa pontuda, com as brasas nas órbitas. */
+function desenharCaramelo(
+  ctx: CanvasRenderingContext2D,
+  r: number,
+  paleta: Paleta,
+  cor: string,
+): void {
+  // Estrela irregular de oito pontas: a única silhueta ESPINHOSA do elenco.
+  const pontas = 8
+  ctx.beginPath()
+  for (let i = 0; i < pontas * 2; i++) {
+    const angulo = (i * Math.PI) / pontas - Math.PI / 2
+    // O raio alterna longo/curto, e o "longo" varia de ponta a ponta para a
+    // massa não virar uma estrela de gráfico.
+    const irregular = i % 2 === 0 ? 1 + (i % 3) * 0.12 : 0.62
+    const raio = r * irregular
+    const x = Math.cos(angulo) * raio
+    const y = Math.sin(angulo) * raio
+    if (i === 0) ctx.moveTo(x, y)
+    else ctx.lineTo(x, y)
+  }
+  ctx.closePath()
+  ctx.fillStyle = cor
+  ctx.fill()
+  contornar(ctx, paleta)
+
+  // Os dois olhos de brasa, fundos.
+  for (const lado of [-1, 1]) {
+    ctx.beginPath()
+    ctx.arc(lado * r * 0.32, -r * 0.12, r * 0.17, 0, Math.PI * 2)
+    ctx.fillStyle = paleta['--cor-contorno']
+    ctx.fill()
+    ctx.beginPath()
+    ctx.arc(lado * r * 0.32, -r * 0.12, r * 0.09, 0, Math.PI * 2)
+    ctx.fillStyle = paleta['--cor-recompensa']
+    ctx.fill()
+  }
+}
+
 const DESENHOS: Record<
   FormaInimigo,
   (ctx: CanvasRenderingContext2D, raio: number, paleta: Paleta, cor: string) => void
@@ -334,6 +643,14 @@ const DESENHOS: Record<
   floco: desenharFloco,
   brasa: desenharBrasa,
   confete: desenharConfete,
+  latinha: desenharLatinha,
+  tronco: desenharTronco,
+  sino: desenharSino,
+  picole: desenharPicole,
+  torrao: desenharTorrao,
+  bala: desenharBala,
+  gota: desenharGota,
+  caramelo: desenharCaramelo,
 }
 
 /**
@@ -475,6 +792,48 @@ function paraPixelDeMundo(valor: number): number {
   return Number.isFinite(valor) ? Math.round(valor) + 0 : 0
 }
 
+/**
+ * Um inimigo, em três níveis de arte que caem um no outro sem ramo no chamador:
+ * folha animada → PNG parado → silhueta geométrica.
+ *
+ * A ordem é a mesma promessa de sempre (`atlas.ts`, regra 2): arte melhor
+ * quando existe, jogo rodando quando não. Quem chama passa os mesmos argumentos
+ * para as três — `tempo` e `semente` são opcionais e só mudam algo para quem
+ * tem folha.
+ */
+/**
+ * Em que quadro da folha de DANO o lampejo está, a partir do que sobra dele.
+ *
+ * `flash` é uma CONTAGEM REGRESSIVA — nasce em `DURACAO_LAMPEJO` e desce até
+ * zero —, então o quadro cresce enquanto o número diminui. Trocar o sentido
+ * por engano não quebraria nada visível: o bicho só apanharia de trás para a
+ * frente, mostrando o corpo antes do vulto. Por isso a conta é pura e testada,
+ * em vez de embutida no desenho — a mesma razão de `deslocamentoDoHeroi`.
+ */
+export function quadroDoLampejo(flash: number): number {
+  if (!Number.isFinite(flash) || DURACAO_LAMPEJO <= 0) return 0
+  const decorrido = 1 - flash / DURACAO_LAMPEJO
+  return Math.min(QUADROS_LAMPEJO - 1, Math.max(0, Math.floor(decorrido * QUADROS_LAMPEJO)))
+}
+
+/**
+ * Em que quadro da folha de MORTE o abatido está, a partir do tempo desde o
+ * abate.
+ *
+ * Este é crescente (é tempo decorrido, não restante) — o inverso do lampejo, e
+ * exatamente por isso os dois existem separados em vez de uma função com um
+ * sinal de menos escondido no meio.
+ *
+ * SATURA no último quadro em vez de dar a volta: o corpo desaba e fica no
+ * chão. Um `%` aqui faria o cadáver ressuscitar em laço durante o quadro em que
+ * o tempo passa da duração e a lista ainda não foi filtrada.
+ */
+export function quadroDaMorte(tempo: number): number {
+  if (!Number.isFinite(tempo) || DURACAO_MORTE <= 0) return QUADROS_MORTE - 1
+  const decorrido = tempo / DURACAO_MORTE
+  return Math.min(QUADROS_MORTE - 1, Math.max(0, Math.floor(decorrido * QUADROS_MORTE)))
+}
+
 export function desenharInimigo(
   ctx: CanvasRenderingContext2D,
   forma: FormaInimigo,
@@ -484,7 +843,42 @@ export function desenharInimigo(
   flash: number,
   paleta: Paleta,
   corAssinatura: string,
+  tempo = 0,
+  semente = 0,
 ): void {
+  // 1. A folha de repouso, para quem tem — e, dentro dela, a folha de dano.
+  const folha = arteDaAnimacaoDoInimigo(forma)
+  const animado = folha ? imagem(folha) : null
+  if (folha && animado) {
+    const altura = alturaDoSprite(raio)
+    const quadro = quadroDeRepouso(tempo, semente, QUADROS_IDLE)
+
+    if (flash > 0) {
+      // 1a. A folha de DANO desenhada à mão vence a silhueta gerada. Os dois
+      //     quadros dela são o vulto branco e o corpo de volta; o vulto ocupa a
+      //     primeira metade do lampejo, que é onde o impacto é lido.
+      const dano = arteDoLampejoDoInimigo(forma)
+      const folhaDano = dano ? imagem(dano) : null
+      if (folhaDano) {
+        desenharQuadro(ctx, folhaDano, QUADROS_LAMPEJO, quadroDoLampejo(flash), x, y, altura)
+        return
+      }
+
+      // 1b. Sem ela, a silhueta gerada da PRÓPRIA folha de repouso, recortada
+      //     no mesmo quadro: gerar a silhueta do PNG parado faria o bicho
+      //     saltar de pose toda vez que levasse um tiro.
+      const sil = silhuetaDe(folha, animado, paleta['--cor-texto'])
+      if (sil) {
+        desenharQuadro(ctx, sil, QUADROS_IDLE, quadro, x, y, altura)
+        return
+      }
+    }
+
+    desenharQuadro(ctx, animado, QUADROS_IDLE, quadro, x, y, altura)
+    return
+  }
+
+  // 2. O PNG parado.
   const caminho = arteDoInimigo(forma)
   const img = imagem(caminho)
 
@@ -503,13 +897,41 @@ export function desenharInimigo(
     return
   }
 
-  // Sem PNG pronto: a silhueta geométrica, que é o estado inicial de todo
-  // primeiro quadro e o permanente se a arte não carregar.
+  // 3. Sem PNG pronto: a silhueta geométrica, que é o estado inicial de todo
+  //    primeiro quadro e o permanente se a arte não carregar.
   ctx.save()
   ctx.translate(x, y)
   if (flash > 0) ctx.globalAlpha = 0.45
   DESENHOS[forma](ctx, raio, paleta, corAssinatura)
   ctx.restore()
+}
+
+/**
+ * O abatido caindo.
+ *
+ * SÓ DESENHA QUEM TEM FOLHA DE MORTE, e some sem nenhum substituto para quem
+ * não tem. É a única função deste arquivo sem degrau de reserva, e de propósito:
+ * as outras desenham algo que PRECISA estar na tela — um inimigo sem sprite
+ * ainda é um inimigo que morde. Um cadáver não é nada; inventar uma silhueta
+ * geométrica encolhendo para ele seria acrescentar ruído onde antes havia o
+ * comportamento correto, que era simplesmente sumir.
+ *
+ * A altura NÃO encolhe com o tempo: quem achata o corpo é o desenho dentro do
+ * quadro, e encolher a caixa por fora achataria duas vezes.
+ */
+export function desenharMorte(
+  ctx: CanvasRenderingContext2D,
+  forma: FormaInimigo,
+  x: number,
+  y: number,
+  raio: number,
+  tempo: number,
+): void {
+  const caminho = arteDaMorteDoInimigo(forma)
+  const folha = caminho ? imagem(caminho) : null
+  if (!folha) return
+
+  desenharQuadro(ctx, folha, QUADROS_MORTE, quadroDaMorte(tempo), x, y, alturaDoSprite(raio))
 }
 
 /**
@@ -765,7 +1187,18 @@ export function desenharCenario(
   ctx.fillStyle = fundo
   ctx.fillRect(origemX, origemY, largura, altura)
 
-  desenharMalha(ctx, origemX, origemY, largura, altura, detalhe, intensidade)
+  // Chão desenhado onde ele existe; malha hexagonal onde não.
+  //
+  // NÃO SÃO OS DOIS. A malha nasceu para dar referência de movimento num fundo
+  // chapado, e um piso de verdade já faz isso melhor — sobrepor os dois deixaria
+  // um risco de papel milimetrado por cima da chapa rebitada, que é exatamente o
+  // efeito que a malha existe para evitar.
+  if (biomaTemLadrilho(bioma)) {
+    desenharPiso(ctx, origemX, origemY, largura, altura, bioma, intensidade)
+  } else {
+    desenharMalha(ctx, origemX, origemY, largura, altura, detalhe, intensidade)
+  }
+
   desenharMigalhas(ctx, origemX, origemY, largura, altura, paleta, bioma, tempo)
 
   const primeiroX = Math.floor(origemX / LADO_LADRILHO)
@@ -775,11 +1208,132 @@ export function desenharCenario(
 
   for (let ty = primeiroY; ty <= ultimoY; ty++) {
     for (let tx = primeiroX; tx <= ultimoX; tx++) {
-      desenharProps(ctx, tx, ty, bioma, intensidade)
+      desenharProps(ctx, tx, ty, bioma, intensidade, tempo)
     }
   }
 
   desenharBordaDoMapa(ctx, origemX, origemY, largura, altura, paleta, detalhe, mapa)
+}
+
+/**
+ * O piso ladrilhado — a alternativa à malha, para os biomas que têm chão
+ * desenhado.
+ *
+ * O LADO SAI DA MESMA ESCALA DOS PROPS, e não do tamanho do arquivo. A primeira
+ * versão desenhava o ladrilho em 64 (o tamanho nativo do PNG) por causa da
+ * grade de pixel — e ficou errado na tela: a chapa saiu MAIOR que o herói, e um
+ * piso de placas de 64 atrás de um boneco de 42 lê como tabuleiro, não como
+ * chão. O problema real era densidade de pixel: a 64, cada pixel do desenho
+ * ocupava 8 de mundo, contra ~1,8 do herói e 4 dos props.
+ *
+ * A 48 uma chapa mede aproximadamente UM ATOR, que é a proporção da própria
+ * arte de cenário do pacote (`sc-*.png`): lá o inimigo assinatura ocupa quase
+ * exatamente uma chapa. E 48 continua limpo na grade de pixel — o arquivo tem
+ * 8×8 pixels de desenho, então cada um vira 6 de mundo, inteiro, sem
+ * interpolar. Descer até 32 foi longe demais: resolvia o tamanho e trocava
+ * tabuleiro por azulejo de banheiro, com o dobro de linha na tela.
+ *
+ * AS FIADAS ÍMPARES ANDAM MEIA CHAPA. É junta amarrada, do jeito que piso de
+ * chapa é assentado de verdade — e é o que resolve o defeito que nenhum
+ * tamanho resolvia sozinho: com as juntas alinhadas, as linhas verticais
+ * atravessam a tela inteira e o olho trava no papel milimetrado. Quebrada a
+ * junta, sobra a linha horizontal, que é referência de chão, e some a coluna,
+ * que era só grade.
+ *
+ * A variante 1 é a base e cobre a maior parte do chão; as 2–4 são acento e
+ * entram por RUÍDO DA CÉLULA, nunca por sorteio — a mesma regra dos props e das
+ * migalhas, e pelo mesmo motivo: chão que se redesenha diferente quando o
+ * jogador volta destrói a sensação de lugar. E a densidade de acento cresce com
+ * a intensidade, que é o que faz a borda do mapa parecer mais castigada que o
+ * centro sem nenhum arquivo a mais.
+ */
+const LADO_LADRILHO_CHAO = 48
+
+/**
+ * Qual acento cai numa célula que passou do corte, de `faixa` 0 a 1.
+ *
+ * NÃO É DIVISÃO IGUAL, e a diferença é de leitura, não de gosto. As variantes
+ * são crescentes em barulho — a 2 é rebite a mais, a 4 é a caixa dourada, a
+ * grelha acesa, a poça de chocolate. Distribuídas em partes iguais, a mais alta
+ * aparecia dezenas de vezes por tela, e um quadrado âmbar repetido no chão de um
+ * jogo de loot não lê como cenário: lê como item, e o jogador anda até ele.
+ *
+ * O briefing pede isso explicitamente ("nada no cenário parece coletável ou
+ * interativo"), e o Princípio nº1 pede o mesmo em outras palavras: prevenção de
+ * erro vale mais que mensagem de erro, e a mensagem aqui seria o jogador
+ * descobrindo sozinho que aquilo não pega.
+ *
+ * Metade / um terço / um sexto — o barulho fica raro na proporção em que ele
+ * grita.
+ */
+function varianteDeAcento(faixa: number): number {
+  if (!Number.isFinite(faixa) || faixa < 0.5) return 2
+  if (faixa < 0.83) return 3
+  return Math.min(VARIANTES_LADRILHO, 4)
+}
+
+function desenharPiso(
+  ctx: CanvasRenderingContext2D,
+  origemX: number,
+  origemY: number,
+  largura: number,
+  altura: number,
+  bioma: number,
+  intensidade: number,
+): void {
+  const caminhoBase = arteDoLadrilho(bioma, 1)
+  const base = caminhoBase ? imagem(caminhoBase) : null
+  // Sem a base pronta não se desenha piso nenhum: o fundo chapado já foi
+  // pintado, e meio piso ladrilhado seria pior que nenhum.
+  if (!base) return
+
+  // Uma coluna a mais de cada lado: a fiada deslocada entra e sai da tela meia
+  // chapa antes das outras, e sem a folga ela abriria buraco na beirada.
+  const primeiroX = Math.floor(origemX / LADO_LADRILHO_CHAO) - 1
+  const ultimoX = Math.floor((origemX + largura) / LADO_LADRILHO_CHAO) + 1
+  const primeiroY = Math.floor(origemY / LADO_LADRILHO_CHAO)
+  const ultimoY = Math.floor((origemY + altura) / LADO_LADRILHO_CHAO)
+
+  // Acima deste corte a célula ganha acento. Começa alto porque o acento é
+  // acento: quatro variantes distribuídas em partes iguais viram xadrez, e
+  // xadrez denuncia o gerador tanto quanto a célula única repetida.
+  //
+  // Subiu de 0,82 para 0,94 junto com a queda do lado: metade do lado é QUATRO
+  // vezes mais células na mesma área, então manter a proporção de acento
+  // quadruplicaria o acento visto. A 0,94 o chão volta a ser chapa com detalhe,
+  // e não detalhe com chapa entre eles.
+  const corte = 0.94 - intensidade * 0.12
+
+  ctx.save()
+  ctx.imageSmoothingEnabled = false
+
+  for (let ty = primeiroY; ty <= ultimoY; ty++) {
+    // A amarração sai da PARIDADE DA FIADA em coordenada de mundo, nunca de um
+    // contador do laço: assim a mesma chapa cai no mesmo lugar do mapa quando a
+    // câmera volta, e o chão não escorrega meia placa a cada passo.
+    const desloca = ty % 2 === 0 ? 0 : LADO_LADRILHO_CHAO / 2
+
+    for (let tx = primeiroX; tx <= ultimoX; tx++) {
+      let ladrilho = base
+
+      const celula = ruido(tx, ty)
+      if (celula > corte) {
+        const faixa = (celula - corte) / (1 - corte)
+        const caminho = arteDoLadrilho(bioma, varianteDeAcento(faixa))
+        ladrilho = (caminho && imagem(caminho)) || base
+      }
+
+      ctx.drawImage(
+        ladrilho,
+        tx * LADO_LADRILHO_CHAO + desloca,
+        ty * LADO_LADRILHO_CHAO,
+        LADO_LADRILHO_CHAO,
+        LADO_LADRILHO_CHAO,
+      )
+    }
+  }
+
+  ctx.restore()
 }
 
 /**
@@ -951,8 +1505,14 @@ function desenharProps(
   ladrilhoY: number,
   bioma: number,
   intensidade: number,
+  tempo: number,
 ): void {
-  const prop = imagem(arteDoProp(bioma))
+  // A folha animada quando existe, o PNG parado quando não — mesma escada do
+  // inimigo. A folha tem N quadros lado a lado, então a altura sai da altura
+  // dela (que é a de um quadro), não da largura.
+  const folha = arteDaAnimacaoDoProp(bioma)
+  const animado = folha ? imagem(folha) : null
+  const prop = animado ?? imagem(arteDoProp(bioma))
   if (!prop) return
 
   const alturaProp = (prop.naturalHeight / ESCALA_EXPORTACAO) * ESCALA_PROP
@@ -977,6 +1537,14 @@ function desenharProps(
   ctx.imageSmoothingEnabled = false
   const x = baseX + LADO_LADRILHO * (0.2 + desloca(1) * 0.6)
   const y = baseY + LADO_LADRILHO * (0.2 + desloca(2) * 0.6)
-  desenharSprite(ctx, prop, x, y, alturaProp, desloca(3) > 0.5)
+  const espelhado = desloca(3) > 0.5
+  if (animado) {
+    // A semente do ladrilho desencontra as cópias: dois caldeirões na mesma
+    // tela borbulhando em uníssono lê como vídeo em loop, não como cenário.
+    const quadro = quadroDeRepouso(tempo, ladrilhoX * 7 + ladrilhoY * 13, QUADROS_IDLE)
+    desenharQuadro(ctx, animado, QUADROS_IDLE, quadro, x, y, alturaProp, espelhado)
+  } else {
+    desenharSprite(ctx, prop, x, y, alturaProp, espelhado)
+  }
   ctx.restore()
 }

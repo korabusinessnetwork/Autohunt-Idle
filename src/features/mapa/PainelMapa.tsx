@@ -1,6 +1,9 @@
+import type { CSSProperties } from 'react'
+
 import { Botao } from '../../components/shared/Botao'
 import { Paginacao, usePaginacao } from '../../components/shared/ListaPaginada'
 import { useSessao } from '../../context/SessaoContext'
+import { QUADROS_CENA, arteDaCenaAnimada, arteDoCenario, urlDaArte } from '../../game/atlas'
 import {
   MAPAS,
   NIVEL_DA_ULTIMA_LEVA,
@@ -24,6 +27,35 @@ import './PainelMapa.css'
 // Mapa bloqueado DIZ o que falta, com número, em vez de só apagar o botão:
 // prevenção de erro vale mais que mensagem de erro (CLAUDE.md).
 
+/**
+ * A folha animada da zona, quando ela existe. Só a fábrica morta tem.
+ *
+ * Envolvido numa função para o JSX não chamar `arteDaCenaAnimada` duas vezes
+ * por item — uma para decidir a classe, outra para montar a URL.
+ */
+function cenaAnimada(token: number): string | null {
+  return arteDaCenaAnimada(token)
+}
+
+/**
+ * As duas variáveis que a miniatura precisa: a imagem e quantos quadros ela
+ * tem.
+ *
+ * VAI COMO CUSTOM PROPERTY, e não como `background-image` inline. O JSX entrega
+ * o DADO (qual arquivo, quantos quadros) e o CSS decide o que fazer com ele —
+ * enquadramento, animação, o degradê por baixo. É o que mantém o estilo
+ * desacoplado da marcação (CLAUDE.md) sem duplicar em CSS os caminhos de
+ * arquivo que `atlas.ts` existe para ser o único a conhecer.
+ */
+function miniatura(token: number): CSSProperties {
+  const viva = cenaAnimada(token)
+  const caminho = viva ?? arteDoCenario(token)
+  return {
+    ['--cena' as string]: `url("${urlDaArte(caminho)}")`,
+    ['--cena-quadros' as string]: viva ? QUADROS_CENA : 1,
+  }
+}
+
 interface Props {
   mapaAtual: number
   aoViajar: (mapaId: number) => void
@@ -34,7 +66,7 @@ export function PainelMapa({ mapaAtual, aoViajar, aoFechar }: Props) {
   const { t, idioma, snapshot } = useSessao()
   const nivel = snapshot?.jogador.nivel ?? 1
 
-  // Numa tela larga os oito mapas cabem todos na grade e o controle de página
+  // Numa tela larga os mapas cabem todos na grade e o controle de página
   // nem aparece. No celular em pé cabem dois ou três — e aí vira página, nunca
   // rolagem. A lista abre onde o herói está.
   const paginado = usePaginacao(
@@ -67,13 +99,28 @@ export function PainelMapa({ mapaAtual, aoViajar, aoFechar }: Props) {
                 }`.trim()}
               >
                 {/*
-                  A miniatura é a cor do bioma, não uma imagem: os tokens
-                  `--bioma-N-*` já são a identidade visual de cada zona, e um PNG
-                  por mapa custaria oito arquivos no orçamento de portal para
-                  dizer a mesma coisa.
+                  A miniatura é O LUGAR, e não mais só a cor dele.
+                  
+                  Ela era um degradê dos tokens `--bioma-N-*` porque, na época,
+                  um PNG por mapa custaria arquivos no orçamento de portal para
+                  dizer a mesma coisa. Duas coisas mudaram: os PNGs passaram a
+                  existir de qualquer forma (o motor já os baixa para desenhar o
+                  mundo), e com dezesseis zonas a cor parou de bastar — há
+                  biomas com o mesmo fundo e a mesma assinatura, cujos degradês
+                  saem indistinguíveis lado a lado.
+                  
+                  E esta é a tela que "vende lugar novo": mostrar o lugar é
+                  literalmente a função dela.
+                  
+                  A cor fica por baixo, no CSS, e continua aparecendo enquanto o
+                  PNG não chega — mesma promessa de sempre: arte melhor quando
+                  existe, tela inteira quando não.
                 */}
                 <span
-                  className={`mapa__amostra mapa__amostra--${mapa.bioma.token}`}
+                  className={`mapa__amostra mapa__amostra--${mapa.bioma.token} ${
+                    cenaAnimada(mapa.bioma.token) ? 'mapa__amostra--viva' : ''
+                  }`.trim()}
+                  style={miniatura(mapa.bioma.token)}
                   aria-hidden="true"
                 />
 

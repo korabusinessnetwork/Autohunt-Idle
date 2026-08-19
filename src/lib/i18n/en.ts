@@ -49,13 +49,13 @@ export const en: Record<ChaveI18n, string> = {
   // --- Map ------------------------------------------------------------------
   'mapa.titulo': 'Map',
   'mapa.explicacao':
-    'Eight places to explore, one per theme. What changes is the scenery and who lives there — what you earn still comes from the time you put in.',
+    'Sixteen places to explore, one per theme — eight in the sweet world, eight in the factory that stopped. What changes is the scenery and who lives there; what you earn still comes from the time you put in.',
   'mapa.faixaDeNivel': 'Level {de} to {ate}',
   'mapa.viajar': 'Travel here',
   'mapa.vocEstaAqui': "You're here",
   'mapa.faltamNiveis': '{niveis} levels to go',
   'mapa.alemDaUltimaLeva':
-    "You're past level {nivel} — the next maps are still being drawn. Until then, the Confetti Sky is home.",
+    "You're past level {nivel} — the next maps are still being drawn. Until then, Burnt Ends is home.",
 
   // --- Login ----------------------------------------------------------------
   'login.titulo': 'Sign in',
@@ -418,6 +418,25 @@ export const en: Record<ChaveI18n, string> = {
   'mundo.bioma6': 'Mint Condition',
   'mundo.bioma7': 'Mount Chewmore',
   'mundo.bioma8': 'The Sprinkleverse',
+
+  // The dead factory — biomes 9 to 16. Same rule as above: the English name is
+  // its own joke, never a literal pass.
+  //   Fábrica de Refrigerante  → "Fizzical Plant"  (physical plant, but fizzy)
+  //   Pântano de Melaço        → "Bog Standard"    (a bog, and utterly ordinary)
+  //   Catedral de Marzipã      → "Mass Production" (Mass, as in the service)
+  //   Câmara Fria             → "Freezer Burn"
+  //   Silo de Açúcar          → "Grain of Truth"  (grain, by the tonne)
+  //   Linha de Embalagem      → "Wrap Party"      (it wraps; the party is over)
+  //   Caldeiraria de Chocolate→ "Meltdown"
+  //   Forno Central           → "Burnt Ends"      (the end, and it is burnt)
+  'mundo.bioma9': 'Fizzical Plant',
+  'mundo.bioma10': 'Bog Standard',
+  'mundo.bioma11': 'Mass Production',
+  'mundo.bioma12': 'Freezer Burn',
+  'mundo.bioma13': 'Grain of Truth',
+  'mundo.bioma14': 'Wrap Party',
+  'mundo.bioma15': 'Meltdown',
+  'mundo.bioma16': 'Burnt Ends',
   'inimigo.casquinha': 'Cone Head',
   'inimigo.minhoca': 'Glum Worm',
   'inimigo.rosquinha': 'Sir Glazealot',
@@ -437,6 +456,24 @@ export const en: Record<ChaveI18n, string> = {
   'inimigo.floco': 'Special Snowflake',
   'inimigo.brasa': 'Molten Chew',
   'inimigo.confete': 'Party Popper',
+
+  // The dead factory's eight:
+  //   Latinha Debochada  → "Canned Laughter"    (a can, and it is laughing at you)
+  //   Tronco Atolado     → "Log Off"            (a log, and it is done)
+  //   Sino Rachado       → "Dead Ringer"        (a bell that no longer rings)
+  //   Picolé Derretido   → "Brain Freeze"
+  //   Torrão Bruto       → "Lump Sum"           (a lump, in bulk)
+  //   Bala Perdida       → "Wrapper's Delight"  (the sweet, and the record)
+  //   Gota Grossa        → "Choc Full"          (chock-full, of chocolate)
+  //   Caramelo Queimado  → "Bitter End"         (burnt, and the last one)
+  'inimigo.latinha': 'Canned Laughter',
+  'inimigo.tronco': 'Log Off',
+  'inimigo.sino': 'Dead Ringer',
+  'inimigo.picole': 'Brain Freeze',
+  'inimigo.torrao': 'Lump Sum',
+  'inimigo.bala': "Wrapper's Delight",
+  'inimigo.gota': 'Choc Full',
+  'inimigo.caramelo': 'Bitter End',
 
   // --- Tuning console (owner tool, not a player screen) --------------------
   'console.titulo': 'Tuning console',

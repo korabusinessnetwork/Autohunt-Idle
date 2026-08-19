@@ -4,6 +4,7 @@ import { PERFIS_DE_ARMA, PERFIL_PUNHO } from './armas'
 import { redefinirAjustesVisuais } from './ajustes'
 import { ALTURA_MAPA, LARGURA_MAPA, MAPAS, entradaDoMapa } from './mapas'
 import {
+  DURACAO_MORTE,
   avancarMundo,
   camera,
   criarMundo,
@@ -562,5 +563,81 @@ describe('o herói fica dentro do mapa', () => {
 
     expect(estado.heroiX).toBeLessThanOrEqual(LARGURA_MAPA)
     expect(estado.heroiY).toBeLessThanOrEqual(ALTURA_MAPA)
+  })
+})
+
+describe('o abatido cai antes de sumir', () => {
+  // A animação de morte introduziu a primeira lista de coisas que existem
+  // depois de terem morrido. O risco dela não é visual: é um cadáver que
+  // continua sendo tratado como inimigo em algum laço.
+
+  it('matar deixa corpo, e tira o bicho da lista de inimigos no mesmo quadro', () => {
+    const estado = criarMundo(4, 9)
+    const inimigo = estado.inimigos[0]!
+    const id = inimigo.id
+    inimigo.vida = 0
+
+    avancarMundo(estado, 1 / 60)
+
+    expect(estado.inimigos.some((i) => i.id === id)).toBe(false)
+    expect(estado.mortes).toHaveLength(1)
+    expect(estado.mortes[0]!.forma).toBe(inimigo.especie.forma)
+  })
+
+  it('o corpo some sozinho, e não fica acumulando na tela', () => {
+    const estado = criarMundo(4, 9)
+    estado.inimigos[0]!.vida = 0
+    avancarMundo(estado, 1 / 60)
+    expect(estado.mortes).toHaveLength(1)
+
+    correr(estado, DURACAO_MORTE + 0.1)
+
+    expect(estado.mortes).toHaveLength(0)
+  })
+
+  it('sumir por distância NÃO deixa corpo', () => {
+    // Abate é vitória do jogador e ganha animação. Sair do raio acontece fora
+    // da tela e não é vitória de ninguém — marcar aquilo com uma animação de
+    // abate creditaria ao jogador um abate que ele não fez.
+    const estado = criarMundo(4, 9)
+    for (const inimigo of estado.inimigos) {
+      inimigo.x = estado.heroiX + 5000
+      inimigo.y = estado.heroiY + 5000
+    }
+
+    avancarMundo(estado, 1 / 60)
+
+    expect(estado.mortes).toHaveLength(0)
+  })
+
+  it('trocar de mapa não leva o corpo junto', () => {
+    // `Morte` guarda coordenada de mundo. Mantida na troca, ela desenharia um
+    // abate fantasma na instância recém-aberta, num lugar onde ninguém morreu.
+    const estado = criarMundo(4, 9)
+    estado.inimigos[0]!.vida = 0
+    avancarMundo(estado, 1 / 60)
+    expect(estado.mortes.length).toBeGreaterThan(0)
+
+    definirMapa(estado, 10)
+
+    expect(estado.mortes).toHaveLength(0)
+  })
+
+  it('o corpo não é mirado, nem conta como população do ninho', () => {
+    // O teste real da lista separada: com o cadáver dentro de `inimigos`, a
+    // auto-mira travaria nele e o herói ficaria atirando num corpo.
+    const estado = criarMundo(4, 9)
+    definirModo(estado, 'auto')
+    const perto = estado.inimigos[0]!
+    perto.x = estado.heroiX + 30
+    perto.y = estado.heroiY
+    perto.vida = 0
+    avancarMundo(estado, 1 / 60)
+
+    correr(estado, 0.2)
+
+    expect(estado.mortes.length).toBeGreaterThan(0)
+    expect(estado.alvoId).not.toBe(perto.id)
+    expect(estado.inimigos.every((i) => i.vida > 0)).toBe(true)
   })
 })

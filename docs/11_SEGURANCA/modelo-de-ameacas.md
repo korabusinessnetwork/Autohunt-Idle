@@ -218,7 +218,8 @@ Registrado para não virar ponto cego por omissão:
   (`dano_por_ciclo_base`), porque fazê-lo depender de quais espécies apareceram exigiria o client
   informar quem apareceu — a informação que 13 ameaças deste documento dependem de ele nunca
   enviar.
-- **Mapa escolhido pelo jogador.** Desde a mesma rodada existem 8 mapas, destravados por nível.
+- **Mapa escolhido pelo jogador.** Desde a mesma rodada existem 16 mapas, destravados por nível
+  (eram 8 até `specs/fabrica-morta-biomas-9-a-16.md`; o número dobrou e a fronteira não mudou).
   Nada disso chega ao banco: `mapaId` mora em estado de tela, e dois testes guardam a fronteira —
   `nenhuma migration declara bioma nem mapa` e `o mapa escolhido não vai para o servidor`. Forçar
-  o mapa 8 no nível 1 mostra o cenário do endgame e credita exatamente o mesmo.
+  o mapa 16 no nível 1 mostra o cenário do endgame e credita exatamente o mesmo.

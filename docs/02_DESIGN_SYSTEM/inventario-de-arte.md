@@ -20,13 +20,22 @@ O pacote entregue é `export-escala8/`, ou seja, a **pendência 2 da rodada 2 fo
 atendida**: tudo divide a mesma grade de pixel. Cada pixel do desenho é um bloco
 8×8 no arquivo, e é isso que `ESCALA_EXPORTACAO` em `sprites.ts` representa.
 
-## O que entrou (230 arquivos, ~250 KB)
+3. **A fábrica morta** (2026-08-19) — cinco pacotes em sequência, sem brief escrito: os oito
+   biomas 09–16, os ladrilhos de chão, e as folhas de animação. Documentado em
+   `specs/fabrica-morta-biomas-9-a-16.md`.
+
+## O que entrou (326 arquivos, ~1,6 MB)
+
+O número cresceu de 230 para 326 na leva da fábrica morta, e o peso de ~250 KB para ~1,6 MB. O
+que pesa é folha de animação: cada uma é de quatro a cinco quadros no mesmo arquivo. Continua
+sendo pouco em absoluto, e nada disso é baixado de uma vez — `precarregarBioma` aquece a zona em
+que o jogador está, e só ela.
 
 | Pasta | Peças | Quem consome |
 |---|---|---|
 | `personagem/` | 3 poses (parado, atacando, comemorando) | `sprites.ts` → `desenharHeroi` |
 | `inimigos/` | 5 do pool base + 5 silhuetas de dano (`-sil`) | `desenharInimigo` |
-| `biomas/` | 8 cenários (`sc-`), 8 props (`prop-`), 8 inimigos assinatura (`en-`) | `desenharCenario`, `desenharProps` |
+| `biomas/` | 16 cenários (`sc-`), 16 props (`prop-`), 16 assinatura (`en-`), 32 ladrilhos (`tile-`) e 40 folhas de animação (`anim-`) | `desenharPiso`, `desenharProps`, `desenharInimigo`, `desenharMorte`, `PainelMapa` |
 | `itens/` | 158 ícones: 6 famílias de arma × 10 tiers, 6 de secundário, 3 de acessório, 8 de conjunto | `IconeItem` |
 | `slots/` | 9 ícones de slot vazio + o diamante | `IconeSlotVazio` |
 | `skins/` | 8 skins, da base à cósmica | herói e `IconeItem` (tipo `skin`) |
@@ -50,6 +59,27 @@ byte. A leva 3 era quase toda cópia da leva 4:
 
 Manter duplicata seria pagar peso de download e, pior, criar dois caminhos para
 a mesma imagem — e um deles envelheceria.
+
+## As folhas de animação (leva 3)
+
+Cada bioma da fábrica morta veio com **cinco** folhas horizontais, todas com os quadros lado a
+lado no mesmo PNG:
+
+| Sufixo | Quadros | Quadro | Consumidor |
+|---|---|---|---|
+| `-idle` | 4 | 160×184 | `desenharInimigo` — o assinatura respirando |
+| `-hit` | **2** | 160×184 | `desenharInimigo` — o lampejo de dano |
+| `-die` | 4 | 160×184 | `desenharMorte` — o abatido caindo |
+| `-prop` | 4 | 176×176 | `desenharProps` |
+| `-scene` | 4 | 608×352 | `PainelMapa` — a miniatura da zona |
+
+**O dano tem dois quadros, e as outras têm quatro.** É a única exceção do lote e a mais fácil de
+errar: recortar a folha de dano em quatro desenharia meio bicho, para sempre, sem erro nenhum no
+console. `atlas.test.ts` mede a largura de cada família contra a **sua** contagem.
+
+E os ladrilhos (`tile-<apelido>-1..4`, 64×64) são quatro por bioma: a **1 é a base** e cobre a
+maior parte do chão; as 2–4 são acento, e entram cada vez mais raro quanto mais alto — ver
+`specs/fabrica-morta-biomas-9-a-16.md` §5.
 
 ## Como a raridade entra no ícone
 
