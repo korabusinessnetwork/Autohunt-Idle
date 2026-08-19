@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react'
 import { Botao } from '../../components/shared/Botao'
 import { Paginacao, usePaginacao } from '../../components/shared/ListaPaginada'
 import { useSessao } from '../../context/SessaoContext'
-import { QUADROS_CENA, arteDaCenaAnimada, arteDoCenario, urlDaArte } from '../../game/atlas'
+import { QUADROS_CENA, arteDaCenaAnimada, urlDaArte } from '../../game/atlas'
 import {
   MAPAS,
   NIVEL_DA_ULTIMA_LEVA,
@@ -28,16 +28,6 @@ import './PainelMapa.css'
 // prevenção de erro vale mais que mensagem de erro (CLAUDE.md).
 
 /**
- * A folha animada da zona, quando ela existe. Só a fábrica morta tem.
- *
- * Envolvido numa função para o JSX não chamar `arteDaCenaAnimada` duas vezes
- * por item — uma para decidir a classe, outra para montar a URL.
- */
-function cenaAnimada(token: number): string | null {
-  return arteDaCenaAnimada(token)
-}
-
-/**
  * As duas variáveis que a miniatura precisa: a imagem e quantos quadros ela
  * tem.
  *
@@ -46,13 +36,17 @@ function cenaAnimada(token: number): string | null {
  * enquadramento, animação, o degradê por baixo. É o que mantém o estilo
  * desacoplado da marcação (CLAUDE.md) sem duplicar em CSS os caminhos de
  * arquivo que `atlas.ts` existe para ser o único a conhecer.
+ *
+ * Não há mais o ramo "e se esta zona não tiver cena": os dezesseis têm. Enquanto
+ * a leva doce estava parada, isto caía no cenário estático com um quadro só, e
+ * uma classe decidia quem animava. O que substituiu esse ramo não é confiança
+ * de que o arquivo existe — é o degradê no CSS, que aparece enquanto o PNG não
+ * chega e continua aparecendo se ele nunca chegar.
  */
 function miniatura(token: number): CSSProperties {
-  const viva = cenaAnimada(token)
-  const caminho = viva ?? arteDoCenario(token)
   return {
-    ['--cena' as string]: `url("${urlDaArte(caminho)}")`,
-    ['--cena-quadros' as string]: viva ? QUADROS_CENA : 1,
+    ['--cena' as string]: `url("${urlDaArte(arteDaCenaAnimada(token))}")`,
+    ['--cena-quadros' as string]: QUADROS_CENA,
   }
 }
 
@@ -115,11 +109,14 @@ export function PainelMapa({ mapaAtual, aoViajar, aoFechar }: Props) {
                   A cor fica por baixo, no CSS, e continua aparecendo enquanto o
                   PNG não chega — mesma promessa de sempre: arte melhor quando
                   existe, tela inteira quando não.
+
+                  E ela se mexe: são quatro quadros em laço, o mesmo recorte que
+                  o motor usa. Uma tira de dezesseis cartões animados é muito
+                  movimento junto, então o laço é lento e o `prefers-reduced-
+                  motion` congela no primeiro quadro.
                 */}
                 <span
-                  className={`mapa__amostra mapa__amostra--${mapa.bioma.token} ${
-                    cenaAnimada(mapa.bioma.token) ? 'mapa__amostra--viva' : ''
-                  }`.trim()}
+                  className={`mapa__amostra mapa__amostra--${mapa.bioma.token}`}
                   style={miniatura(mapa.bioma.token)}
                   aria-hidden="true"
                 />

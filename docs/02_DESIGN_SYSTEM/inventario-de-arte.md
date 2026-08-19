@@ -23,19 +23,34 @@ atendida**: tudo divide a mesma grade de pixel. Cada pixel do desenho é um bloc
 3. **A fábrica morta** (2026-08-19) — cinco pacotes em sequência, sem brief escrito: os oito
    biomas 09–16, os ladrilhos de chão, e as folhas de animação. Documentado em
    `specs/fabrica-morta-biomas-9-a-16.md`.
+4. **A paridade da leva doce** (2026-08-19, mesmo dia) — o único pacote deste arco com **brief
+   escrito**, porque desta vez a referência existia: pediu-se aos oito biomas 01–08 exatamente o
+   que os 09–16 tinham acabado de ganhar, mandando o bioma 09 completo junto como alvo a igualar.
+   O brief também precisou dizer em voz alta o que nunca tinha sido escrito — que **a câmera é a
+   de Realm of the Mad God**: chão visto de cima em 90°, sem perspectiva, e atores desenhados de
+   frente, de pé sobre esse chão. Voltaram 82 arquivos, e com eles o pedido opcional: repouso e
+   morte para os cinco do pool base, que aparecem nos dezesseis mapas.
 
-## O que entrou (326 arquivos, ~1,6 MB)
+## O que entrou (408 arquivos, 1,05 MB)
 
-O número cresceu de 230 para 326 na leva da fábrica morta, e o peso de ~250 KB para ~1,6 MB. O
-que pesa é folha de animação: cada uma é de quatro a cinco quadros no mesmo arquivo. Continua
-sendo pouco em absoluto, e nada disso é baixado de uma vez — `precarregarBioma` aquece a zona em
-que o jogador está, e só ela.
+230 → 326 na fábrica morta, 326 → 408 na paridade. O que pesa é folha de animação — e, dentro dela,
+**a cena**: os 16 `-scene` sozinhos são 431 KB, quase o dobro das outras quatro famílias somadas
+(232 KB), porque cada quadro é uma paisagem de 608×352 e não um bicho recortado. Os 64 ladrilhos
+custam 23,5 KB no total, que é o melhor negócio do pacote: eles redesenham a tela inteira.
+
+> Os números acima são **bytes somados**, não `du`. Com 408 arquivos pequenos o bloco de disco
+> infla o total para mais que o dobro, e já houve figura inflada assim neste documento.
+
+Continua sendo pouco em absoluto, e nada disso é baixado de uma vez — `precarregarBioma` aquece a
+zona em que o jogador está, e só ela. As cenas ficam **fora** desse aquecimento de propósito: elas
+só aparecem no painel de mapa, e baixar 431 KB de tela que o jogador pode não abrir seria pagar o
+arquivo mais caro do pacote pelo uso mais raro dele.
 
 | Pasta | Peças | Quem consome |
 |---|---|---|
 | `personagem/` | 3 poses (parado, atacando, comemorando) | `sprites.ts` → `desenharHeroi` |
-| `inimigos/` | 5 do pool base + 5 silhuetas de dano (`-sil`) | `desenharInimigo` |
-| `biomas/` | 16 cenários (`sc-`), 16 props (`prop-`), 16 assinatura (`en-`), 32 ladrilhos (`tile-`) e 40 folhas de animação (`anim-`) | `desenharPiso`, `desenharProps`, `desenharInimigo`, `desenharMorte`, `PainelMapa` |
+| `inimigos/` | 5 do pool base + 5 silhuetas de dano (`-sil`) + 10 folhas (`anim-`: repouso e morte de cada um) | `desenharInimigo`, `desenharMorte` |
+| `biomas/` | 16 cenários (`sc-`), 16 props (`prop-`), 16 assinatura (`en-`), 64 ladrilhos (`tile-`) e 80 folhas de animação (`anim-`) | `desenharPiso`, `desenharProps`, `desenharInimigo`, `desenharMorte`, `PainelMapa` |
 | `itens/` | 158 ícones: 6 famílias de arma × 10 tiers, 6 de secundário, 3 de acessório, 8 de conjunto | `IconeItem` |
 | `slots/` | 9 ícones de slot vazio + o diamante | `IconeSlotVazio` |
 | `skins/` | 8 skins, da base à cósmica | herói e `IconeItem` (tipo `skin`) |
@@ -60,26 +75,48 @@ byte. A leva 3 era quase toda cópia da leva 4:
 Manter duplicata seria pagar peso de download e, pior, criar dois caminhos para
 a mesma imagem — e um deles envelheceria.
 
-## As folhas de animação (leva 3)
+## As folhas de animação
 
-Cada bioma da fábrica morta veio com **cinco** folhas horizontais, todas com os quadros lado a
-lado no mesmo PNG:
+**Cinco** famílias, horizontais, com os quadros lado a lado no mesmo PNG. Desde a paridade elas
+cobrem os dezesseis biomas — não há mais leva parada:
 
 | Sufixo | Quadros | Quadro | Consumidor |
 |---|---|---|---|
 | `-idle` | 4 | 160×184 | `desenharInimigo` — o assinatura respirando |
 | `-hit` | **2** | 160×184 | `desenharInimigo` — o lampejo de dano |
 | `-die` | 4 | 160×184 | `desenharMorte` — o abatido caindo |
-| `-prop` | 4 | 176×176 | `desenharProps` |
+| `-prop` | 4 | **varia** | `desenharProps` |
 | `-scene` | 4 | 608×352 | `PainelMapa` — a miniatura da zona |
 
-**O dano tem dois quadros, e as outras têm quatro.** É a única exceção do lote e a mais fácil de
-errar: recortar a folha de dano em quatro desenharia meio bicho, para sempre, sem erro nenhum no
-console. `atlas.test.ts` mede a largura de cada família contra a **sua** contagem.
+Duas armadilhas de medida, e as duas custam caro porque falham **em silêncio** — recorte errado
+não gera erro no console, ele desenha um pedaço deslocado para sempre:
+
+**O dano tem dois quadros, e as outras têm quatro.** É a exceção mais fácil de errar do lote.
+
+**O prop não tem tamanho fixo.** Os oito da fábrica são 176×176, mas os doces variam com o objeto:
+`prop-geleia` é 144×72, `prop-vulcao` 144×56, `prop-geleira` 64×96. Poça e boca de cratera não têm
+por que ser altas. Uma folha montada na medida da fábrica desenharia o prop deslocado em metade
+dos biomas.
+
+`atlas.test.ts` cobre as duas: mede a largura de cada família contra a **sua** contagem de quadros,
+e confere cada quadro contra a caixa do PNG parado correspondente. A segunda checagem substituiu um
+palpite de proporção ("quadro mais largo que alto é contagem errada") que acusava justamente os
+props baixos e largos, que estavam certos.
 
 E os ladrilhos (`tile-<apelido>-1..4`, 64×64) são quatro por bioma: a **1 é a base** e cobre a
 maior parte do chão; as 2–4 são acento, e entram cada vez mais raro quanto mais alto — ver
 `specs/fabrica-morta-biomas-9-a-16.md` §5.
+
+### Os cinco do pool base
+
+Eles têm `-idle` e `-die` como todo mundo, e **não têm `-hit`**: o lampejo deles já existia
+desenhado à mão como `en-<nome>-sil.png`, de uma leva anterior. É a única assimetria que sobrou.
+
+`sprites.ts` não usa esse `-sil` enquanto o bicho está animado, e isso é medido, não suposto: o
+alfa do `-sil` bate 100% com o do PNG parado, que bate 100% com o **quadro 1** do repouso e diverge
+6 a 12% dos quadros 2, 3 e 4. Desenhá-lo sobre um corpo animado acertaria a pose em um acerto de
+cada quatro. No caminho animado o motor gera a silhueta do quadro corrente; o `-sil` segue sendo o
+lampejo enquanto a folha não decodifica, que é onde o corpo **é** o PNG parado e a pose casa.
 
 ## Como a raridade entra no ícone
 

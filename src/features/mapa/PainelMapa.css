@@ -108,8 +108,10 @@
    * é o que preenche o quadrado enquanto o PNG viaja, e some sozinho quando a
    * imagem cobre. Sem ele, abrir o mapa mostraria dezesseis buracos vazios.
    *
-   * `--cena` e `--cena-quadros` chegam do componente. Uma zona sem folha
-   * animada manda 1 quadro, e aí a conta abaixo vira "a imagem inteira".
+   * `--cena` e `--cena-quadros` chegam do componente, e as dezesseis zonas
+   * mandam quatro quadros. O padrão de 1 quadro acima não é caso de uso: é o
+   * que faz a conta abaixo virar "a imagem inteira" se um dia chegar um item
+   * sem `style`, em vez de recortar um quarto de um lugar nenhum.
    */
   background-image: var(--cena),
     linear-gradient(135deg, var(--bioma-fundo), var(--bioma-assinatura));
@@ -122,17 +124,21 @@
    * e a suavização padrão do navegador transformaria o desenho em borrão.
    */
   image-rendering: pixelated;
-}
 
-/*
- * A zona que veio com folha animada respira na miniatura.
- *
- * `steps()` é o ponto todo: sem ele o navegador INTERPOLA entre os quadros e a
- * folha desliza como um panorama, em vez de trocar de quadro. Com ele, a mesma
- * animação de quatro quadros que o motor recorta no canvas roda aqui de graça,
- * sem uma linha de JavaScript.
- */
-.mapa__amostra--viva {
+  /*
+   * A zona respira na miniatura — todas elas, agora que as dezesseis têm folha.
+   * Enquanto só metade tinha, isto morava numa classe `--viva` que o componente
+   * ligava item a item; sem ninguém para deixar de fora, a classe era só um
+   * modificador sempre presente.
+   *
+   * `steps()` é o ponto todo: sem ele o navegador INTERPOLA entre os quadros e
+   * a folha desliza como um panorama, em vez de trocar de quadro. Com ele, a
+   * mesma animação de quatro quadros que o motor recorta no canvas roda aqui de
+   * graça, sem uma linha de JavaScript.
+   *
+   * Devagar de propósito: são dezesseis cartões animando ao mesmo tempo numa
+   * tela onde o jogador está LENDO faixa de nível para escolher para onde ir.
+   */
   animation: mapa-cena 0.66s steps(var(--cena-quadros, 1)) infinite;
 }
 
@@ -158,7 +164,7 @@
  * de animação em laço que a preferência do sistema existe para desligar.
  */
 @media (prefers-reduced-motion: reduce) {
-  .mapa__amostra--viva {
+  .mapa__amostra {
     animation: none;
   }
 }

@@ -22,7 +22,6 @@ import {
   arteDoLadrilho,
   arteDoLampejoDoInimigo,
   arteDoProp,
-  biomaTemLadrilho,
   imagem,
   type PoseHeroi,
 } from './atlas'
@@ -867,6 +866,18 @@ export function desenharInimigo(
       // 1b. Sem ela, a silhueta gerada da PRÓPRIA folha de repouso, recortada
       //     no mesmo quadro: gerar a silhueta do PNG parado faria o bicho
       //     saltar de pose toda vez que levasse um tiro.
+      //
+      //     E é AQUI QUE OS 5 DO POOL CAEM, de propósito. Eles têm `-sil`
+      //     desenhado à mão e não têm `-hit`, então parece desperdício preferir
+      //     a gerada. Não é — o `-sil` deles casa 100% com o alfa do PNG
+      //     parado, que por sua vez casa 100% com o QUADRO 1 do repouso e
+      //     diverge 6 a 12% dos quadros 2, 3 e 4. Desenhar o `-sil` sobre um
+      //     bicho animado acertaria a pose em um acerto de cada quatro e
+      //     estouraria nos outros três, dezenas de vezes por minuto.
+      //
+      //     O `-sil` não ficou órfão: ele continua sendo o lampejo do passo 2,
+      //     que é onde o bicho está enquanto a folha de repouso não decodifica
+      //     — e lá a pose casa, porque lá o corpo É o PNG parado.
       const sil = silhuetaDe(folha, animado, paleta['--cor-texto'])
       if (sil) {
         desenharQuadro(ctx, sil, QUADROS_IDLE, quadro, x, y, altura)
@@ -1187,15 +1198,20 @@ export function desenharCenario(
   ctx.fillStyle = fundo
   ctx.fillRect(origemX, origemY, largura, altura)
 
-  // Chão desenhado onde ele existe; malha hexagonal onde não.
+  // Chão desenhado, com a malha hexagonal atrás como rede.
   //
   // NÃO SÃO OS DOIS. A malha nasceu para dar referência de movimento num fundo
   // chapado, e um piso de verdade já faz isso melhor — sobrepor os dois deixaria
   // um risco de papel milimetrado por cima da chapa rebitada, que é exatamente o
   // efeito que a malha existe para evitar.
-  if (biomaTemLadrilho(bioma)) {
-    desenharPiso(ctx, origemX, origemY, largura, altura, bioma, intensidade)
-  } else {
+  //
+  // O que mudou com os dezesseis biomas ladrilhados: a malha deixou de ser o
+  // caminho permanente de oito deles e passou a ser o que o comentário dela
+  // sempre disse que era — o fundo que segura a tela ENQUANTO o PNG do chão não
+  // chegou. É o mesmo desenho, no mesmo lugar, por um motivo melhor: primeiro
+  // quadro de mapa novo, aba que voltou do cache frio, portal lento. Sem ela,
+  // esse intervalo é uma cor chapada onde andar não parece andar.
+  if (!desenharPiso(ctx, origemX, origemY, largura, altura, bioma, intensidade)) {
     desenharMalha(ctx, origemX, origemY, largura, altura, detalhe, intensidade)
   }
 
@@ -1272,6 +1288,15 @@ function varianteDeAcento(faixa: number): number {
   return Math.min(VARIANTES_LADRILHO, 4)
 }
 
+/**
+ * Assenta o chão, e diz se conseguiu.
+ *
+ * O `boolean` é o que deixa a malha ser fallback sem que este arquivo precise
+ * saber que ela existe: quem chama pergunta "pintou?" e decide o que fazer com
+ * o "não". Uma alternativa seria passar a cor da malha aqui dentro, mas aí o
+ * assentador de piso passaria a carregar o parâmetro de um desenho que não é
+ * dele.
+ */
 function desenharPiso(
   ctx: CanvasRenderingContext2D,
   origemX: number,
@@ -1280,12 +1305,11 @@ function desenharPiso(
   altura: number,
   bioma: number,
   intensidade: number,
-): void {
-  const caminhoBase = arteDoLadrilho(bioma, 1)
-  const base = caminhoBase ? imagem(caminhoBase) : null
-  // Sem a base pronta não se desenha piso nenhum: o fundo chapado já foi
-  // pintado, e meio piso ladrilhado seria pior que nenhum.
-  if (!base) return
+): boolean {
+  const base = imagem(arteDoLadrilho(bioma, 1))
+  // Sem a base decodificada não se desenha piso nenhum: meio piso ladrilhado é
+  // pior que nenhum. Devolve `false` e a malha cobre o intervalo.
+  if (!base) return false
 
   // Uma coluna a mais de cada lado: a fiada deslocada entra e sai da tela meia
   // chapa antes das outras, e sem a folga ela abriria buraco na beirada.
@@ -1319,8 +1343,9 @@ function desenharPiso(
       const celula = ruido(tx, ty)
       if (celula > corte) {
         const faixa = (celula - corte) / (1 - corte)
-        const caminho = arteDoLadrilho(bioma, varianteDeAcento(faixa))
-        ladrilho = (caminho && imagem(caminho)) || base
+        // O acento que ainda não decodificou cai na base, e não em buraco: a
+        // chapa lisa no lugar do rebite passa despercebida por um quadro.
+        ladrilho = imagem(arteDoLadrilho(bioma, varianteDeAcento(faixa))) ?? base
       }
 
       ctx.drawImage(
@@ -1334,6 +1359,7 @@ function desenharPiso(
   }
 
   ctx.restore()
+  return true
 }
 
 /**

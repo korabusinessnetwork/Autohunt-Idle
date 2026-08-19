@@ -5,8 +5,9 @@ o inventário de arte fica em `docs/02_DESIGN_SYSTEM/inventario-de-arte.md`)*
 
 ## 1. Escopo
 
-Cinco pacotes de arte entregues pelo dono em sequência, na mesma conversa, cada um com uma instrução
-de uma linha. Juntos eles dobram o mundo e trocam a natureza do cenário:
+Seis pacotes de arte entregues pelo dono em sequência, na mesma conversa. Os cinco primeiros vieram
+com uma instrução de uma linha cada; o sexto foi o único com brief escrito, e por um motivo: até
+ele não havia referência a apontar.
 
 1. `Bioma 09_ Fábrica de Refrigerante.zip` — apesar do nome, traz **oito biomas** (09–16): os
    artboards, mais 24 PNGs (cenário, prop e inimigo assinatura de cada um).
@@ -15,9 +16,28 @@ de uma linha. Juntos eles dobram o mundo e trocam a natureza do cenário:
 4. `props.zip` — as mesmas 8 folhas de repouso (byte a byte) e mais 8 de prop animado.
 5. `more features.zip` — de novo o que já entrou, mais **dano** (2 quadros), **morte** (4 quadros)
    e **cena animada** (4 quadros de 608×352) para cada um dos oito.
+6. `o_que_faltava.zip` — **82 arquivos** que trazem os oito biomas doces (01–08) ao mesmo padrão:
+   32 ladrilhos e 40 folhas, mais o item opcional do brief — repouso e morte para os **cinco do
+   pool base**, que aparecem nos dezesseis mapas.
 
-O arco é o contraponto industrial do universo doce: a mesma fábrica que produzia o mundo dos oito
-primeiros biomas, abandonada. Doce que apodreceu, não um tema novo colado ao lado.
+O arco começou como o contraponto industrial do universo doce: a mesma fábrica que produzia o mundo
+dos oito primeiros biomas, abandonada. Doce que apodreceu, não um tema novo colado ao lado.
+
+E terminou noutro lugar. Os cinco primeiros pacotes criaram uma **assimetria** — metade do mundo com
+chão desenhado e bicho que se mexe, metade em malha procedural e PNG parado — que este documento
+registrou como fora de escopo e deliberada. O sexto pacote a desfez. **A spec cobre os dezesseis**,
+e o nome do arquivo guarda só onde ela começou.
+
+### O brief, e o que ele obrigou a escrever
+
+Pedir paridade exigiu dizer em voz alta uma coisa que o projeto nunca tinha escrito: **a câmera é a
+de Realm of the Mad God**. Chão visto de cima, 90°, sem perspectiva nem ponto de fuga — ladrilho é
+quadrado visto do alto, e não losango isométrico. Atores vistos de frente, de pé sobre esse chão.
+Câmera centrada no herói, zoom fixo, sem rotação.
+
+Os oito industriais acertaram isso sem que ninguém tivesse pedido, porque o artista viu a referência
+nos arquivos que já existiam. Escrever a regra foi o que permitiu pedir a paridade sem torcer para
+que ela se repetisse — e é por isso que ela está aqui e não só no brief.
 
 ## 2. A terceira inversão de premissa
 
@@ -37,14 +57,20 @@ sempre — grande e lento bate forte, pequeno e rápido bate fraco.
 
 ## 3. Fora de escopo
 
-- **Dar folha de animação à leva doce.** Os oito primeiros continuam com PNG parado. Não é
-  esquecimento: é a regra 2 de `atlas.ts` — animação é melhoria, nunca pré-requisito — e a
-  assimetria está coberta por teste, para ser deliberada em vez de descoberta.
 - **Usar a cena animada dentro do mundo.** Ela traz chão, props e inimigos já compostos, que é
   exatamente o que o motor desenha ao vivo. Ver §6.
 - **Rebalancear a curva de mapa.** `escalaDoMapa` no mapa 16 dá 6,25× contra 3,45× no 8. É salto
   grande, é só cenário, e mexer nele é decisão do dono com dado de jogador real na mão.
-- **Arte de chão para os oito doces.** O pacote não trouxe, e eles seguem na malha procedural.
+- **Pré-carregar as cenas animadas.** Elas são 431 KB — quase o dobro das outras quatro famílias
+  somadas — e só aparecem no painel de mapa. Aquecê-las junto com a zona pagaria o arquivo mais caro
+  do pacote pelo uso mais raro dele. O degradê do CSS cobre a espera.
+- **Desenhar folha de dano para o pool base.** Ver §11.
+
+> **Saiu daqui no sexto pacote.** "Dar folha de animação à leva doce" e "arte de chão para os oito
+> doces" eram itens desta lista, com a justificativa de que animação é melhoria e nunca
+> pré-requisito (regra 2 de `atlas.ts`). A regra continua valendo — o que mudou foi que a melhoria
+> chegou. Ficam registrados aqui porque a assimetria era deliberada enquanto durou, e não um
+> esquecimento que alguém consertou.
 
 ## 4. Arquivos afetados
 
@@ -60,12 +86,33 @@ sempre — grande e lento bate forte, pequeno e rápido bate fraco.
 - `src/lib/i18n/pt.ts` + `en.ts` — 16 chaves novas em cada
 - `src/dev/sandbox.ts`, `sandbox.html` — ciclador dos 16 mapas
 
+No sexto pacote, a paridade mexeu em quatro deles outra vez:
+
+- `src/game/atlas.ts` — o apelido virou **derivado** do nome do PNG parado, e sumiram
+  `biomaTemLadrilho` e a tabela de apelidos da fábrica: sem leva parada, não há mais o que
+  perguntar. `arteDoLadrilho`, `ladrilhosDoBioma`, `arteDaAnimacaoDoProp` e `arteDaCenaAnimada`
+  deixaram de poder devolver `null`.
+- `src/game/sprites.ts` — `desenharPiso` passou a devolver `boolean`, e é esse `false` que chama a
+  malha (§5). O caminho de lampejo ganhou o comentário do porquê o pool cai na silhueta gerada
+  (§11).
+- `src/features/mapa/PainelMapa.tsx` + `.css` — a classe `--viva` sumiu; a animação desceu para a
+  regra base (§8).
+- `public/arte/biomas/`, `public/arte/inimigos/` — 82 arquivos, e o inventário atualizado em
+  `docs/02_DESIGN_SYSTEM/inventario-de-arte.md`.
+
 ## 5. O chão desenhado
 
-Os oito biomas novos têm ladrilho; os oito doces, não. `desenharCenario` escolhe **um dos dois**,
-nunca os dois: a malha hexagonal existe para dar referência de movimento num fundo chapado, e um
-piso de verdade já faz isso melhor. Sobrepor deixaria um risco de papel milimetrado por cima da
-chapa rebitada — o efeito exato que a malha existe para evitar.
+Os dezesseis têm ladrilho. `desenharCenario` desenha **um dos dois**, nunca os dois: a malha
+hexagonal existe para dar referência de movimento num fundo chapado, e um piso de verdade já faz
+isso melhor. Sobrepor deixaria um risco de papel milimetrado por cima da chapa rebitada — o efeito
+exato que a malha existe para evitar.
+
+**A malha virou o estado de carregamento.** Enquanto metade dos biomas não tinha chão, ela era o
+caminho permanente deles e `desenharCenario` perguntava `biomaTemLadrilho(bioma)`. Com todos
+ladrilhados essa pergunta some, e a malha passa a ser o que o comentário dela sempre disse que era:
+o fundo que segura a tela **enquanto** o PNG do chão não decodifica — primeiro quadro de mapa novo,
+aba que voltou do cache frio, portal lento. `desenharPiso` devolve `boolean`, e o `false` é o que
+chama a malha; sem ela, esse intervalo seria uma cor chapada onde andar não parece andar.
 
 Três decisões de desenho, todas tomadas contra a tela e não no papel:
 
@@ -97,11 +144,20 @@ volta destrói a sensação de lugar.
 | `-idle` | 4 de 160×184 | o assinatura respirando no mundo |
 | `-hit` | 2 de 160×184 | o lampejo de dano — o quadro 0 é o vulto branco |
 | `-die` | 4 de 160×184 | o abatido caindo |
-| `-prop` | 4 de 176×176 | o elemento de cenário espalhado |
+| `-prop` | 4, medida variável | o elemento de cenário espalhado |
 | `-scene` | 4 de 608×352 | **a miniatura do painel de mapa** |
 
-As três folhas de inimigo saem do **mesmo apelido**, num mapa só. Escritas em tabelas separadas,
-seriam três listas para manter em sincronia e uma para esquecer no dia em que chegar a nona forma.
+As três folhas de inimigo saem do **mesmo apelido**, e desde o sexto pacote esse apelido não é mais
+escrito à mão: ele é derivado do nome do PNG parado, que é a regra que o pacote inteiro segue
+(`en-floresta.png` tem `anim-floresta-idle.png` ao lado). Uma tabela escrita seria uma terceira
+lista das mesmas 21 chaves, e ela sairia de sincronia sem barulho nenhum — apelido errado não
+quebra, ele só para de animar.
+
+**O prop não tem medida fixa.** Os oito da fábrica são 176×176; os doces variam com o objeto —
+`prop-geleia` é 144×72, `prop-vulcao` 144×56, `prop-geleira` 64×96. Poça e boca de cratera não têm
+por que ser altas. O recorte é `largura / 4`, então uma folha montada na medida da fábrica
+desenharia o prop deslocado em metade dos biomas; o teste confere cada quadro contra a caixa do
+`prop-` parado.
 
 **O lampejo desenhado vence o gerado.** `sprites.ts` gerava a silhueta branca pintando de branco o
 que já estava opaco. O artista desenhou a dele, e ela sabe onde o contorno engorda. A gerada
@@ -150,6 +206,15 @@ O degradê continua por baixo, no CSS, e aparece enquanto o PNG não chega. O co
 animação, com `steps()` — sem `steps()` o navegador interpola entre os quadros e a folha desliza
 como panorama em vez de trocar de quadro. Quem pediu menos movimento fica com o primeiro quadro.
 
+**As dezesseis se mexem.** Enquanto metade tinha cena, o componente ligava uma classe `--viva` item
+a item e a outra metade caía no cenário parado com um quadro só. Sem ninguém para deixar de fora, a
+classe virou um modificador sempre presente, e a animação desceu para a regra base. O que substituiu
+o ramo "e se esta zona não tiver cena" não é confiança de que o arquivo existe: é o degradê, que
+aparece enquanto o PNG viaja e continua aparecendo se ele nunca chegar.
+
+O laço é lento (0,66 s) porque agora são dezesseis cartões animando ao mesmo tempo, numa tela em que
+o jogador está **lendo** faixa de nível para decidir para onde ir.
+
 ## 9. Critérios de aceite
 
 1. Existem 16 biomas e 16 mapas; `mapaSugerido` cobre nível 1 a 160 e satura no 16.
@@ -158,13 +223,16 @@ como panorama em vez de trocar de quadro. Quem pediu menos movimento fica com o 
 3. Cada bioma tem assinatura exclusivo, e nenhuma silhueta geométrica repete outra.
 4. Todo caminho de arte declarado no atlas existe no disco, e cada família de folha tem largura
    divisível pela **sua** contagem de quadros — dano tem 2, as outras têm 4.
-5. Os oito biomas do arco têm ladrilho e as quatro variantes no disco; os oito doces não têm
-   nenhuma, e caem na malha.
-6. Dano e morte existem exatamente para quem tem repouso — as três folhas saem do mesmo apelido.
-7. Matar deixa corpo e tira o bicho de `inimigos` no mesmo quadro; sumir por distância não deixa;
+5. Os dezesseis têm as quatro variantes de ladrilho no disco, 64×64, sem repetir. A malha só
+   aparece enquanto o ladrilho base não decodificou.
+6. As 21 formas — 16 assinatura e 5 do pool base — têm repouso e morte. A folha de dano existe para
+   as 16 assinatura e para nenhuma do pool, que usa o `-sil` desenhado à mão (§11).
+7. Todo quadro de folha cabe na caixa do PNG parado correspondente, e a largura de cada família
+   divide pela **sua** contagem de quadros.
+8. Matar deixa corpo e tira o bicho de `inimigos` no mesmo quadro; sumir por distância não deixa;
    trocar de mapa limpa; o corpo não é mirado nem conta como população.
-8. As contas de quadro saturam e nunca devolvem índice fora da folha, nem com `NaN` na entrada.
-9. O painel de mapa lista os 16 sem rolagem, paginado.
+9. As contas de quadro saturam e nunca devolvem índice fora da folha, nem com `NaN` na entrada.
+10. O painel de mapa lista os 16 sem rolagem, paginado, e as dezesseis miniaturas animam.
 
 ## 10. O que ficou sabido e não resolvido
 
@@ -172,3 +240,24 @@ como panorama em vez de trocar de quadro. Quem pediu menos movimento fica com o 
   visual. Não afeta recompensa. Fica registrado para o dono decidir com dado na mão.
 - **Bioma 9 e bioma 14 têm o mesmo trio de cor** (`#0e0b14` / `#5c5566` / `#c93a6e`), como vieram
   do pacote. A miniatura com a cena resolve o sintoma no painel; os tokens seguem iguais.
+- **O pool base não tem folha de dano** — ver §11. É a única assimetria que sobrou do arco.
+
+## 11. O pool base, e o `-sil` que ficou onde estava
+
+Os cinco bichos que aparecem nos dezesseis mapas ganharam repouso e morte, e **não** ganharam folha
+de dano. O brief tratou isso como já resolvido — "o `-hit` deles já existe: são os `-sil`" — e é a
+única coisa do pedido em que o brief errou.
+
+O `-sil` é silhueta de quadro único, desenhada para a pose do PNG parado. Medindo o alfa: ele bate
+**100%** com o PNG parado, que bate **100%** com o quadro 1 do repouso e diverge **6 a 12%** dos
+quadros 2, 3 e 4. Desenhá-lo sobre um corpo animado acertaria a pose em um acerto de cada quatro e
+estouraria nos outros três — dezenas de vezes por minuto, porque abate é o que este jogo mais
+produz.
+
+Então no caminho animado o motor **gera** a silhueta do quadro corrente, que é o que ele já fazia.
+A arte desenhada não ficou órfã: o `-sil` continua sendo o lampejo do caminho do PNG parado, que é
+onde o bicho fica enquanto a folha não decodifica — e lá a pose casa, porque lá o corpo **é** o PNG
+parado.
+
+Pedir cinco `-hit` de dois quadros resolveria de vez, e é melhoria, nunca pré-requisito. Não valia
+segurar o pacote por ela.

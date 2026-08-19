@@ -31,7 +31,6 @@ import {
   arteDoItem,
   arteDoLadrilho,
   arteDoProp,
-  biomaTemLadrilho,
   imagem,
   ladrilhosDoBioma,
   urlDaArte,
@@ -169,27 +168,21 @@ describe('todo caminho do atlas existe no disco', () => {
   })
 })
 
-describe('a arte da fábrica morta', () => {
-  // O pacote de 2026-08-19 trouxe TRÊS coisas que nenhuma leva anterior tinha:
-  // ladrilho de chão que emenda, folha de repouso do inimigo e folha do prop.
-  // As três são melhoria, nunca pré-requisito — mas quando o atlas declara que
-  // existem, elas precisam existir mesmo, senão o jogo baixa 404 por quadro.
+describe('a arte animada dos dezesseis', () => {
+  // O arco de 2026-08-19 chegou em seis pacotes e terminou com os DEZESSEIS
+  // biomas no mesmo padrão: ladrilho de chão que emenda, e folhas de repouso,
+  // dano, morte, prop e cena. A assimetria "só os oito industriais têm" que os
+  // pacotes anteriores criaram acabou, e os testes abaixo são o que impede ela
+  // de voltar em silêncio quando entrar o bioma 17.
+  //
+  // Tudo aqui é melhoria e nunca pré-requisito — mas quando o atlas DECLARA que
+  // um arquivo existe, ele precisa existir, senão o jogo baixa 404 por quadro.
 
-  it('os 8 biomas do arco têm ladrilho, e os 8 doces não', () => {
+  const ASSINATURAS = BIOMAS.map((b) => b.assinatura.forma)
+  const POOL = POOL_INIMIGOS.map((e) => e.forma)
+
+  it('todo bioma tem as 4 variantes de ladrilho no disco, sem repetir', () => {
     for (const bioma of BIOMAS) {
-      const esperado = bioma.id > 8
-      expect(biomaTemLadrilho(bioma.token), `bioma ${bioma.id}`).toBe(esperado)
-    }
-  })
-
-  it('cada bioma com ladrilho tem as 4 variantes no disco', () => {
-    for (const bioma of BIOMAS) {
-      if (!biomaTemLadrilho(bioma.token)) {
-        expect(ladrilhosDoBioma(bioma.token), `bioma ${bioma.id}`).toEqual([])
-        expect(arteDoLadrilho(bioma.token, 1), `bioma ${bioma.id}`).toBeNull()
-        continue
-      }
-
       const ladrilhos = ladrilhosDoBioma(bioma.token)
       expect(ladrilhos, `bioma ${bioma.id}`).toHaveLength(VARIANTES_LADRILHO)
       expect(new Set(ladrilhos).size, `bioma ${bioma.id} repete variante`).toBe(VARIANTES_LADRILHO)
@@ -200,40 +193,66 @@ describe('a arte da fábrica morta', () => {
   it('a variante do ladrilho satura em vez de virar 404', () => {
     // O número vem de um hash sobre a célula. Um valor fora da faixa não pode
     // apagar o chão da tela inteira — e "fora da faixa" inclui NaN.
-    const bioma = BIOMAS[8]!.token
+    const bioma = BIOMAS[0]!.token
     for (const invalido of [0, -3, 99, Number.NaN, Number.POSITIVE_INFINITY]) {
       const caminho = arteDoLadrilho(bioma, invalido)
       expect(caminho, `variante ${invalido}`).toBeTruthy()
-      esperarQueExista(caminho!, `variante ${invalido}`)
+      esperarQueExista(caminho, `variante ${invalido}`)
     }
   })
 
-  it('os 8 assinatura do arco têm folha de repouso; os 8 doces, não', () => {
+  it('o ladrilho é quadrado e do tamanho nativo que o piso assume', () => {
+    // O piso assume 64×64 no arquivo e redesenha em 48 de mundo — 6 de mundo
+    // para cada um dos 8×8 pixels de desenho, inteiro, sem reamostragem. Um PNG
+    // de outro tamanho quebraria essa conta e borraria o chão em silêncio.
     for (const bioma of BIOMAS) {
-      const folha = arteDaAnimacaoDoInimigo(bioma.assinatura.forma)
-      if (bioma.id > 8) {
-        expect(folha, `bioma ${bioma.id}`).toBeTruthy()
-        esperarQueExista(folha!, `folha do bioma ${bioma.id}`)
-      } else {
-        expect(folha, `bioma ${bioma.id}`).toBeNull()
+      for (const caminho of ladrilhosDoBioma(bioma.token)) {
+        const { largura, altura } = medirPng(caminho)
+        expect(largura, caminho).toBe(64)
+        expect(altura, caminho).toBe(64)
       }
-    }
-    // O pool base também não tem folha — e isso é o que faz `desenharInimigo`
-    // continuar caindo no PNG parado para eles.
-    for (const especie of POOL_INIMIGOS) {
-      expect(arteDaAnimacaoDoInimigo(especie.forma), especie.forma).toBeNull()
     }
   })
 
-  it('os props animados existem exatamente onde o atlas promete', () => {
+  it('as 21 formas respiram, e as 21 caem', () => {
+    // Repouso e morte cobrem TODO bicho que o jogo desenha: 16 assinatura mais
+    // os 5 do pool base. É o que faz `desenharInimigo` entrar pelo caminho
+    // animado sempre, e nunca mais cair no PNG parado por falta de arte.
+    for (const forma of [...ASSINATURAS, ...POOL]) {
+      const repouso = arteDaAnimacaoDoInimigo(forma)
+      const morte = arteDaMorteDoInimigo(forma)
+      expect(repouso, forma).toBeTruthy()
+      expect(morte, forma).toBeTruthy()
+      esperarQueExista(repouso!, `repouso de ${forma}`)
+      esperarQueExista(morte!, `morte de ${forma}`)
+    }
+  })
+
+  it('a folha de dano é o que separa assinatura de pool base', () => {
+    // A ÚNICA assimetria que sobrou do arco, e ela é deliberada: o pool base
+    // levou repouso e morte mas não `-hit`, porque o lampejo dele já existia
+    // desenhado à mão como `-sil` desde a leva anterior.
+    //
+    // `sprites.ts` NÃO usa esse `-sil` no caminho animado — o `-sil` casa com a
+    // pose do PNG parado, que é o quadro 1 do repouso, e estouraria a pose nos
+    // outros três. Lá ele gera a silhueta do quadro corrente. O `-sil` segue
+    // valendo no caminho do PNG parado, que é onde o bicho fica enquanto a
+    // folha não decodifica.
+    for (const forma of ASSINATURAS) {
+      const dano = arteDoLampejoDoInimigo(forma)
+      expect(dano, forma).toBeTruthy()
+      esperarQueExista(dano!, `dano de ${forma}`)
+    }
+    for (const forma of POOL) {
+      expect(arteDoLampejoDoInimigo(forma), forma).toBeNull()
+      expect(arteDoDanoDoInimigo(forma), `${forma} perdeu o -sil`).toBeTruthy()
+    }
+  })
+
+  it('todo bioma tem prop animado e cena animada no disco', () => {
     for (const bioma of BIOMAS) {
-      const folha = arteDaAnimacaoDoProp(bioma.token)
-      if (bioma.id > 8) {
-        expect(folha, `bioma ${bioma.id}`).toBeTruthy()
-        esperarQueExista(folha!, `prop animado do bioma ${bioma.id}`)
-      } else {
-        expect(folha, `bioma ${bioma.id}`).toBeNull()
-      }
+      esperarQueExista(arteDaAnimacaoDoProp(bioma.token), `prop animado do bioma ${bioma.id}`)
+      esperarQueExista(arteDaCenaAnimada(bioma.token), `cena do bioma ${bioma.id}`)
     }
   })
 
@@ -246,17 +265,41 @@ describe('a arte da fábrica morta', () => {
     // E as famílias NÃO compartilham a contagem: dano tem DOIS quadros e as
     // outras têm quatro. Conferir todas contra 4 deixaria passar exatamente o
     // caso que o dano introduziu.
-    const arco = BIOMAS.filter((b) => b.id > 8)
     const familias = [
-      { nome: 'repouso', quadros: QUADROS_IDLE, folhas: arco.map((b) => arteDaAnimacaoDoInimigo(b.assinatura.forma)!) },
-      { nome: 'dano', quadros: QUADROS_LAMPEJO, folhas: arco.map((b) => arteDoLampejoDoInimigo(b.assinatura.forma)!) },
-      { nome: 'morte', quadros: QUADROS_MORTE, folhas: arco.map((b) => arteDaMorteDoInimigo(b.assinatura.forma)!) },
-      { nome: 'prop', quadros: QUADROS_IDLE, folhas: arco.map((b) => arteDaAnimacaoDoProp(b.token)!) },
-      { nome: 'cena', quadros: QUADROS_CENA, folhas: arco.map((b) => arteDaCenaAnimada(b.token)!) },
+      {
+        nome: 'repouso',
+        quadros: QUADROS_IDLE,
+        folhas: [...ASSINATURAS, ...POOL].map((f) => arteDaAnimacaoDoInimigo(f)!),
+        total: 21,
+      },
+      {
+        nome: 'morte',
+        quadros: QUADROS_MORTE,
+        folhas: [...ASSINATURAS, ...POOL].map((f) => arteDaMorteDoInimigo(f)!),
+        total: 21,
+      },
+      {
+        nome: 'dano',
+        quadros: QUADROS_LAMPEJO,
+        folhas: ASSINATURAS.map((f) => arteDoLampejoDoInimigo(f)!),
+        total: 16,
+      },
+      {
+        nome: 'prop',
+        quadros: QUADROS_IDLE,
+        folhas: BIOMAS.map((b) => arteDaAnimacaoDoProp(b.token)),
+        total: 16,
+      },
+      {
+        nome: 'cena',
+        quadros: QUADROS_CENA,
+        folhas: BIOMAS.map((b) => arteDaCenaAnimada(b.token)),
+        total: 16,
+      },
     ]
 
     for (const familia of familias) {
-      expect(familia.folhas, familia.nome).toHaveLength(8)
+      expect(familia.folhas, familia.nome).toHaveLength(familia.total)
       for (const folha of familia.folhas) {
         esperarQueExista(folha, `folha de ${familia.nome}`)
         const { largura, altura } = medirPng(folha)
@@ -264,60 +307,58 @@ describe('a arte da fábrica morta', () => {
           largura % familia.quadros,
           `${folha}: ${largura}px não divide por ${familia.quadros}`,
         ).toBe(0)
-        // Quadro mais largo que alto seria sinal de contagem errada — salvo na
-        // cena, que é uma paisagem deitada e larga por natureza.
-        if (familia.nome !== 'cena') {
-          expect(largura / familia.quadros, `${folha}: quadro largo demais`).toBeLessThanOrEqual(
-            altura * 1.5,
-          )
-        }
+        expect(altura, `${folha}: folha sem altura`).toBeGreaterThan(0)
       }
     }
   })
 
-  it('dano e morte existem exatamente para quem tem repouso', () => {
-    // As três folhas saem do MESMO apelido em `atlas.ts`. Se um dia saírem de
-    // tabelas diferentes outra vez, é aqui que a divergência aparece — e o
-    // sintoma no jogo seria um bicho que respira, apanha e some sem cair.
-    for (const bioma of BIOMAS) {
-      const forma = bioma.assinatura.forma
-      const temRepouso = arteDaAnimacaoDoInimigo(forma) !== null
-      expect(arteDoLampejoDoInimigo(forma) !== null, `dano do bioma ${bioma.id}`).toBe(temRepouso)
-      expect(arteDaMorteDoInimigo(forma) !== null, `morte do bioma ${bioma.id}`).toBe(temRepouso)
-    }
-    for (const especie of POOL_INIMIGOS) {
-      expect(arteDoLampejoDoInimigo(especie.forma), especie.forma).toBeNull()
-      expect(arteDaMorteDoInimigo(especie.forma), especie.forma).toBeNull()
+  it('todo quadro de folha cabe na caixa do PNG parado correspondente', () => {
+    // Divisibilidade sozinha não prova contagem: uma folha de 8 quadros de 80px
+    // divide por 4 tão bem quanto uma de 4 quadros de 160px, e as duas passam.
+    // O que separa uma da outra é a CAIXA — e ela existe desenhada, no PNG
+    // parado que veio antes da animação.
+    //
+    // Aqui houve um palpite antes: "quadro mais largo que alto é sinal de
+    // contagem errada". Ele acusou `anim-geleia-prop.png` (144×72), que estava
+    // certo — quatro dos props doces são baixos e largos de propósito, poça de
+    // geleia e boca de vulcão não têm por que ser altos. Proxy trocado pela
+    // medida: comparar com o parado não tem falso positivo nenhum.
+    for (const forma of [...ASSINATURAS, ...POOL]) {
+      const parado = medirPng(arteDoInimigo(forma))
+      for (const [familia, folha, quadros] of [
+        ['repouso', arteDaAnimacaoDoInimigo(forma), QUADROS_IDLE],
+        ['dano', arteDoLampejoDoInimigo(forma), QUADROS_LAMPEJO],
+        ['morte', arteDaMorteDoInimigo(forma), QUADROS_MORTE],
+      ] as const) {
+        if (!folha) continue
+        const { largura, altura } = medirPng(folha)
+        expect(largura / quadros, `${familia} de ${forma}`).toBe(parado.largura)
+        expect(altura, `${familia} de ${forma}`).toBe(parado.altura)
+      }
     }
   })
 
   it('a cena animada tem o enquadramento do cenário parado', () => {
-    // A miniatura do painel de mapa troca uma pela outra conforme o bioma tenha
-    // folha ou não. Enquadramentos diferentes fariam a tira de miniaturas mudar
-    // de proporção no meio, entre um item e o seguinte.
+    // O painel de mapa desenha a cena por cima do degradê do bioma, no mesmo
+    // quadro. Enquadramento diferente do cenário faria a tira de miniaturas
+    // mudar de proporção no meio, entre um item e o seguinte.
     for (const bioma of BIOMAS) {
-      const cena = arteDaCenaAnimada(bioma.token)
-      if (bioma.id <= 8) {
-        expect(cena, `bioma ${bioma.id}`).toBeNull()
-        continue
-      }
       const parado = medirPng(arteDoCenario(bioma.token))
-      const animada = medirPng(cena!)
+      const animada = medirPng(arteDaCenaAnimada(bioma.token))
       expect(animada.largura / QUADROS_CENA, `bioma ${bioma.id}`).toBe(parado.largura)
       expect(animada.altura, `bioma ${bioma.id}`).toBe(parado.altura)
     }
   })
 
-  it('o ladrilho é quadrado e do tamanho nativo que o piso assume', () => {
-    // O piso assume 64×64 no arquivo e redesenha em 48 de mundo — 6 de mundo
-    // para cada um dos 8×8 pixels de desenho, inteiro, sem reamostragem. Um PNG
-    // de outro tamanho quebraria essa conta e borraria o chão em silêncio.
-    for (const bioma of BIOMAS.filter((b) => biomaTemLadrilho(b.token))) {
-      for (const caminho of ladrilhosDoBioma(bioma.token)) {
-        const { largura, altura } = medirPng(caminho)
-        expect(largura, caminho).toBe(64)
-        expect(altura, caminho).toBe(64)
-      }
+  it('o prop animado tem o enquadramento do prop parado', () => {
+    // Os props doces não têm largura fixa: cada bioma trouxe a sua. O recorte da
+    // folha é `largura / 4`, então uma folha montada na medida da fábrica
+    // desenharia o prop deslocado em todo bioma cuja medida é outra.
+    for (const bioma of BIOMAS) {
+      const parado = medirPng(arteDoProp(bioma.token))
+      const animado = medirPng(arteDaAnimacaoDoProp(bioma.token))
+      expect(animado.largura / QUADROS_IDLE, `bioma ${bioma.id}`).toBe(parado.largura)
+      expect(animado.altura, `bioma ${bioma.id}`).toBe(parado.altura)
     }
   })
 })
